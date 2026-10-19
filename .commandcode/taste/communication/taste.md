@@ -1,0 +1,3 @@
+- Communicates in Indonesian (Bahasa Indonesia); assistant should respond in Indonesian. Confidence: 0.7
+- Communicates in a casual, terse style; gives brief go-aheads (e.g. "okee lanjuttt", "oke lanjut", "oke lanjutkan") and is comfortable letting the assistant continue a planned sequence of work or pick the next step autonomously without further input or micromanagement. Confidence: 0.7
+- Delegates details to the assistant's judgment on feature content/design ("isinya kamu bisa improve"), but wants the assistant to confirm its understanding of a multi-part spec ("apakah cukup dimengerti?") before executing it. Confidence: 0.5

@@ -1,0 +1,517 @@
+/* ── Dynamic Island / notch ─────────────────────────────────────
+   Notch nempel di tepi atas layar: hanya sudut BAWAH yang melengkung,
+   plus "telinga" (kurva konkaf) di kiri-kanan supaya menyatu ke bezel.
+   marginTop = 0 (lihat config.js). Badan notch hitam solid; wallust
+   dipakai untuk warna teks & aksen.                                */
+
+/* window harus transparan supaya telinga menyatu ke tepi layar */
+.dyn-island-window,
+.dyn-island-frame-wrap,
+.dyn-island-frame,
+.dyn-island-ear-col {
+    background-color: transparent;
+}
+
+/* Container clipping untuk animasi lebar (lihat index.js).
+   GtkScrolledWindow bisa menggambar background/border dari theme. */
+.dyn-island-clip,
+.dyn-island-clip viewport,
+.dyn-island-clip undershoot {
+    background-color: transparent;
+    border-style: none;
+    box-shadow: none;
+}
+
+/* Telinga: ukurannya diatur dari index.js (10 -> 22 -> 13, ikut state). */
+.dyn-island-ear {
+    min-width: 0px;
+    min-height: 0px;
+}
+
+.dyn-island-notch {
+    /* hitam murni opaque (NOTCH_COLOR) — lihat catatan di theme.js */
+    background-color: __BG_SOLID__;
+    /* tanpa border: pemisah dengan wallpaper cukup dari hitamnya sendiri,
+       dan tidak ada garis terang di pertemuan dengan telinga */
+    border-style: none;
+    border-radius: 0px 0px 16px 16px;
+    /* box-shadow sengaja TIDAK dipakai: layer surface setinggi notch, jadi
+       apa pun yang digambar di luar kotak widget (shadow) ikut ter-clip.
+       Kalau suatu saat mau shadow, beri padding transparan di
+       .dyn-island-frame (>= blur) supaya ada ruang gambar. */
+    padding: 3px 13px;
+    /* ukuran (w/h) sepenuhnya diatur index.js lewat set_size_request sesuai
+       CONFIG.geometry -> tidak ada min-height di sini. Tidak ada transition:
+       GTK3 tidak menganimasikan width/height/border-radius, dan ukurannya
+       memang digerakkan per frame dari JS. */
+    /* font UI sistem (seperti Nusa); Nerd Font tetap sebagai fallback
+       untuk glyph ikon (⏮ ⏸ ⏭ dll) */
+    font-family: "Ubuntu", "Noto Sans", "DejaVu Sans", "JetBrainsMono Nerd Font", sans-serif;
+    font-size: 13px;
+    color: __FG__;
+}
+
+/* Tooltip: kotak bawaan tema terang & besar sehingga menutupi notch saat
+   pointer berhenti di kartu/tombol. Disamakan dengan badan notch. */
+tooltip {
+    background-color: #000000;
+    border: 1px solid __SURFACE_STRONG__;
+    border-radius: 8px;
+    padding: 4px 8px;
+}
+tooltip label,
+tooltip > box {
+    color: __FG__;
+    font-size: 11px;
+}
+
+/* ── halaman closed (notch tertutup 150x30) ──────────────────── */
+.dyn-island-closed-time {
+    font-size: 13px;
+    font-weight: 600;
+    color: __FG__;
+}
+/* tanggal kecil: tampil saat tidak ada musik, menggantikan equalizer yang
+   hanya berupa stub redup dan tidak informatif */
+.dyn-island-closed-date {
+    font-size: 11px;
+    color: __MUTED__;
+}
+
+/* ── navigasi (dots + panah), overlay saat hover ─────────────── */
+/* opaque & sedikit lebih terang dari notch: menutup konten di belakangnya
+   sekaligus tetap terbaca sebagai pill */
+.dyn-island-nav {
+    background-color: __SURFACE_STRONG__;
+    border-radius: 999px;
+    padding: 2px 8px;
+    margin-bottom: 8px;
+}
+.dyn-island-nav-btn {
+    /* target klik yang layak (>=18px) — dulu 14px+3px padding */
+    min-width: 18px;
+    min-height: 18px;
+    padding: 0px 4px;
+    border-radius: 9px;
+    background-color: __SURFACE__;
+    transition: 140ms ease-out;
+}
+.dyn-island-nav-btn:hover {
+    background-color: __SURFACE_HOVER__;
+}
+.dyn-island-nav-btn:active {
+    background-color: __ACCENT__;
+    color: __BG__;
+}
+.dyn-island-nav-arrow {
+    font-size: 10px;
+    color: __FG__;
+}
+
+/* ── idle (jam besar + tanggal + ringkasan status) ───────────── */
+.dyn-island-idle-time {
+    font-size: 46px;
+    font-weight: 700;
+    letter-spacing: 1px;
+    color: __FG__;
+}
+.dyn-island-idle-date {
+    font-size: 13px;
+    color: __MUTED__;
+}
+/* lebar tetap supaya blok ringkasan tidak bergeser saat angkanya berubah */
+.dyn-island-idle-stats {
+    min-width: 108px;
+}
+.dyn-island-idle-stat-icon {
+    font-size: 12px;
+    color: __ACCENT2__;
+}
+.dyn-island-idle-stat {
+    font-size: 13px;
+    color: __FG__;
+}
+
+/* ── media (kartu besar 420x140) ──────────────────────────────── */
+/* album art digambar Cairo (modules/cover.js) supaya sudutnya benar-benar
+   membulat — border-radius CSS tidak meng-clip pixbuf di GTK3 */
+/* lebar tetap: tanpa ini lebar baris media ikut panjang judul, sehingga
+   blok cover/teks/tombol bergeser tiap ganti lagu */
+.dyn-island-media-text {
+    min-width: 176px;
+}
+.dyn-island-media-title {
+    font-size: 15px;
+    font-weight: 700;
+    color: __FG__;
+}
+.dyn-island-media-artist {
+    font-size: 12px;
+    color: __MUTED__;
+}
+.dyn-island-ctl {
+    padding: 2px 8px;
+    border-radius: 10px;
+    transition: 140ms ease-out;
+}
+.dyn-island-ctl:hover {
+    background-color: __ACCENT_SOFT__;
+}
+.dyn-island-ctl:active {
+    background-color: __ACCENT__;
+    color: __BG__;
+}
+.dyn-island-ctl-icon {
+    font-size: 15px;
+}
+
+/* ── lirik (kartu lebih lebar, terbelah dua) ─────────────────── */
+.dyn-island-lyrics-title {
+    font-size: 13px;
+    font-weight: 700;
+    color: __FG__;
+}
+.dyn-island-lyrics-artist {
+    font-size: 11px;
+    color: __MUTED__;
+}
+.dyn-island-lyrics-meta {
+    min-width: 190px;
+}
+.dyn-island-lyrics-pane,
+.dyn-island-lyrics-pane viewport {
+    background-color: transparent;
+}
+.dyn-island-lyric {
+    padding: 1px 4px;
+    border-radius: 6px;
+    transition: 180ms ease-out;
+}
+.dyn-island-lyric-text {
+    font-size: 12px;
+    color: __MUTED__;
+}
+.dyn-island-lyric.on .dyn-island-lyric-text {
+    color: __FG__;
+    font-weight: 700;
+}
+.dyn-island-lyrics-empty {
+    font-size: 12px;
+    color: __MUTED__;
+}
+/* state gagal jaringan: bisa diklik untuk mencoba lagi */
+.dyn-island-lyrics-retry {
+    padding: 2px 6px;
+    border-radius: 6px;
+    background-color: __SURFACE_DIM__;
+    transition: 140ms ease-out;
+}
+.dyn-island-lyrics-retry:hover {
+    background-color: rgba(255, 255, 255, 0.16);
+}
+
+/* ── pomodoro ───────────────────────────────────────────────── */
+.dyn-island-pomo-title {
+    font-size: 12px;
+    color: __MUTED__;
+}
+.dyn-island-pomo-time {
+    font-size: 32px;
+    font-weight: 700;
+    color: __FG__;
+}
+.dyn-island-pomo-mode {
+    font-size: 11px;
+    color: __MUTED__;
+}
+.dyn-island-pill {
+    padding: 2px 10px;
+    border-radius: 999px;
+    background-color: __SURFACE__;
+    transition: 140ms ease-out;
+}
+.dyn-island-pill:hover {
+    background-color: __SURFACE_HOVER__;
+}
+.dyn-island-pill:active {
+    background-color: __ACCENT__;
+    color: __BG__;
+}
+.dyn-island-pill-label {
+    font-size: 12px;
+    color: __FG__;
+}
+
+/* ── water ──────────────────────────────────────────────────── */
+.dyn-island-water-title {
+    font-size: 13px;
+    font-weight: 700;
+    color: __FG__;
+}
+.dyn-island-water-sub {
+    font-size: 11px;
+    color: __MUTED__;
+}
+.dyn-island-water-volume {
+    font-size: 22px;
+    font-weight: 700;
+    color: __FG__;
+}
+.dyn-island-water-goal {
+    font-size: 12px;
+    color: __MUTED__;
+}
+/* status ringkas di kanan baris volume ("50% · 750 ml lagi") */
+.dyn-island-water-status {
+    font-size: 11px;
+    color: __MUTED__;
+}
+/* caption kecil di depan pill −/+ supaya jelas itu mengubah TARGET */
+.dyn-island-water-goalcap {
+    font-size: 9px;
+    color: __MUTED__;
+}
+.dyn-island-water-meta {
+    min-width: 200px;
+}
+.dyn-island-switch {
+    padding: 0px;
+    background-color: transparent;
+}
+
+/* ── todo ───────────────────────────────────────────────────── */
+.dyn-island-todo-title {
+    font-size: 13px;
+    font-weight: 700;
+    color: __FG__;
+}
+.dyn-island-todo-title-sub {
+    font-size: 11px;
+    color: __MUTED__;
+}
+.dyn-island-todo-count {
+    font-size: 22px;
+    font-weight: 700;
+    color: __FG__;
+}
+.dyn-island-todo-done {
+    font-size: 11px;
+    color: __MUTED__;
+}
+.dyn-island-todo-meta {
+    min-width: 170px;
+}
+.dyn-island-todo-pane,
+.dyn-island-todo-pane viewport {
+    background-color: transparent;
+}
+.dyn-island-todo-row {
+    padding: 1px 4px;
+    border-radius: 6px;
+    transition: 140ms ease-out;
+}
+.dyn-island-todo-row:hover {
+    background-color: __SURFACE_DIM__;
+}
+.dyn-island-todo-text {
+    font-size: 12px;
+    color: __FG__;
+}
+.dyn-island-todo-text.done {
+    color: __MUTED__;
+    text-decoration: line-through;
+}
+/* jatuh tempo: label terpisah supaya tidak ikut terpotong bersama teks tugas */
+.dyn-island-todo-due {
+    font-size: 10px;
+    color: __MUTED__;
+}
+.dyn-island-todo-due.done {
+    color: __MUTED__;
+    text-decoration: line-through;
+}
+.dyn-island-todo-remove {
+    padding: 1px 4px;
+    border-radius: 6px;
+}
+.dyn-island-todo-remove:hover {
+    background-color: __DANGER_SOFT__;
+}
+.dyn-island-todo-remove-label {
+    font-size: 11px;
+    color: __DANGER__;
+}
+.dyn-island-todo-empty {
+    font-size: 12px;
+    color: __MUTED__;
+}
+
+/* ── shelf ──────────────────────────────────────────────────── */
+.dyn-island-shelf-title {
+    font-size: 13px;
+    font-weight: 700;
+    color: __FG__;
+}
+.dyn-island-shelf-count {
+    font-size: 11px;
+    color: __MUTED__;
+}
+.dyn-island-chip {
+    padding: 1px 9px;
+    border-radius: 9px;
+    background-color: __SURFACE__;
+    transition: 140ms ease-out;
+}
+.dyn-island-chip:hover {
+    background-color: __SURFACE_HOVER__;
+}
+.dyn-island-chip-label {
+    font-size: 11px;
+    color: __FG__;
+}
+.dyn-island-shelf-zone {
+    border: 1.4px dashed __SURFACE_STRONG__;
+    border-radius: 12px;
+    background-color: __SURFACE_DIM__;
+    transition: 160ms ease-out;
+}
+.dyn-island-shelf-zone.over {
+    border-color: __FG__;
+    background-color: __SURFACE_HOVER__;
+}
+.dyn-island-shelf-zone-icon {
+    font-size: 15px;
+    color: __MUTED__;
+}
+.dyn-island-shelf-zone-title {
+    font-size: 12px;
+    font-weight: 600;
+    color: __FG__;
+}
+.dyn-island-shelf-zone-sub {
+    font-size: 9px;
+    color: __MUTED__;
+}
+.dyn-island-shelf-pane,
+.dyn-island-shelf-pane viewport {
+    background-color: transparent;
+}
+.dyn-island-shelf-card {
+    padding: 4px 2px;
+    border-radius: 9px;
+    background-color: __SURFACE_DIM__;
+    transition: 140ms ease-out;
+}
+.dyn-island-shelf-card:hover {
+    background-color: __SURFACE_HOVER__;
+}
+.dyn-island-shelf-thumb {
+    color: __FG__;
+}
+.dyn-island-shelf-name {
+    font-size: 10px;
+    color: __FG__;
+}
+.dyn-island-shelf-card.missing .dyn-island-shelf-name {
+    color: __MUTED__;
+}
+.dyn-island-shelf-size {
+    font-size: 9px;
+    color: __MUTED__;
+}
+
+/* ── osd (volume / brightness) ──────────────────────────────── */
+.dyn-island-osd-icon {
+    font-size: 13px;
+    color: __ACCENT2__;
+}
+.dyn-island-osd-value {
+    font-size: 12px;
+    font-weight: 700;
+    min-width: 40px;
+}
+/* digambar sendiri lewat Cairo (lihat modules/osd.js), jadi tidak ada
+   node trough/progress yang perlu di-style di sini */
+.dyn-island-bar {
+    min-width: 110px;
+}
+
+/* ── notifikasi ─────────────────────────────────────────────── */
+.dyn-island-notif-icon {
+    font-size: 13px;
+    color: __ACCENT2__;
+}
+.dyn-island-notif-text {
+    font-size: 12px;
+}
+
+/* ── popup notifikasi (kanan atas) ─────────────────────────────────
+   Kartu hitam solid seperti badan notch, hairline aksen, radius 16.
+   Animasi slide + loading bar digambar di modules/notif-popup.js. */
+.dyn-island-popup-window {
+    background: transparent;
+}
+
+.dyn-island-popup-pad {
+    padding: 10px;
+}
+
+.dyn-island-popup {
+    background: __BG_SOLID__;
+    border: 1px solid __SURFACE_STRONG__;
+    border-radius: 16px;
+    padding: 12px 14px 10px 14px;
+    box-shadow: 0 8px 24px rgba(0, 0, 0, 0.45);
+    font-family: "Ubuntu", "Noto Sans", "DejaVu Sans", sans-serif;
+}
+
+.dyn-island-popup-title {
+    color: __FG__;
+    font-size: 13px;
+}
+
+.dyn-island-popup-body {
+    color: __MUTED__;
+    font-size: 12px;
+}
+
+.dyn-island-popup-glyph {
+    color: __FG__;
+    font-size: 22px;
+}
+
+.dyn-island-popup-action {
+    background: __SURFACE__;
+    color: __FG__;
+    border-radius: 8px;
+    padding: 3px 9px;
+    font-size: 11px;
+}
+
+.dyn-island-popup-action:hover {
+    background: __SURFACE_HOVER__;
+}
+
+.dyn-island-popup-close {
+    background: transparent;
+    padding: 1px 4px;
+    min-width: 0;
+    min-height: 0;
+    color: __MUTED__;
+}
+
+.dyn-island-popup-close:hover {
+    color: __FG__;
+}
+
+.dyn-island-popup-close-icon {
+    font-size: 12px;
+}
+
+
+/* ScrolledWindow pembungkus popup: hilangkan border/padding tema supaya
+   lebar window = lebar kartu (terukur 368 vs 360 karena border 8px). */
+.dyn-island-popup-scroll {
+    border: none;
+    padding: 0;
+}

@@ -1,0 +1,12 @@
+# UI / Layout preferences
+
+- Dislikes large unused/empty space in UI layouts — flags when a view shows too little content ("terlalu memiliki banyak ruang kosong") and wants the layout improved to use the available area with useful information instead of just adding empty filler. Confidence: 0.65
+- Prefers generous breathing room between adjacent UI elements: complains when spacing is too tight ("terlalu dekat spacing bar dan pengingat airnya") and expects gaps to be increased/adjusted rather than left cramped. Confidence: 0.6
+- Evaluates UI as a product designer would — cares about space utilization, spacing, and visual balance across pages, not just whether features work. Confidence: 0.55
+- Cares about animation quality: flags shape/panel transitions that are not smooth ("animasi perubahan bentuknya masih kurang smooth") and expects the transition itself to be fixed, not only the end state. Confidence: 0.6
+- Expects input isolation for on-screen overlays: while a widget/panel (e.g. the dynamic island) is open and being interacted with, key presses meant for it must be consumed and must NOT leak to the focused application (flagged as a concern that arrow keys pressed on the island also seek/scroll a playing YouTube video). Confidence: 0.7
+- Expects interactive UI (nav pills, buttons) to stay anchored in place during layout/width transitions — any shift that makes clicks land inconsistently or drops the hover state is treated as a real bug, not cosmetic. Confidence: 0.65
+- Prefers a "clean dan minimalis" visual language and asks for it explicitly by name when requesting new UI (e.g. Bluetooth row, notification popup); treats heavy borders, bold mono type, and inconsistent type scales as not matching. Confidence: 0.75
+- Wants rows/elements hidden entirely when there is no data to show, instead of an empty placeholder or a disabled row ("jika tidak ada device yang connect jangan tampilkan"). Confidence: 0.7
+- Keeps top-level navigation minimal: secondary content should be a contextual sub-view inside its parent page (lyrics opened from the music card, dot stays on music) rather than an extra page/slot in the bar. Confidence: 0.6
+- Expects notification/popup UI to follow modern affordances: slide in/out, a visible X to dismiss, a progress bar showing remaining display time, click-through to open the source app, and icon-only buttons for system actions (e.g. a download glyph instead of an "Install" label). Confidence: 0.55
