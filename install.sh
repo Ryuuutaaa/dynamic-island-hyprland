@@ -187,6 +187,34 @@ if [[ -f "$SWAYNC_CONFIG" ]] && grep -qE '"positionX"[[:space:]]*:[[:space:]]*"c
     echo "   tidak menabrak notch: ${SWAYNC_CONFIG}"
 fi
 
+# Popup swaync dimatikan TANPA DND: state "muted" -> popup tidak muncul,
+# control center tetap menerima, dan DND tetap bebas dipakai user (dulu island
+# memaksa `swaync-client -dn` tiap 3 detik sehingga toggle DND selalu kembali).
+if [[ -f "$SWAYNC_CONFIG" ]] && ! grep -q '"dyn-island-all"' "$SWAYNC_CONFIG"; then
+    act cp "$SWAYNC_CONFIG" "${SWAYNC_CONFIG}.dyn-island.bak"
+    note "menambahkan notification-visibility muted ke ${SWAYNC_CONFIG}"
+    if (( ! DRY_RUN )); then
+        python3 - "$SWAYNC_CONFIG" <<'PYJSON'
+import json
+import sys
+
+path = sys.argv[1]
+with open(path, encoding="utf-8") as handle:
+    cfg = json.load(handle)
+cfg.setdefault("notification-visibility", {})["dyn-island-all"] = {
+    "state": "muted",
+    "app-name": ".*",
+}
+with open(path, "w", encoding="utf-8") as handle:
+    json.dump(cfg, handle, indent=2, ensure_ascii=False)
+PYJSON
+        swaync-client -R >/dev/null 2>&1 || true
+        echo "+  popup swaync dimute (DND tetap bebas dipakai)"
+    fi
+elif [[ -f "$SWAYNC_CONFIG" ]]; then
+    echo "•  popup swaync sudah dimute"
+fi
+
 SWAYNC_STYLE="${HOME}/.config/swaync/style.css"
 if [[ -f "$SWAYNC_STYLE" ]]; then
     if grep -q 'dyn-island-notif: begin' "$SWAYNC_STYLE"; then

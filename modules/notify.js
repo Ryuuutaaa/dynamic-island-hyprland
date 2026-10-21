@@ -21,6 +21,11 @@ let inActions = false;
 let sawActions = false;
 let callSerial = 0;
 let awaitingId = false;
+let replacesId = 0;
+// body terakhir per id notifikasi: update dari Chrome/WhatsApp Web kadang
+// datang dengan body kosong (mis. hanya mengubah judul); jangan sampai
+// menimpa body yang sudah tampil dengan kosong.
+const lastBodyById = new Map();
 let started = false;
 
 const decode = (text) => text
@@ -42,6 +47,8 @@ const latestWithId = (id) => {
     const item = latest.value;
     if (!item || item.id) return;
     latest.value = { ...item, id };
+    if (item.body) lastBodyById.set(id, item.body);
+    if (lastBodyById.size > 30) lastBodyById.delete(lastBodyById.keys().next().value);
 };
 
 // Argumen Notify dari dbus-monitor (setelah baris `member=Notify`):
@@ -63,10 +70,21 @@ const flush = () => {
     if (captured.length < 3) return;
     const [app, icon, summary, body = ''] = captured;
     if (!summary && !body) return;
+    // update tanpa body: pertahankan body yang sudah tercatat untuk id yang
+    // digantikan, selama pengirim/judulnya sama
+    let text = body;
+    if (!text && replacesId && lastBodyById.has(replacesId))
+        text = lastBodyById.get(replacesId);
 
-    current.value = { app, summary, body };
+    // Diagnostik: satu baris per notifikasi, supaya payload asli (mis. Chrome /
+    // WhatsApp Web) bisa diperiksa saat ada laporan body kosong.
+    console.log(`[dyn-island] notif app=${JSON.stringify(app)} icon=${JSON.stringify(icon)}`
+        + ` summary=${JSON.stringify(summary)} body=${JSON.stringify(body)}`
+        + ` replaces=${replacesId}`);
+
+    current.value = { app, summary, body: text };
     showTransient('notify', CONFIG.notifyTimeout);
-    latest.value = { app, icon, summary, body, actions: acts, id: 0, seq: ++seq };
+    latest.value = { app, icon, summary, body: text, actions: acts, id: 0, seq: ++seq };
 };
 
 const parseLine = (line) => {
@@ -81,6 +99,7 @@ const parseLine = (line) => {
         sawActions = false;
         callSerial = serial ? Number(serial[1]) : 0;
         awaitingId = false;
+        replacesId = 0;
         return;
     }
     if (line.includes('method return')) {
@@ -98,6 +117,15 @@ const parseLine = (line) => {
         return;
     }
     if (!capturing) return;
+
+    // uint32 pertama = replaces_id (argumen kedua Notify)
+    if (!sawActions && replacesId === 0) {
+        const rid = /^uint32 (\d+)$/.exec(line);
+        if (rid) {
+            replacesId = Number(rid[1]);
+            return;
+        }
+    }
 
     if (line.startsWith('array [')) {
         if (!sawActions) {

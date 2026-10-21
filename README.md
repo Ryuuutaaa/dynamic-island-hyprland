@@ -216,13 +216,39 @@ bar 10px, bar 310×3 (selebar isi kartu), sisa bawah 11px. Lebar kartu dipatok
 - **Action**: semua action tampil sebagai chip ringkas; label yang mengandung
   install/update/unduh/pasang/download diganti **ikon unduh** (`U+F019`), label
   lain tetap teks pendek. Action `default` tidak dirender (itu klik badan).
-- **Popup swaync dimatikan** lewat DND supaya tidak dobel. `swaync-client -dn`
-  dijalankan saat start **dan ditegakkan ulang tiap 3 detik** — DND tidak
-  persisten dan sempat tertutup sendiri, sehingga popup swaync muncul lagi
-  (terlihat sebagai dua kartu). Notifikasi tetap masuk control center swaync;
-  indikator DND di bar menyala. Kembalikan dengan `swaync-client -df` bila
-  popup island dimatikan.
+- **Popup swaync dimatikan tanpa DND.** Config swaync diberi
+  `notification-visibility` catch-all dengan state **`muted`**:
+  `{"dyn-island-all": {"state": "muted", "app-name": ".*"}}`. Efeknya popup
+  swaync tidak muncul, **control center tetap menerima**, dan DND tetap bebas
+  dipakai user. Sebelumnya island memaksa `swaync-client -dn` tiap 3 detik
+  supaya popup tidak dobel — akibatnya toggle DND selalu kembali nyala
+  (indikator DND tidak bisa dimatikan). Pemaksaan itu sudah dihapus.
+  `install.sh` menambahkan key ini (idempoten, backup `.dyn-island.bak`),
+  `uninstall.sh` menghapusnya.
 - Uji: `./tools/test-popup.sh` (butuh sesi tidak terkunci).
+
+## Notifikasi WhatsApp Web (body kosong)
+
+Gejala: notifikasi WA Web hanya menampilkan nama pengirim, tanpa isi pesan.
+Penyebabnya di **payload pengirim**, bukan di popup: Chrome/WhatsApp Web bisa
+mengirim `Notify` dengan `body` kosong (mis. update untuk id yang sama, atau
+ketika pratinjau pesan dimatikan di HP). Yang sudah ditangani di sisi island:
+
+- **Update tanpa body tidak menimpa body yang sudah tampil.** Parser sekarang
+  membaca `replaces_id` (argumen kedua `Notify`) dan menyimpan body terakhir
+  per id (maks 30 entri). Kalau update datang dengan `body=""` dan
+  `replaces_id` cocok, body lama dipakai. Terukur: notif pertama
+  `body="Isi pesan asli…"`, update `body="" replaces=97` → popup tetap
+  menampilkan isi pesan.
+- **Log diagnostik** di `modules/notify.js`: satu baris per notifikasi
+  (`app`, `icon`, `summary`, `body`, `replaces`). Setelah pesan WA berikutnya
+  masuk, cek `~/.cache/ags-dynamic-island.log` — kalau `body=""` bahkan pada
+  notifikasi pertama, berarti sumbernya memang tidak mengirim isi pesan.
+- Kalau body memang tidak pernah dikirim, cek:
+  WhatsApp di HP → **Setelan → Notifikasi → Pratinjau pesan** (harus
+  menampilkan isi), WhatsApp Web → **Setelan → Notifikasi**, dan izin
+  notifikasi situs web.whatsapp.com di Chrome.
+- Catatan privasi: log diagnostik memuat isi pesan (lokal, hanya di mesin ini).
 
 ## Water
 
@@ -366,7 +392,8 @@ Dua bug hover yang ditemukan lewat audit uinput:
 Skenario yang diuji dengan pointer nyata: hover di child (panah), padding atas
 y=2, tepi bawah y=h vs h+6 (dulu gagal, sekarang menutup), keluar 30ms lalu
 masuk lagi (token), burst masuk/keluar 8×60ms, dan masuk kembali saat animasi
-tutup berjalan (kartu terbuka lagi). Semua konsisten, 0 error.
+tutup berjalan (kartu terbuka lagi). Semua konsisten, 0 error. Watchdog juga
+diuji dengan pointer diam di dalam 6 detik: tidak ada flicker (stabil).
 
 **Lebar window dikunci selama transisi lebar.** Perpindahan lirik (520) ↔ kartu
 lain (420) mengubah lebar. Dua jebakan yang sudah diukur:
@@ -401,6 +428,33 @@ Sampling 16ms selama buka/tutup menangkap empat hal yang lalu diperbaiki:
   **141×26** sebelum "pop" balik ke 150×30. Nilai w/h/ear di-clamp ke target
   saat menutup.
 - Konten closed saat menutup sekarang fade-in 140ms (dulu langsung opacity 1).
+- **Hover out: dua konten tampil bersamaan.** Rekaman frame 0–250ms menunjukkan
+  konten media dan konten closed terlihat tumpang tindih saat menutup: Stack
+  memakai `transition: crossfade` (180ms) sekaligus kode memaksa `opacity 0`
+  lalu fade-in. Sekarang transisi Stack dimatikan saat melewati state `closed`
+  (`setShown()`: `none` untuk closed <-> page, `crossfade` tetap untuk
+  page <-> page), jadi hanya ada satu konten yang terlihat dan pergantiannya
+  diurus fade opacity.
+- **Kartu kosong sesaat saat menutup.** Frame merekam satu kartu hitam tanpa
+  isi di tengah penyusutan: konten media hilang seketika, sedangkan konten
+  closed masih fade dari opacity 0. Sekarang konten closed langsung terlihat
+  (opacity 1) pada saat swap, jadi tidak ada frame kosong.
+- **Window melebar 464 → 480 saat menutup.** Headroom 16px (untuk overshoot)
+  ikut dipakai saat menutup, padahal saat menutup nilainya di-clamp ke target.
+  Sekarang headroom hanya dipasang jika `next.w > from.w`; terukur window tetap
+  **464** sepanjang penutupan lalu turun sekali ke 170 di akhir (tidak terlihat
+  karena hanya surface transparan; notch tetap di tengah).
+- **Radius 10 langkah** (dari 5) supaya perubahan sudut saat menyusut tidak
+  terlihat "bertingkat".
+- **Watchdog hover 100ms** (dari 150ms) supaya penutupan mulai lebih cepat.
+- **Hover out: konten closed melompat 15px.** Saat mulai menutup, ruang nav
+  (`stack.margin_bottom`) dulu dicabut sekaligus 34 → 0 sehingga konten closed
+  turun mendadak (terukur `closedY 47 → 62`, terlihat seperti "adjustment").
+  Sekarang margin disusutkan mengikuti tinggi kartu: `closedY 46 → 45 → 39 →
+  34 → 29 → 24 → 23 → 20`, monoton tanpa lompatan.
+- Catatan: `leave-notify` tidak selalu terkirim saat pointer keluar melewati
+  child (isi halaman) menuju luar, jadi penutupan normal bisa tertunda sampai
+  watchdog 150ms berikutnya; delay itu yang membatasi.
 
 Interupsi juga diuji: buka 200ms lalu tutup (379×123 → … → 150×30 tanpa
 lompatan) dan tutup 200ms lalu buka lagi (191×47 → … → 420×140).

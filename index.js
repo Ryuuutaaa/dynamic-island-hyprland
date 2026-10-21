@@ -218,7 +218,7 @@ function DynamicIsland() {
     let hoverWatch = 0;
     const startHoverWatch = () => {
         if (hoverWatch) return;
-        hoverWatch = Utils.interval(150, async () => {
+        hoverWatch = Utils.interval(100, async () => {
             if (!hovered.value) return;
             const token = hoverToken;
             const inside = await pointerOnIsland();
@@ -369,8 +369,13 @@ function DynamicIsland() {
         // notch 429 + telinga membuat window ikut melebar 464 -> 473 -> 464.
         const widthChanges = Math.abs(next.w - from.w) > 0.5;
         if (widthChanges) {
+            // headroom 16px hanya saat membuka: kurva overshoot membuat notch
+            // melebihi target (429 vs 420). Saat menutup nilainya di-clamp ke
+            // target, jadi headroom cuma membuat window melebar 464 -> 480
+            // tanpa ada yang perlu ditampung.
+            const headroom = next.w > from.w ? 16 : 0;
             frameWrap.set_size_request(
-                Math.round(Math.max(next.w, from.w) + 2 * Math.max(next.ear, from.ear)) + 16,
+                Math.round(Math.max(next.w, from.w) + 2 * Math.max(next.ear, from.ear)) + headroom,
                 -1,
             );
         }
@@ -394,16 +399,21 @@ function DynamicIsland() {
                 if (next.ear < from.ear) geo.ear = Math.max(next.ear, geo.ear);
                 const clamped = Math.min(1, Math.max(0, value));
                 radiusNow = fromR + (next.r - fromR) * clamped;
-                const step = Math.round(clamped * 5);
+                const step = Math.round(clamped * 10);
                 if (step !== radiusStep) {
                     radiusStep = step;
-                    const r = Math.round(fromR + (next.r - fromR) * (step / 5));
+                    const r = Math.round(fromR + (next.r - fromR) * (step / 10));
                     notch.css = `border-radius: 0px 0px ${r}px ${r}px;`;
                 }
                 applyGeometry();
                 applyEar();
+                // Ruang nav disusutkan mengikuti tinggi kartu. Dulu margin
+                // dicabut sekaligus (34 -> 0) saat konten swap di awal tutup,
+                // sehingga konten closed melompat turun ~15px (terukur
+                // closedY 47 -> 62) — terlihat seperti "adjustment".
+                const alpha = navAnimated ? (prevNav && nextNav ? 1 : navAlpha()) : 0;
+                stack.margin_bottom = Math.round(NAV_SPACE * alpha);
                 if (navAnimated) {
-                    const alpha = prevNav && nextNav ? 1 : navAlpha();
                     nav.set_opacity(alpha);
                     nav.set_sensitive(alpha > 0.6);
                 }
@@ -412,6 +422,7 @@ function DynamicIsland() {
                 if (widthChanges) frameWrap.set_size_request(-1, -1);
                 radiusNow = next.r;
                 notch.css = `border-radius: 0px 0px ${next.r}px ${next.r}px;`;
+                stack.margin_bottom = nextNav ? NAV_SPACE : 0;
                 nav.visible = nextNav;
                 nav.set_opacity(nextNav ? 1 : 0);
                 nav.set_sensitive(true);
@@ -428,13 +439,18 @@ function DynamicIsland() {
         duration: CONFIG.contentFade,
         onFrame: value => stack.set_opacity(value),
     });
-    // konten closed saat menutup: dulu langsung opacity 1 (pop), sekarang
-    // fade singkat supaya peralihan konten tidak terlihat sebagai lompatan
-    const fadeQuick = ramp({
-        duration: 140,
-        onFrame: value => stack.set_opacity(value),
-    });
     let swapTimer = 0;
+
+    // Ganti isi stack. Crossfade hanya untuk page <-> page; saat melewati
+    // state closed crossfade membuat konten lama dan konten closed tampil
+    // tumpang tindih (terekam di frame: teks media + jam closed sekaligus),
+    // jadi transisinya dimatikan dan fade opacity yang mengurus.
+    const setShown = next => {
+        const prev = stack.shown;
+        stack.transition = (prev === 'closed' || next === 'closed')
+            ? 'none' : CONFIG.transition;
+        stack.shown = next;
+    };
 
     const syncContent = () => {
         if (swapTimer) {
@@ -442,23 +458,19 @@ function DynamicIsland() {
             swapTimer = 0;
         }
         fadeIn.stop();
-        fadeQuick.stop();
         if (target === GEO.closed) {
-            // menutup: konten kecil langsung dipakai supaya notch bisa menyusut
-            stack.shown = 'closed';
-            stack.margin_bottom = 0;
-            stack.set_opacity(0);
-            fadeQuick.start();
+            // menutup: konten kecil langsung dipakai dan LANGSUNG terlihat.
+            // Dulu di-fade dari opacity 0 sehingga ada 1-2 frame kartu kosong
+            // di tengah penyusutan (terekam: kartu hitam tanpa isi).
+            setShown('closed');
+            stack.set_opacity(1);
             return;
         }
         // membuka: bentuk dulu, konten menyusul
         swapTimer = GLib.timeout_add(GLib.PRIORITY_DEFAULT, CONFIG.contentDelay, () => {
             swapTimer = 0;
             // lirik = sub-tampilan media, bukan halaman nav tersendiri
-            stack.shown = inLyricsView() ? 'lyrics' : page.value;
-            // ruang nav baru dipotong saat konten berganti (bukan sejak frame
-            // pertama), supaya konten closed tidak bergeser 17px lebih dulu
-            stack.margin_bottom = navVisibleFor(target) ? NAV_SPACE : 0;
+            setShown(inLyricsView() ? 'lyrics' : page.value);
             stack.set_opacity(0);
             fadeIn.start();
             return GLib.SOURCE_REMOVE;
@@ -604,13 +616,11 @@ try {
 // masuk control center swaync.
 const notifPopup = NotificationPopup();
 App.addWindow(notifPopup);
-// Popup swaync dimatikan lewat DND supaya tidak dobel dengan popup island.
-// DND tidak persisten (bisa berubah setelah swaync/AGS restart atau toggle
-// manual), jadi ditegakkan ulang berkala. Konsekuensi: indikator DND menyala;
-// kembalikan dengan `swaync-client -df` bila fitur popup dimatikan.
-const enforceSwayncDnd = () => Utils.execAsync(['swaync-client', '-dn']).catch(() => { });
-enforceSwayncDnd();
-Utils.interval(3000, enforceSwayncDnd);
+// Catatan: DND TIDAK dipaksa lagi. Dulu island menjalankan `swaync-client -dn`
+// tiap 3 detik supaya popup swaync tidak dobel, akibatnya toggle DND user
+// selalu kembali nyala (indikator DND tidak bisa dimatikan). Penggantinya:
+// config swaync `notification-visibility` state "muted" (popup tidak muncul,
+// control center tetap menerima), jadi DND bebas dipakai user.
     watchLyrics();
     watchWater();
     watchTodo();

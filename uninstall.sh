@@ -71,6 +71,28 @@ if [[ -f "$HYPRLOCK_CONF" ]] && grep -q '^# dyn-island-lock: begin' "$HYPRLOCK_C
     echo "-  notch lockscreen dihapus dari hyprlock.conf"
 fi
 
+# muted popup swaync (notification-visibility)
+SWAYNC_CONFIG="${HOME}/.config/swaync/config.json"
+if [[ -f "$SWAYNC_CONFIG" ]] && grep -q '"dyn-island-all"' "$SWAYNC_CONFIG"; then
+    python3 - "$SWAYNC_CONFIG" <<'PYJSON'
+import json
+import sys
+
+path = sys.argv[1]
+with open(path, encoding="utf-8") as handle:
+    cfg = json.load(handle)
+vis = cfg.get("notification-visibility")
+if isinstance(vis, dict):
+    vis.pop("dyn-island-all", None)
+    if not vis:
+        cfg.pop("notification-visibility", None)
+with open(path, "w", encoding="utf-8") as handle:
+    json.dump(cfg, handle, indent=2, ensure_ascii=False)
+PYJSON
+    swaync-client -R >/dev/null 2>&1 || true
+    echo "-  muting popup swaync dihapus"
+fi
+
 # gaya popup notifikasi (swaync)
 SWAYNC_STYLE="${HOME}/.config/swaync/style.css"
 if [[ -f "$SWAYNC_STYLE" ]] && grep -q 'dyn-island-notif: begin' "$SWAYNC_STYLE"; then
