@@ -4,6 +4,7 @@ import Gtk from 'gi://Gtk?version=3.0';
 import Widget from 'resource:///com/github/Aylur/ags/widget.js';
 import Variable from 'resource:///com/github/Aylur/ags/variable.js';
 import * as Utils from 'resource:///com/github/Aylur/ags/utils.js';
+import Hyprland from 'resource:///com/github/Aylur/ags/service/hyprland.js';
 import CONFIG from '../config.js';
 import { showTransient } from '../state.js';
 
@@ -48,11 +49,56 @@ let seq = 0;
 
 // Provider dikenal lewat app_name + hints.desktop-entry. Glyph Nerd Font
 // (brand): WhatsApp, Telegram, Discord. Selain ini popup memakai lonceng.
+
+// Chromium mengirim ikon situs sebagai file sementara (mis.
+// file:///tmp/org.chromium.Chromium.scoped_dir.X/logo.png) dan menghapusnya
+// setelah notifikasi ditangani. Salin isinya ke cache agar popup bisa
+// menampilkan ikon provider (WhatsApp/Telegram/Discord di Brave, dll).
+const ICON_DIR = '/tmp/dyn-island-icons';
+
+const cacheIcon = (icon) => {
+    if (!icon) return '';
+    let path = String(icon);
+    if (path.startsWith('file://')) {
+        try { path = decodeURIComponent(path.slice(7)); } catch (e) { path = path.slice(7); }
+    }
+    if (!path.startsWith('/')) return '';
+    try {
+        const [ok, bytes] = GLib.file_get_contents(path);
+        if (!ok || !bytes || bytes.length === 0) return '';
+        GLib.mkdir_with_parents(ICON_DIR, 0o755);
+        const sum = GLib.compute_checksum_for_data(GLib.ChecksumType.MD5, bytes);
+        const out = `${ICON_DIR}/${sum}.png`;
+        if (!GLib.file_test(out, GLib.FileTest.EXISTS)) {
+            GLib.file_set_contents(out, bytes);
+        }
+        return out;
+    } catch (e) {
+        return '';
+    }
+};
+
 const PROVIDERS = [
     { id: 'whatsapp', re: /whatsapp|wa\.me/i, glyph: '\uf232' },
     { id: 'telegram', re: /telegram/i, glyph: '\uf2c6' },
     { id: 'discord', re: /discord/i, glyph: '\uf1ff' },
 ];
+
+// Notifikasi web di browser datang sebagai app="Brave" dengan ikon Brave —
+// tidak ada info situs di payload. Judul tab browser (mis. "… | WhatsApp")
+// dipakai sebagai petunjuk, hanya untuk aplikasi browser.
+const browserWindowTitles = () => {
+    try {
+        return (Hyprland.clients ?? [])
+            .slice()
+            .sort((a, b) => (a.focusHistoryID ?? 99) - (b.focusHistoryID ?? 99))
+            .slice(0, 6)
+            .map(c => c.title || '')
+            .join(' ');
+    } catch (e) {
+        return '';
+    }
+};
 
 const detectProvider = (haystack) => {
     const s = String(haystack || '').toLowerCase();
@@ -88,7 +134,10 @@ const flush = () => {
     sawActions = false;
     if (captured.length < 3) return;
     const [app, icon, summary, body = ''] = captured;
-    const provider = detectProvider(`${app} ${desktopEntry}`);
+    const isBrowser = /brave|chrome|chromium|firefox/i.test(String(app || ''));
+    const hint = isBrowser ? browserWindowTitles() : '';
+    const provider = detectProvider(`${app} ${desktopEntry} ${hint}`);
+    const iconLocal = cacheIcon(icon);
     if (!summary && !body) return;
     // update tanpa body: pertahankan body yang sudah tercatat untuk id yang
     // digantikan, selama pengirim/judulnya sama
@@ -107,11 +156,13 @@ const flush = () => {
     console.log(`[dyn-island] notif app=${JSON.stringify(app)} icon=${JSON.stringify(icon)}`
         + ` summary=${JSON.stringify(summary)} body=${JSON.stringify(body)}`
         + ` replaces=${replacesId} bodyMissing=${bodyMissing}`
-        + ` desktopEntry=${JSON.stringify(desktopEntry)} provider=${provider ? provider.id : '-'}`);
+        + ` desktopEntry=${JSON.stringify(desktopEntry)} provider=${provider ? provider.id : '-'}`
+        + ` iconLocal=${JSON.stringify(iconLocal)}`
+        + (hint ? ` webHint=${JSON.stringify(hint.slice(0, 60))}` : ''));
 
     current.value = { app, summary, body: text, provider };
     showTransient('notify', CONFIG.notifyTimeout);
-    latest.value = { app, icon, summary, body: text, actions: acts, provider, id: 0, seq: ++seq };
+    latest.value = { app, icon, iconLocal, summary, body: text, actions: acts, provider, id: 0, seq: ++seq };
 };
 
 const parseLine = (line) => {

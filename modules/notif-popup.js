@@ -1,4 +1,5 @@
 import Gtk from 'gi://Gtk?version=3.0';
+import GdkPixbuf from 'gi://GdkPixbuf?version=2.0';
 import GLib from 'gi://GLib';
 import Widget from 'resource:///com/github/Aylur/ags/widget.js';
 import * as Utils from 'resource:///com/github/Aylur/ags/utils.js';
@@ -43,6 +44,9 @@ const truncate = (text, max) => {
 export default () => {
     const icon = Widget.Icon({ className: 'dyn-island-popup-icon', size: 26 });
     const glyph = Widget.Label({ className: 'dyn-island-popup-glyph', label: '\uf0f3' });
+    // Ikon situs (Chromium) yang sudah disalin ke cache oleh notify.js.
+    const photo = Gtk.Image.new();
+    photo.set_size_request(26, 26);
     const summary = Widget.Label({
         className: 'dyn-island-popup-title',
         xalign: 0,
@@ -217,7 +221,7 @@ export default () => {
                     // lebar tetap: ikon tema (26) vs glyph fallback (22) dulu
                     // menggeser awal teks 4px antar notifikasi
                     widthRequest: 26,
-                    children: [icon, glyph],
+                    children: [icon, glyph, photo],
                 }),
                 Widget.Box({
                     className: 'dyn-island-popup-text',
@@ -343,14 +347,28 @@ export default () => {
         summary.label = truncate(item.summary || '(notifikasi)', MAX_SUMMARY);
         body.label = truncate(item.body || '', MAX_BODY);
         body.visible = !!item.body;
-        // Provider dikenal (WhatsApp/Telegram/Discord) -> glyph brand.
-        // Selain itu: nama ikon tema kalau ada, kalau tidak lonceng.
+        // Prioritas ikon: glyph provider (native WA/Telegram/Discord) ->
+        // ikon situs yang disalin saat notifikasi masuk (web app di browser) ->
+        // nama ikon tema -> lonceng.
         const provider = item.provider || null;
-        const useIcon = !provider && !!item.icon
+        let pb = null;
+        if (!provider && item.iconLocal) {
+            try {
+                pb = GdkPixbuf.Pixbuf.new_from_file_at_scale(item.iconLocal, 26, 26, true);
+            } catch (e) {
+                pb = null;
+            }
+        }
+        photo.visible = !!pb;
+        if (pb) photo.set_from_pixbuf(pb);
+
+        const useIcon = !provider && !pb && !!item.icon
             && !item.icon.startsWith('/') && !item.icon.includes('.');
         icon.visible = useIcon;
-        glyph.visible = !useIcon;
         if (useIcon) icon.icon = item.icon;
+        // Glyph TAMPIL kalau ada provider; kalau tidak, hanya saat tidak ada
+        // ikon situs maupun ikon tema (fallback lonceng).
+        glyph.visible = !!provider || (!pb && !useIcon);
         glyph.label = provider ? provider.glyph : '\uf0f3';
         buildActions(item.actions || []);
 
