@@ -1,0 +1,17 @@
+# Tooling personal (bukan bagian dari proyek)
+.commandcode/
+.agents/
+
+# Screenshot dev di root. Gambar yang memang dipublikasikan taruh di docs/
+/*.png
+/*.jpg
+/*.jpeg
+
+# Log, backup, dan file sementara
+*.log
+*.bak
+*.tmp
+*.swp
+
+# OS / editor
+.DS_Store

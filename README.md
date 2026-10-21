@@ -1,9 +1,9 @@
-# Nusa-style notch untuk Hyprland (AGS)
+# Dynamic Island untuk Hyprland (AGS)
 
 Notch di tengah tepi atas layar yang **kecil saat diam dan membesar saat
-hover**, mengikuti [Nusa](https://rama2555.github.io/nusa/): sudut atas rata
-menempel layar, hanya sudut bawah melengkung, plus "telinga" (kurva konkaf)
-yang menyatu ke bezel. Dibangun di atas **AGS (Aylur's GTK Shell) v1**.
+hover**: sudut atas rata menempel layar, hanya sudut bawah melengkung, plus
+"telinga" (kurva konkaf) yang menyatu ke bezel. Dibangun di atas **AGS
+(Aylur's GTK Shell) v1**.
 
 ## Perilaku
 
@@ -16,7 +16,7 @@ yang menyatu ke bezel. Dibangun di atas **AGS (Aylur's GTK Shell) v1**.
 Prioritas: `peek` (transient) menang atas `expanded`, `expanded` menang atas
 `closed`. Semua angka itu ada di `config.js` → `geometry`.
 
-## Motion (angka Nusa)
+## Motion
 
 - **Ukuran** dianimasikan dengan `cubic-bezier(.34, 1.32, .5, 1)` selama
   **620ms** (`bezierTween` di `spring.js`, solver bezier sungguhan — bukan
@@ -740,3 +740,7 @@ Catatan: untuk memaksa halaman non-media saat musik playing, pakai
 Sebaliknya, saat `pinned` aktif (10s setelah panah/`pinPage`),
 `refreshBase()` tidak mengubah halaman — tunggu pin-nya kedaluwarsa dulu
 kalau sedang menguji base page.
+
+---
+
+Reference by Nusa — https://rama2555.github.io/nusa/
