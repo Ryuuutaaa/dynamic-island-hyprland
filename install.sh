@@ -298,6 +298,71 @@ else
     echo "•  swaync tidak terpasang, gaya popup dilewati"
 fi
 
+# 3b-2. Panel control-center: kartu notifikasi dulu hanya kebagian ~1,5 kartu
+#       karena media player memakan ~160px dari panel 560px. Blok CSS disimpan
+#       di repo (swaync/control-center.css) supaya installer cukup append.
+if [[ -f "$SWAYNC_STYLE" ]]; then
+    if grep -q 'dyn-island-cc: begin' "$SWAYNC_STYLE"; then
+        echo "•  gaya control-center swaync sudah ada"
+    else
+        act cp "$SWAYNC_STYLE" "${SWAYNC_STYLE}.dyn-island.bak"
+        note "append blok control-center dari ${SRC_DIR}/swaync/control-center.css"
+        if (( ! DRY_RUN )); then
+            { echo; cat "${SRC_DIR}/swaync/control-center.css"; } >> "$SWAYNC_STYLE"
+            swaync-client -rs >/dev/null 2>&1 || true
+            echo "+  control-center disamakan dengan notch (swaync-client -rs)"
+        fi
+    fi
+fi
+
+# Ukuran panel + kartu: dinaikkan hanya kalau masih di bawah target, jadi nilai
+# user yang lebih besar tidak ditimpa. Backup .dyn-island-cc.bak dibuat sekali,
+# sebelum perubahan pertama, dan dipakai uninstall untuk mengembalikannya.
+if [[ -f "$SWAYNC_CONFIG" ]]; then
+    if (( DRY_RUN )); then
+        note "kecilkan artwork mpris + perbesar tinggi panel/kartu notifikasi bila perlu"
+    else
+        CC_CHANGED="$(python3 - "$SWAYNC_CONFIG" <<'PYCC'
+import json
+import os
+import shutil
+import sys
+
+path = sys.argv[1]
+with open(path, encoding="utf-8") as handle:
+    cfg = json.load(handle)
+
+changes = []
+if cfg.get("control-center-height", 0) < 800:
+    cfg["control-center-height"] = 800
+    changes.append("control-center-height=800")
+if cfg.get("notification-icon-size", 0) < 26:
+    cfg["notification-icon-size"] = 26
+    changes.append("notification-icon-size=26")
+mpris = cfg.setdefault("widget-config", {}).setdefault("mpris", {})
+if mpris.get("image-size", 64) > 32:
+    mpris["image-size"] = 32
+    changes.append("mpris.image-size=32")
+
+if changes:
+    backup = path + ".dyn-island-cc.bak"
+    if not os.path.exists(backup):
+        shutil.copy2(path, backup)
+    with open(path, "w", encoding="utf-8") as handle:
+        json.dump(cfg, handle, indent=2, ensure_ascii=False)
+        handle.write("\n")
+print(" ".join(changes))
+PYCC
+)"
+        if [[ -n "$CC_CHANGED" ]]; then
+            swaync-client -R >/dev/null 2>&1 || true
+            echo "+  panel swaync disesuaikan: ${CC_CHANGED}"
+        else
+            echo "•  ukuran panel swaync sudah sesuai"
+        fi
+    fi
+fi
+
 # 3c. panah keyboard untuk navigasi island. Submap `island` berisi bind
 #     *consuming*: selama island terbuka panah tidak diteruskan ke aplikasi
 #     yang fokus (YouTube tidak ikut seek); di luar itu panah normal.

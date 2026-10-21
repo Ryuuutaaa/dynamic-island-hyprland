@@ -167,6 +167,40 @@ disamakan dengan notch lewat blok ber-marker di
 - Reload tanpa restart: `swaync-client -rs`. `uninstall.sh` menghapus blok ini
   dan me-reload CSS.
 
+## Control center (swaync)
+
+Panel control-center memakai blok CSS ber-marker `dyn-island-cc` yang disimpan
+di repo sebagai `swaync/control-center.css` (append-only, backup
+`.dyn-island.bak`). Masalahnya bukan sekadar tipografi: **daftar notifikasi
+hanya kebagian ~1,5 kartu dan satu kartu terpotong di tepi bawah panel**,
+karena media player memakan ~160px dari tinggi panel 560px.
+
+| Knob | Sebelum | Sesudah | Alasan |
+|---|---|---|---|
+| `control-center-height` | 560 | **800** | viewport notifikasi 3 kartu penuh (terukur 94px/kartu) |
+| `notification-icon-size` | 24 | **26** | ikon aplikasi lebih mudah dikenali |
+| `widget-config.mpris.image-size` | 64 | **32** | cover player tidak mendominasi panel |
+
+- Kartu notifikasi: padding 11/13, radius 14, judul **14px medium**, isi 13px,
+  waktu 11px, aksi 12px, jarak antar kartu 5px. Semua angka ini yang membuat
+  tiga kartu terbaca penuh di panel 800px.
+- **Petunjuk scroll**: tepi atas/bawah daftar diberi gradien lewat node
+  `undershoot`/`overshoot` GTK3, jadi kartu yang terpotong memudar (bukan
+  terpangkas tajam). Track scrollbar juga dibuat redup permanen; GTK3 tetap
+  menyembunyikan slider overlay sampai pointer masuk.
+- **Batas yang diketahui**: tinggi kartu media player tidak bisa turun
+  signifikan lewat CSS — swaync menggambar artwork placeholder pada ukuran ikon
+  tema (~64px) walaupun `image-size` diset 32, jadi lever-nya adalah tinggi
+  panel.
+- **Belum selesai**: warna slider volume masih biru bawaan tema. Terukur:
+  `scale contents` bisa dijangkau CSS user, tetapi node `trough`/`highlight`
+  tidak (rule `#ff00ff`/`#00ff00` tidak muncul), jadi warna itu bukan dari node
+  GTK Scale yang bisa di-override dari `style.css`.
+- `install.sh` meng-append blok CSS ini dan menaikkan ketiga knob di atas
+  **hanya kalau nilainya masih di bawah target** (nilai user yang lebih besar
+  tidak ditimpa), dengan backup `config.json.dyn-island-cc.bak`. `uninstall.sh`
+  menghapus bloknya lalu mengembalikan config dari backup itu.
+
 ## Notifikasi (popup kanan atas)
 
 Popup kanan atas digambar **island sendiri** (window layer `overlay`, anchor
@@ -575,10 +609,12 @@ ke `~/.config-backup-dynisland-<timestamp>/`):
    kiri/kanan yang *consuming* untuk navigasi island (lihat bagian Keyboard).
    Ber-marker `dyn-island-kbd: begin/end`, dengan backup `.dyn-island.bak`.
    Versi lama yang memakai `bindn` (non-consuming) dimigrasikan otomatis.
-7. **swaync `style.css`** — blok gaya popup notifikasi (append-only, ber-marker
-   `dyn-island-notif: begin/end`, backup `.dyn-island.bak`). Hanya
-   `.floating-notifications`; panel control-center tidak diubah. Lihat bagian
-   Notifikasi.
+7. **swaync `style.css`** — dua blok append-only ber-marker, backup
+   `.dyn-island.bak`: `dyn-island-notif` untuk popup
+   (`.floating-notifications`) dan `dyn-island-cc` untuk panel control-center.
+   Blok control-center disimpan di `swaync/control-center.css` dan ikut
+   menyesuaikan tinggi panel + ukuran kartu lewat `config.json`
+   (backup `.dyn-island-cc.bak`). Lihat bagian Notifikasi dan Control center.
 
 ## Struktur
 
@@ -589,6 +625,7 @@ state.js           page + hovered + logika transient/base/pin
 spring.js          ramp ease-out + bezierTween (solver cubic-bezier)
 draw.js            helper Cairo bersama (roundedRect)
 style.css          styling (placeholder warna)
+swaync/control-center.css  blok gaya panel control-center swaync (dipasang install.sh)
 index.js           window, Stack, clipping, mesin geometri, registrasi AGS
 modules/closed.js  ring + jam + tanggal/equalizer
 modules/idle.js    jam besar + tanggal + ringkasan baterai/todo/air/bluetooth

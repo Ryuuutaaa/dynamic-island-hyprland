@@ -101,6 +101,21 @@ if [[ -f "$SWAYNC_STYLE" ]] && grep -q 'dyn-island-notif: begin' "$SWAYNC_STYLE"
     echo "-  gaya popup swaync dihapus (swaync-client -rs)"
 fi
 
+# gaya control-center (swaync)
+if [[ -f "$SWAYNC_STYLE" ]] && grep -q 'dyn-island-cc: begin' "$SWAYNC_STYLE"; then
+    sed -i '/^\/\* dyn-island-cc: begin/,/^\/\* dyn-island-cc: end \*\//d' "$SWAYNC_STYLE"
+    swaync-client -rs >/dev/null 2>&1 || true
+    echo "-  gaya control-center swaync dihapus (swaync-client -rs)"
+fi
+
+# ukuran panel/artwork swaync dikembalikan dari backup
+if [[ -f "${SWAYNC_CONFIG}.dyn-island-cc.bak" ]]; then
+    cp "${SWAYNC_CONFIG}.dyn-island-cc.bak" "$SWAYNC_CONFIG"
+    rm -f "${SWAYNC_CONFIG}.dyn-island-cc.bak"
+    swaync-client -R >/dev/null 2>&1 || true
+    echo "-  ukuran panel swaync dikembalikan"
+fi
+
 if [[ -n "$WAYBAR_STYLE" && -f "$WAYBAR_STYLE" ]] && grep -q "dyn-island" "$WAYBAR_STYLE"; then
     if grep -q "dyn-island: end" "$WAYBAR_STYLE"; then
         # format ber-marker: hapus blok-nya saja, CSS user sesudahnya tidak ikut

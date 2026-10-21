@@ -1,0 +1,305 @@
+/* dyn-island-cc: begin — control center minimalis, menyatu dengan notch:
+   satu permukaan gelap, hairline, radius 20, tipografi Noto Sans, aksen
+   monokrom (tanpa warna menyala), transisi halus 150–180ms. Hanya panel
+   control-center; popup kanan atas diatur blok dyn-island-notif. */
+.control-center {
+    background: rgba(8, 8, 10, 0.97);
+    border: 1px solid alpha(@foreground, 0.10);
+    border-radius: 20px;
+    padding: 8px;
+    font-family: "Noto Sans", "DejaVu Sans", sans-serif;
+}
+
+.control-center scrollbar {
+    background: alpha(@foreground, 0.05);
+    border-radius: 99px;
+    border: none;
+    min-width: 6px;
+    margin: 4px 3px 4px 4px;
+}
+
+/* GTK3 menyembunyikan overlay scrollbar saat idle; di panel ini justru
+   petunjuk "masih ada notifikasi lain" jadi ditampilkan redup terus. */
+.control-center scrollbar.overlay-indicator:not(.dragging):not(.hovering) {
+    opacity: 0.6;
+    min-width: 6px;
+}
+
+.control-center scrollbar slider {
+    background: alpha(@foreground, 0.26);
+    border-radius: 99px;
+    min-width: 6px;
+    min-height: 40px;
+}
+
+.control-center scrollbar slider:hover {
+    background: alpha(@foreground, 0.45);
+}
+
+/* petunjuk visual bahwa masih ada notifikasi di luar viewport */
+.control-center scrolledwindow undershoot.bottom {
+    background: linear-gradient(to top, rgba(8, 8, 10, 0.96), rgba(8, 8, 10, 0));
+    min-height: 20px;
+}
+
+.control-center scrolledwindow overshoot.top {
+    background: linear-gradient(to bottom, rgba(8, 8, 10, 0.96), rgba(8, 8, 10, 0));
+    min-height: 20px;
+}
+
+.control-center-list {
+    background: transparent;
+}
+
+.control-center-list-placeholder {
+    opacity: 1;
+    background-image: none;
+    color: alpha(@foreground, 0.35);
+    font-size: 12px;
+    margin: 0 0 18px 0;
+}
+
+.control-center-list-placeholder image {
+    min-width: 0;
+    min-height: 0;
+    opacity: 0;
+}
+
+/* judul + tombol Clear */
+.widget-title {
+    background: transparent;
+    color: alpha(@foreground, 0.45);
+    font-size: 11px;
+    font-weight: normal;
+    padding: 6px 8px 2px;
+    margin: 2px 4px;
+    border-radius: 10px;
+}
+
+.widget-title > button {
+    background: alpha(@foreground, 0.07);
+    border: none;
+    border-radius: 9px;
+    color: alpha(@foreground, 0.75);
+    font-size: 11px;
+    padding: 3px 10px;
+    transition: background 150ms ease, color 150ms ease;
+}
+
+.widget-title > button:hover {
+    background: alpha(@foreground, 0.14);
+    color: @foreground;
+}
+
+/* Do Not Disturb */
+.widget-dnd {
+    margin: 6px 8px;
+    color: alpha(@foreground, 0.75);
+    font-size: 12px;
+}
+
+.widget-dnd > switch {
+    background: alpha(@foreground, 0.10);
+    border: none;
+    border-radius: 12px;
+    box-shadow: none;
+    transition: background 180ms ease;
+}
+
+.widget-dnd > switch:checked {
+    background: alpha(@foreground, 0.85);
+}
+
+.widget-dnd > switch slider {
+    background: @foreground;
+    border-radius: 12px;
+    transition: background 180ms ease;
+}
+
+/* grid tombol */
+.widget-buttons-grid {
+    background: transparent;
+    padding: 0;
+    margin: 2px 4px;
+}
+
+.widget-buttons-grid > flowbox > flowboxchild > button {
+    background: alpha(@foreground, 0.06);
+    border: none;
+    border-radius: 12px;
+    color: alpha(@foreground, 0.78);
+    margin: 3px;
+    min-width: 34px;
+    min-height: 30px;
+    transition: background 150ms ease, color 150ms ease;
+}
+
+.widget-buttons-grid > flowbox > flowboxchild > button:hover {
+    background: alpha(@foreground, 0.13);
+    color: @foreground;
+}
+
+/* media player — dibuat ringkas: kartu ini dulu memakan ~150px dari tinggi
+   panel sehingga daftar notifikasi hanya kebagian ~1,5 kartu. */
+.widget-mpris {
+    background: transparent;
+    color: @foreground;
+    padding: 0;
+    margin: 1px 4px;
+}
+
+.widget-mpris-player {
+    background: alpha(@foreground, 0.04);
+    background-image: none;
+    border-radius: 12px;
+    padding: 6px 8px;
+    margin: 2px;
+}
+
+.widget-mpris > box > button {
+    background: transparent;
+    border: none;
+    border-radius: 9px;
+    color: alpha(@foreground, 0.7);
+    min-width: 26px;
+    min-height: 22px;
+    padding: 0;
+    transition: background 150ms ease, color 150ms ease;
+}
+
+.widget-mpris > box > button:hover {
+    background: alpha(@foreground, 0.12);
+    color: @foreground;
+}
+
+.widget-mpris-title {
+    font-size: 12px;
+    font-weight: normal;
+    color: @foreground;
+}
+
+.widget-mpris-subtitle {
+    font-size: 11px;
+    color: alpha(@foreground, 0.5);
+}
+
+/* volume + backlight */
+.widget-volume,
+.widget-backlight {
+    background: alpha(@foreground, 0.05);
+    border-radius: 12px;
+    padding: 4px 8px;
+    margin: 4px;
+    color: alpha(@foreground, 0.75);
+}
+
+.widget-volume > box > button,
+.widget-backlight > box > button {
+    background: transparent;
+    border: none;
+    color: alpha(@foreground, 0.7);
+}
+
+.control-center .widget-volume scale trough,
+.control-center .widget-backlight scale trough,
+.control-center scale trough {
+    background-color: alpha(@foreground, 0.10);
+    background-image: none;
+    border-radius: 4px;
+    min-height: 5px;
+}
+
+.control-center .widget-volume scale highlight,
+.control-center .widget-backlight scale highlight,
+.control-center scale highlight {
+    background-color: alpha(@foreground, 0.75);
+    background-image: none;
+    border-radius: 4px;
+}
+
+.control-center .widget-volume scale slider,
+.control-center .widget-backlight scale slider,
+.control-center scale slider {
+    background-color: @foreground;
+    background-image: none;
+    border-radius: 100%;
+    min-width: 11px;
+    min-height: 11px;
+    margin: -3px;
+}
+
+/* notifikasi di dalam panel: kartu ringkas, hierarki teks jelas */
+.control-center .notification {
+    background: alpha(@foreground, 0.055);
+    border: 1px solid alpha(@foreground, 0.09);
+    border-radius: 14px;
+    padding: 11px 13px;
+    margin: 5px 4px;
+}
+
+.control-center .notification * {
+    font-family: "Noto Sans", "DejaVu Sans", sans-serif;
+    font-weight: normal;
+}
+
+.control-center .notification-row {
+    outline: none;
+}
+
+.control-center .notification-row,
+.control-center .notification-content,
+.control-center .notification-default-action,
+.control-center .notification-action {
+    border: none;
+    border-radius: 14px;
+    background: transparent;
+    box-shadow: none;
+}
+
+.control-center .notification-default-action {
+    padding: 0;
+}
+
+.control-center .summary {
+    color: @foreground;
+    font-size: 14px;
+    font-weight: 500;
+    margin-bottom: 2px;
+}
+
+.control-center .body {
+    color: alpha(@foreground, 0.72);
+    font-size: 13px;
+}
+
+.control-center .time {
+    color: alpha(@foreground, 0.4);
+    font-size: 11px;
+    margin-right: 6px;
+}
+
+.control-center .notification-action {
+    color: alpha(@foreground, 0.78);
+    font-size: 12px;
+    padding: 5px 8px;
+}
+
+.control-center .notification-action:hover {
+    background: alpha(@foreground, 0.10);
+    color: @foreground;
+}
+
+.control-center .close-button {
+    background: alpha(@foreground, 0.08);
+    color: alpha(@foreground, 0.6);
+    border-radius: 9px;
+    min-width: 20px;
+    min-height: 20px;
+    margin: 5px;
+}
+
+.control-center .close-button:hover {
+    background: alpha(@foreground, 0.16);
+    color: @foreground;
+}
+/* dyn-island-cc: end */
