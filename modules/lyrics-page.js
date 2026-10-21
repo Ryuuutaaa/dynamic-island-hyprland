@@ -162,7 +162,8 @@ export default () => {
             Widget.Box({
                 className: 'dyn-island-lyrics-meta',
                 vertical: true,
-                spacing: 6,
+                // 4px: 6px membuat tinggi konten 102px (ruang hanya 100px)
+                spacing: 4,
                 children: [
                     Widget.Box({
                         spacing: 10,

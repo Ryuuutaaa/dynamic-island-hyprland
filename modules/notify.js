@@ -22,6 +22,11 @@ let sawActions = false;
 let callSerial = 0;
 let awaitingId = false;
 let replacesId = 0;
+// Hints: desktop-entry adalah identitas aplikasi paling andal (dipakai untuk
+// mengenali provider seperti WhatsApp/Telegram/Discord).
+let inHints = false;
+let hintKey = '';
+let desktopEntry = '';
 // body terakhir per id notifikasi: update dari Chrome/WhatsApp Web kadang
 // datang dengan body kosong (mis. hanya mengubah judul); jangan sampai
 // menimpa body yang sudah tampil dengan kosong.
@@ -40,6 +45,20 @@ const describe = () => {
 };
 
 let seq = 0;
+
+// Provider dikenal lewat app_name + hints.desktop-entry. Glyph Nerd Font
+// (brand): WhatsApp, Telegram, Discord. Selain ini popup memakai lonceng.
+const PROVIDERS = [
+    { id: 'whatsapp', re: /whatsapp|wa\.me/i, glyph: '\uf232' },
+    { id: 'telegram', re: /telegram/i, glyph: '\uf2c6' },
+    { id: 'discord', re: /discord/i, glyph: '\uf1ff' },
+];
+
+const detectProvider = (haystack) => {
+    const s = String(haystack || '').toLowerCase();
+    const hit = PROVIDERS.find(p => p.re.test(s));
+    return hit ? { id: hit.id, glyph: hit.glyph } : null;
+};
 
 // id datang belakangan (method return). seq dipakai popup untuk mengenali
 // notifikasi yang sama, supaya update id tidak memicu popup tampil ulang.
@@ -69,26 +88,39 @@ const flush = () => {
     sawActions = false;
     if (captured.length < 3) return;
     const [app, icon, summary, body = ''] = captured;
+    const provider = detectProvider(`${app} ${desktopEntry}`);
     if (!summary && !body) return;
     // update tanpa body: pertahankan body yang sudah tercatat untuk id yang
     // digantikan, selama pengirim/judulnya sama
     let text = body;
     if (!text && replacesId && lastBodyById.has(replacesId))
         text = lastBodyById.get(replacesId);
+    // WhatsApp Web (PWA di Chromium) kadang mengirim body kosong — isi pesan
+    // tidak ada di payload sama sekali. Daripada popup menampilkan judul saja
+    // (terlihat rusak), tampilkan keterangan netral. Kalau body ada, teksnya
+    // dipakai apa adanya; grup WA mengirim "Pengirim: pesan" di body.
+    const bodyMissing = !text;
+    if (bodyMissing) text = 'Pesan baru';
 
     // Diagnostik: satu baris per notifikasi, supaya payload asli (mis. Chrome /
     // WhatsApp Web) bisa diperiksa saat ada laporan body kosong.
     console.log(`[dyn-island] notif app=${JSON.stringify(app)} icon=${JSON.stringify(icon)}`
         + ` summary=${JSON.stringify(summary)} body=${JSON.stringify(body)}`
-        + ` replaces=${replacesId}`);
+        + ` replaces=${replacesId} bodyMissing=${bodyMissing}`
+        + ` desktopEntry=${JSON.stringify(desktopEntry)} provider=${provider ? provider.id : '-'}`);
 
-    current.value = { app, summary, body: text };
+    current.value = { app, summary, body: text, provider };
     showTransient('notify', CONFIG.notifyTimeout);
-    latest.value = { app, icon, summary, body: text, actions: acts, id: 0, seq: ++seq };
+    latest.value = { app, icon, summary, body: text, actions: acts, provider, id: 0, seq: ++seq };
 };
 
 const parseLine = (line) => {
     if (line.includes('member=Notify')) {
+        // jaring pengaman: payload sebelumnya yang tidak ditutup int32
+        flush();
+        inHints = false;
+        hintKey = '';
+        desktopEntry = '';
         // serial ada SETELAH '->' (method call: time=... sender=:1.x ->
         // destination=:1.y serial=N path=...), jadi dibaca dari seluruh baris
         const serial = /serial=(\d+)/.exec(line);
@@ -137,9 +169,9 @@ const parseLine = (line) => {
     if (line.startsWith(']')) {
         if (inActions) {
             inActions = false;
-            // actions selesai -> app/icon/summary/body/actions sudah lengkap.
-            // Hints (dictionary) sesudahnya tidak dibutuhkan.
-            flush();
+            // Hints (dictionary) menyusul dan memuat desktop-entry; flush
+            // dilakukan saat expire_time (int32) sesudahnya.
+            inHints = true;
         }
         return;
     }
@@ -147,6 +179,21 @@ const parseLine = (line) => {
     // tidak terbaca (mis. format monitor berubah).
     if (/^int32 -?\d+$/.test(line)) {
         flush();
+        return;
+    }
+    if (inHints) {
+        const vm = /^variant\s+string "(.*)"$/.exec(line);
+        if (vm) {
+            if (hintKey === 'desktop-entry') desktopEntry = decode(vm[1]);
+            hintKey = '';
+            return;
+        }
+        if (line.startsWith('variant')) {
+            hintKey = '';           // nilai non-string (byte/int/boolean)
+            return;
+        }
+        const hm = /^string "(.*)"$/.exec(line);
+        if (hm) hintKey = decode(hm[1]);
         return;
     }
     const match = /^string "(.*)"$/.exec(line);

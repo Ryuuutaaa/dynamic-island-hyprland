@@ -343,11 +343,15 @@ export default () => {
         summary.label = truncate(item.summary || '(notifikasi)', MAX_SUMMARY);
         body.label = truncate(item.body || '', MAX_BODY);
         body.visible = !!item.body;
-        // nama ikon tema; path file tidak didukung Widget.Icon -> glyph lonceng
-        const useIcon = !!item.icon && !item.icon.startsWith('/') && !item.icon.includes('.');
+        // Provider dikenal (WhatsApp/Telegram/Discord) -> glyph brand.
+        // Selain itu: nama ikon tema kalau ada, kalau tidak lonceng.
+        const provider = item.provider || null;
+        const useIcon = !provider && !!item.icon
+            && !item.icon.startsWith('/') && !item.icon.includes('.');
         icon.visible = useIcon;
         glyph.visible = !useIcon;
         if (useIcon) icon.icon = item.icon;
+        glyph.label = provider ? provider.glyph : '\uf0f3';
         buildActions(item.actions || []);
 
         if (hiding) {

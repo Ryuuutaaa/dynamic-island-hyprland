@@ -173,8 +173,9 @@ export default () => {
             Widget.Box({
                 className: 'dyn-island-water-meta',
                 vertical: true,
-                // 8px: bar progress dulu cuma 4px dari teks & pill di atas/bawahnya
-                spacing: 8,
+                // 4px: dengan 8px total tinggi melebihi ruang konten (100px)
+                // sehingga baris pill terpotong clip.
+                spacing: 4,
                 valign: Gtk.Align.CENTER,
                 children: [
                     Widget.Box({

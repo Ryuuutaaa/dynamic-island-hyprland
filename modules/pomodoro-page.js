@@ -93,7 +93,7 @@ export default () => {
             Widget.Box({
                 className: 'dyn-island-pomo-text',
                 vertical: true,
-                spacing: 4,
+                spacing: 2,
                 valign: Gtk.Align.CENTER,
                 children: [
                     Widget.Label({ className: 'dyn-island-pomo-title', label: 'Pomodoro', xalign: 0 }),
@@ -104,7 +104,8 @@ export default () => {
             Widget.Box({
                 className: 'dyn-island-pomo-pills',
                 vertical: true,
-                spacing: 6,
+                // 4px: 6px membuat tinggi konten 102px, ruang hanya 100px
+                spacing: 4,
                 valign: Gtk.Align.CENTER,
                 children: [modePill, playPill, resetPill],
             }),
