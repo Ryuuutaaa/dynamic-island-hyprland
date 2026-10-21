@@ -679,6 +679,14 @@ modules/shelf-page.js  halaman shelf (drop zone, kartu file, drag out)
   dihancurkan. Dulu dua label jam memakai `poll(1000)` sehingga bangun 2x/detik
   sepanjang waktu. Nama hari/bulan ditulis manual karena locale sistem (en_US)
   tidak menghasilkan bahasa Indonesia.
+- **Rantai `onMinute` dulu bisa mati diam-diam.** `arm()` dipanggil *setelah*
+  `callback()`, jadi satu exception dari callback menghentikan rantai tanpa
+  tick berikutnya — terukur jam beku di `14:08` saat jam sistem `17:27`
+  (proses hidup 24 menit lalu berhenti menulis label, tanpa error terlihat
+  karena stderr AGS diarahkan ke `/dev/null`). Sekarang callback dibungkus
+  try/catch + `console.error`, `arm()` selalu jalan di `finally`, dan ada
+  **watchdog 30 detik** yang memanggil ulang callback kalau tidak ada tick
+  selama > 65 detik (menutup kasus suspend panjang / source hilang).
 - **Double-click dapat DUA event press.** Untuk klik kedua dalam satu
   double-click, GDK mengirim `BUTTON_PRESS` *dan* `2BUTTON_PRESS`, dan GTK3
   memancarkan `button-press-event` untuk keduanya (terukur: 2 klik fisik → 3
