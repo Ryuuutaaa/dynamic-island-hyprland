@@ -7,7 +7,7 @@ import CONFIG from './config.js';
 // Urutan halaman untuk navigasi manual (page dots + panah).
 // Hanya halaman "nyata": volume/brightness/notify adalah transient (muncul
 // sendiri saat OSD/notifikasi) dan dulu ikut bisa di-pin lewat panah.
-export const PAGE_ORDER = ['idle', 'media', 'pomodoro', 'water', 'todo', 'shelf', 'bluetooth'];
+export const PAGE_ORDER = ['idle', 'media', 'pomodoro', 'water', 'todo', 'shelf', 'bluetooth', 'prayer'];
 
 export const page = Variable('idle');
 

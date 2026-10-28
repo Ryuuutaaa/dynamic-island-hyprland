@@ -19,6 +19,8 @@ export default {
         peek: { w: 240, h: 80, r: 20, ear: 13 },
         // halaman lirik lebih lebar (Nusa: 520) karena terbelah dua
         lyrics: { w: 520, h: 140, r: 32, ear: 22 },
+        // jadwal sholat: busur matahari + 5 waktu sholat butuh ruang lebih
+        prayer: { w: 560, h: 140, r: 32, ear: 22 },
     },
 
     // MOTION (Nusa): width/height .62s cubic-bezier(.34,1.32,.5,1).
@@ -48,4 +50,19 @@ export default {
     // batas karakter sebelum teks dipotong (kartu 420 lebar, peek 310)
     mediaMaxChars: 22,
     notifyMaxChars: 34,
+
+    // JADWAL SHOLAT — dihitung lokal (tanpa jaringan) dari koordinat.
+    // Ganti latitude/longitude/city kalau pindah daerah.
+    // method: 'kemenag' (Fajr 20°, Isha 18°), 'mwl' (18°/17°),
+    //         'umm-al-qura' (18.5°, Isha 90 menit setelah Magrib).
+    // catchUpMinutes: pengingat masih dikirim kalau AGS baru hidup beberapa
+    // menit setelah waktu masuk (0 = hanya tepat di menit itu).
+    prayer: {
+        latitude: -8.65,
+        longitude: 115.2167,
+        city: 'Denpasar',
+        method: 'kemenag',
+        notify: true,
+        catchUpMinutes: 15,
+    },
 };

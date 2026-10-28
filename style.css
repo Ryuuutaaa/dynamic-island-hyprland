@@ -194,6 +194,51 @@ tooltip > box {
     min-width: 36px;
 }
 
+/* ── jadwal sholat ──────────────────────────────────────────── */
+.dyn-island-prayer {
+    min-width: 520px;
+}
+.dyn-island-prayer-info {
+    min-width: 150px;
+}
+.dyn-island-prayer-city {
+    font-size: 9px;
+    color: __MUTED__;
+}
+.dyn-island-prayer-next {
+    font-size: 18px;
+    font-weight: 700;
+    color: __FG__;
+}
+.dyn-island-prayer-count {
+    font-size: 23px;
+    font-weight: 700;
+    color: __ACCENT2__;
+    letter-spacing: 1px;
+}
+.dyn-island-prayer-right {
+    min-width: 360px;
+}
+.dyn-island-prayer-times {
+    min-width: 360px;
+}
+.dyn-island-prayer-time {
+    min-width: 72px;
+}
+.dyn-island-prayer-time-name {
+    font-size: 9px;
+    color: __MUTED__;
+}
+.dyn-island-prayer-time-value {
+    font-size: 12px;
+    color: __FG__;
+}
+.dyn-island-prayer-time.on .dyn-island-prayer-time-name,
+.dyn-island-prayer-time.on .dyn-island-prayer-time-value {
+    color: __ACCENT2__;
+    font-weight: 700;
+}
+
 /* ── media (kartu besar 420x140) ──────────────────────────────── */
 /* album art digambar Cairo (modules/cover.js) supaya sudutnya benar-benar
    membulat — border-radius CSS tidak meng-clip pixbuf di GTK3 */

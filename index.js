@@ -23,6 +23,8 @@ import WaterPage from './modules/water-page.js';
 import TodoPage from './modules/todo-page.js';
 import ShelfPage from './modules/shelf-page.js';
 import BluetoothPage from './modules/bluetooth-page.js';
+import PrayerPage from './modules/prayer-page.js';
+import { watchPrayer, prayer as prayerState, notifyPrayer } from './modules/prayer.js';
 import {
     shelf, shelfDragOver, shelfUndo, undoLast as shelfUndoLast,
     addPaths as shelfAdd, removeItem as shelfRemove, clearShelf as shelfClear,
@@ -132,6 +134,7 @@ function DynamicIsland() {
             todo: TodoPage(),
             shelf: ShelfPage(),
             bluetooth: BluetoothPage(),
+            prayer: PrayerPage(),
             volume: VolumeOsd(),
             brightness: BrightnessOsd(),
             notify: Notify(),
@@ -305,7 +308,8 @@ function DynamicIsland() {
     // Nav tampil di semua state besar (expanded + lirik yang lebih lebar).
     // Tanpa ini halaman lirik jadi jalan buntu: tombol panah satu-satunya
     // jalan keluar, tapi pill-nya tidak pernah muncul.
-    const navVisibleFor = next => next === GEO.expanded || next === GEO.lyrics;
+    const navVisibleFor = next =>
+        next === GEO.expanded || next === GEO.lyrics || next === GEO.prayer;
 
     const applyGeometry = () => {
         const w = Math.max(1, Math.round(geo.w));
@@ -337,6 +341,8 @@ function DynamicIsland() {
         if (hovered.value) {
             // tampilan lirik lebih lebar (Nusa: 520) — bagian dari kartu media
             if (inLyricsView() && GEO.lyrics) return GEO.lyrics;
+            // halaman sholat lebih lebar: busur matahari + 5 waktu
+            if (page.value === 'prayer' && GEO.prayer) return GEO.prayer;
             return GEO.expanded;
         }
         return GEO.closed;
@@ -657,6 +663,7 @@ const dyn = {
     notif: notifCurrent, notifLatest,
     stepPage, pinPage, PAGE_ORDER, isPinned, mediaView, btPreview,
     lyrics: lyricsStore, retryLyrics, pomodoro,
+    prayer: prayerState, prayerNotify: notifyPrayer,
     pomodoroModes, pomodoroSetMode, pomodoroToggle, pomodoroReset,
     water, waterDrink, waterSetGoal, waterToggleReminder,
     todo, todoAdd, todoToggle, todoRemove,
@@ -769,6 +776,7 @@ dyn.notifPopup = notifPopup;
     watchLyrics();
     watchWater();
     watchTodo();
+    watchPrayer();
     App.connect('config-parsed', applyStyle);
     mountIsland();
 } catch (error) {

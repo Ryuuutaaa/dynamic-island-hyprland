@@ -57,6 +57,7 @@ frame 2,98–3,02 sepanjang 420×140 → 150×50.
 | `todo` | checkmark hijau + strikethrough, counter `X/Y`, pill Tambah/Ubah |
 | `shelf` | drop zone putus-putus + kartu file (thumbnail, nama, ukuran) |
 | `bluetooth` | info device tersambung (ikon, nama, tipe, alamat, baterai) + slider volume + tombol bisu |
+| `prayer` | jadwal sholat: busur matahari Subuh→Magrib + 5 waktu + countdown sholat berikutnya |
 | `volume` / `brightness` | ikon + bar (Cairo) + persen |
 | `notify` | ikon + `Judul · isi` |
 
@@ -184,6 +185,47 @@ Baris ringkas di halaman idle tetap ada (hanya saat ada device) dan sekarang
 - Debug tanpa device fisik (dipakai saat menguji):
   `ags -r "globalThis.dynIsland.btPreview.value=[{name:'X', icon_name:'audio-headset', battery_percentage:80}]"`
   — kosongkan lagi dengan `=[]`.
+
+## Jadwal Sholat
+
+Halaman `prayer` (kartu **560×140**) menghitung waktu sholat **lokal tanpa
+jaringan** dari koordinat di `config.js`:
+
+```js
+prayer: {
+    latitude: -8.65,        // Denpasar, Bali
+    longitude: 115.2167,
+    city: 'Denpasar',
+    method: 'kemenag',      // kemenag | mwl | umm-al-qura
+    notify: true,
+    catchUpMinutes: 15,
+}
+```
+
+- **Algoritma** (`modules/prayer-calc.js`): PrayTimes — deklinasi matahari +
+  equation of time, sudut waktu untuk Subuh/Isya (Kemenag 20°/18°), Ashar
+  (bayangan 1×, madzhab Syafi'i), dan Maghrib (sunset 0.833° untuk refraksi +
+  piringan). Timezone mengikuti sistem (WITA +08:00 di mesin ini).
+- **Ihtiyat:** semua waktu dibulatkan **ke atas** ke menit berikutnya, supaya
+  pengingat tidak pernah berbunyi sebelum waktu masuk.
+- **Validasi** terhadap Aladhan (Denpasar, 28-10-2026, method 20/Kemenag):
+  referensi `04:31 12:03 15:15 18:15 19:27`; hasil lokal
+  `04:32 12:03 15:15 18:15 19:27` (selisih maks 1 menit, Fajr +1 ihtiyat).
+- **Tampilan** (`modules/prayer-page.js`): busur langit Subuh→Magrib, penanda
+  tiap waktu, dan Isya di bawah ujung kanan (setelah terbenam). Matahari
+  bergerak di busur setiap detik mengikuti jam; bagian busur yang sudah dilalui
+  diberi aksen. Kiri: `kota · metode`, nama sholat berikutnya, dan countdown
+  `HH:MM:SS`; kanan: busur + strip 5 waktu (yang berikutnya di-highlight).
+- **Pengingat:** saat masuk waktu, `notify-send -a Notch "Waktunya <nama>"
+  "<jam> · <kota>"`; `modules/notify.js` menampilkan popup kanan atas + halaman
+  transient di island. `catchUpMinutes` menangani AGS yang baru hidup beberapa
+  menit setelah waktu masuk; `prayer.json` (`{date, notified}`) mencegah
+  notifikasi dobel setelah restart. Tanpa device/network tetap jalan.
+- **Uji:** `ags -r "globalThis.dynIsland.prayerNotify('maghrib')"` untuk
+  mengirim notifikasi uji, `ags -r "JSON.stringify(globalThis.dynIsland.prayer.value)"`
+  untuk melihat jadwal + `next`, dan
+  `ags -r "globalThis.__prayerNowMinutes = 720"` untuk memaksa posisi matahari
+  di jam 12:00 saat menguji animasi siang (hapus dengan `= undefined`).
 
 ## Notifikasi (popup swaync)
 
@@ -450,7 +492,7 @@ Catatan penting:
 
 Saat **expanded** (dan di state lirik), muncul baris navigasi `‹ ● ●●●●● ›`
 di bawah-tengah kartu (latar **transparan** — hanya titik & panah yang terlihat;
-**7 titik** = `PAGE_ORDER`; lirik bukan halaman, jadi
+**8 titik** = `PAGE_ORDER`; lirik bukan halaman, jadi
 tidak punya dot). Titik aktif memanjang & terang — saat tampilan lirik terbuka,
 titik yang aktif tetap **media**.
 Panah memanggil `stepPage(±1)` lalu halaman itu **di-pin** selama `pinTimeout`
@@ -620,6 +662,7 @@ submap = reset
 | `pinTimeout` | durasi halaman pilihan manual (ms) |
 | `contentDelay` / `contentFade` | jeda & durasi fade-in konten (ms) |
 | `mediaMaxChars` / `notifyMaxChars` | pemotongan teks |
+| `prayer` | `{ latitude, longitude, city, method, notify, catchUpMinutes }` — jadwal sholat lokal |
 
 ### Warna
 
@@ -706,6 +749,9 @@ modules/closed.js  ring + jam + tanggal/equalizer
 modules/idle.js    jam besar + tanggal + ringkasan baterai/todo/air/bluetooth
 modules/bluetooth.js  baris device Bluetooth terhubung (glyph + nama + baterai)
 modules/bluetooth-page.js halaman detail bluetooth: info device + slider volume + mute
+modules/prayer-calc.js  algoritma waktu sholat (PrayTimes) + pilihan metode
+modules/prayer.js       state jadwal harian + pengingat + persistensi prayer.json
+modules/prayer-page.js  halaman jadwal sholat (busur matahari + strip 5 waktu)
 modules/timefmt.js format jam, tanggal Indonesia, ticker global 1 detik + deteksi resume
 modules/monitor.js pemetaan monitor Hyprland -> index GdkMonitor + ikuti monitor fokus
 modules/media.js   kartu MPRIS (art, judul, artis, progress, kontrol)
@@ -905,6 +951,8 @@ ags -r "globalThis.dynIsland.window.destroy()"       # uji watchdog rebuild (lay
 ags -r "globalThis.dynIsland.showTransient('volume', 20000)"  # paksa peek/OSD
 ags -r "globalThis.dynIsland.stepPage(1)"            # pindah + pin halaman
 ags -r "globalThis.dynIsland.retryLyrics()"          # ambil ulang lirik lagu ini
+ags -r "JSON.stringify(globalThis.dynIsland.prayer.value)"  # jadwal sholat + next
+ags -r "globalThis.dynIsland.prayerNotify('maghrib')"       # notifikasi sholat uji
 ```
 
 `tools/test-nav.sh` menggerakkan pointer dan mengklik lewat `/dev/uinput`
