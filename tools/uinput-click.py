@@ -36,6 +36,7 @@ UI_SET_RELBIT = 0x40045566
 EV_SYN, EV_KEY, EV_REL = 0, 1, 2
 REL_X, REL_Y = 0, 1
 BTN_LEFT = 0x110
+BTN_RIGHT = 0x111
 
 
 def emit(fd, etype, code, value):
@@ -65,11 +66,11 @@ def move_to(fd, x, y):
     return False
 
 
-def click(fd, hold_ms=70):
-    emit(fd, EV_KEY, BTN_LEFT, 1)
+def click(fd, hold_ms=70, button=BTN_LEFT):
+    emit(fd, EV_KEY, button, 1)
     syn(fd)
     time.sleep(hold_ms / 1000.0)
-    emit(fd, EV_KEY, BTN_LEFT, 0)
+    emit(fd, EV_KEY, button, 0)
     syn(fd)
 
 
@@ -99,6 +100,7 @@ def main():
         fcntl.ioctl(fd, UI_SET_EVBIT, EV_KEY)
         fcntl.ioctl(fd, UI_SET_EVBIT, EV_REL)
         fcntl.ioctl(fd, UI_SET_KEYBIT, BTN_LEFT)
+        fcntl.ioctl(fd, UI_SET_KEYBIT, BTN_RIGHT)
         fcntl.ioctl(fd, UI_SET_RELBIT, REL_X)
         fcntl.ioctl(fd, UI_SET_RELBIT, REL_Y)
         fcntl.ioctl(fd, UI_DEV_SETUP,
@@ -151,6 +153,16 @@ def main():
             click(fd, hold)
             time.sleep(0.45)
             print(f"sesudah klik: {island_state()}")
+        elif action == 'rclick':
+            x, y = int(sys.argv[2]), int(sys.argv[3])
+            hold = int(sys.argv[4]) if len(sys.argv) > 4 else 70
+            settle = int(sys.argv[5]) if len(sys.argv) > 5 else 400
+            move_to(fd, x, y)
+            time.sleep(settle / 1000.0)
+            print(f"sebelum klik kanan: {island_state()}")
+            click(fd, hold, BTN_RIGHT)
+            time.sleep(0.45)
+            print(f"sesudah klik kanan: {island_state()}")
         else:
             print(f"aksi tidak dikenal: {action}")
             return 2

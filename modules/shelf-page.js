@@ -3,6 +3,7 @@ import Gdk from 'gi://Gdk?version=3.0';
 import Widget from 'resource:///com/github/Aylur/ags/widget.js';
 import * as Utils from 'resource:///com/github/Aylur/ags/utils.js';
 import { shelf, shelfDragOver, shelfUndo, removeItem, clearShelf, undoLast, formatSize } from './shelf.js';
+import { eventButton } from './pointer.js';
 
 const CARD_W = 76;
 const CARD_H = 70;
@@ -59,9 +60,10 @@ const Card = item => Widget.Button({
             if (!item.missing) data.set_uris([item.uri]);
         });
 
-        // klik kanan: hapus dari shelf (file asli tidak disentuh)
+        // klik kanan: hapus dari shelf (file asli tidak disentuh).
+        // GJS tidak mengekspos event.button -> pakai helper get_button().
         self.connect('button-press-event', (_widget, event) => {
-            if (event.button !== 3) return false;
+            if (eventButton(event) !== 3) return false;
             removeItem(item.id);
             return true;
         });
@@ -113,8 +115,8 @@ export default () => {
 
     const clear = Widget.Button({
         className: 'dyn-island-chip',
-        tooltipText: 'Kosongkan shelf (file asli tidak dihapus, bisa diurungkan)',
-        child: Widget.Label({ className: 'dyn-island-chip-label', label: 'Kosongkan' }),
+        tooltipText: 'Hapus semua item dari shelf (file asli tidak dihapus, bisa diurungkan)',
+        child: Widget.Label({ className: 'dyn-island-chip-label', label: 'Hapus semua' }),
         onClicked: () => clearShelf(),
     });
 

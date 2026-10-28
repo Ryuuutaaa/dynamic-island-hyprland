@@ -401,7 +401,7 @@ ada).
 ## Shelf
 
 Halaman `shelf` (kartu 420×140): judul `Shelf` + jumlah item + chip
-**Clear**, dan isinya salah satu dari:
+**Hapus semua**, dan isinya salah satu dari:
 
 - **Drop zone** (kotak garis putus-putus `380×54`): ikon tray +
   "Letakkan berkas di sini" → berubah jadi **"Lepas untuk menambah"** + border menyala saat
@@ -422,12 +422,18 @@ Interaksi:
 - **Klik** kartu → `xdg-open`. **Klik kanan** → hapus dari shelf.
   **Drag keluar** → kartu adalah drag source `text/uri-list`, jadi bisa
   diseret ke file manager / chat / email.
-- **Clear** mengosongkan shelf. Aksi destruktif (**Clear** dan klik-kanan hapus)
-  bisa **diurungkan** satu langkah lewat chip **Urungkan** yang muncul 8 detik
-  (`shelfUndo`/`undoLast()` di `modules/shelf.js`). Nama file dipotong 12
-  karakter (dulu 9) dan kalau item lebih banyak dari yang muat (4 kartu),
-  label jumlah berubah jadi `N item · geser ›` sebagai penanda daftarnya bisa
-  digeser.
+- **Klik kanan sempat tidak berfungsi**: handler lama memakai
+  `event.button !== 3`, padahal GJS tidak mengekspos field event
+  (`event.button` selalu `undefined`) — akibatnya kartu tidak pernah terhapus
+  walau sudah diklik kanan. Sekarang memakai `eventButton(event)` dari
+  `modules/pointer.js` (`event.get_button()`).
+- **Hapus semua** mengosongkan seluruh shelf (tombol ini juga satu-satunya
+  jalan kalau item sudah banyak). Aksi destruktif (**Hapus semua** dan
+  klik-kanan hapus) bisa **diurungkan** satu langkah lewat chip **Urungkan**
+  yang muncul 8 detik (`shelfUndo`/`undoLast()` di `modules/shelf.js`). Nama
+  file dipotong 12 karakter (dulu 9) dan kalau item lebih banyak dari yang muat
+  (4 kartu), label jumlah berubah jadi `N item · geser ›` sebagai penanda
+  daftarnya bisa digeser.
 
 Catatan penting:
 
