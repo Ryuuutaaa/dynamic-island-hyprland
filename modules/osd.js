@@ -6,7 +6,7 @@ import * as Utils from 'resource:///com/github/Aylur/ags/utils.js';
 import Audio from 'resource:///com/github/Aylur/ags/service/audio.js';
 import CONFIG from '../config.js';
 import { palette, hexToRgb } from '../theme.js';
-import { showTransient } from '../state.js';
+import { showTransient, page } from '../state.js';
 import { roundedRect } from '../draw.js';
 
 const BAR_HEIGHT = 5;
@@ -88,7 +88,10 @@ export function VolumeOsd() {
             Utils.timeout(1200, () => { last = volumeMark(); });
             self.hook(Audio, () => {
                 const mark = volumeMark();
-                if (last !== null && mark !== null && mark !== last)
+                // Saat halaman bluetooth aktif, slider/mute di sana sudah
+                // menampilkan volume; jangan ganti halamannya dengan OSD
+                // transient (page akan tertutup 1.6 detik tiap perubahan).
+                if (last !== null && mark !== null && mark !== last && page.value !== 'bluetooth')
                     showTransient('volume', CONFIG.osdTimeout);
                 last = mark;
                 refresh();

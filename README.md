@@ -49,13 +49,14 @@ frame 2,98–3,02 sepanjang 420×140 → 150×50.
 | Page | Isi |
 |---|---|
 | `closed` | ring baterai (Cairo) + jam + **tanggal** (`19 Okt`) saat tidak ada musik, atau equalizer saat playing |
-| `idle` | **jam besar + tanggal** + kolom ringkas: baterai, `X/Y tugas`, `ml / goal L`, dan bar Bluetooth (hanya saat ada device terhubung) |
+| `idle` | **jam besar + tanggal** + kolom ringkas: baterai, `X/Y tugas`, `ml / goal L`, dan bar Bluetooth (hanya saat ada device terhubung; **klik untuk buka halaman bluetooth**) |
 | `media` | album art 72px + judul + artis + progress bar (bisa diklik untuk seek) + prev/play/next + tombol lirik |
 | `media` → lirik | **sub-tampilan** (bukan halaman nav): kiri album art + judul + progress + kontrol, kanan daftar lirik sinkron |
 | `pomodoro` | ring merah 88px menyusut + countdown 32px + pill (mode berikutnya, play, reset) |
 | `water` | volume harian, progress, switch pengingat, grafik ml per jam |
 | `todo` | checkmark hijau + strikethrough, counter `X/Y`, pill Tambah/Ubah |
 | `shelf` | drop zone putus-putus + kartu file (thumbnail, nama, ukuran) |
+| `bluetooth` | info device tersambung (ikon, nama, tipe, alamat, baterai) + slider volume + tombol bisu |
 | `volume` / `brightness` | ikon + bar (Cairo) + persen |
 | `notify` | ikon + `Judul · isi` |
 
@@ -138,26 +139,48 @@ waktu, countdown `MM:SS` besar, label mode, dan tiga pill:
 
 ## Bluetooth
 
-Baris ringkas di halaman idle yang **hanya dirender kalau ada device yang
-terhubung**. Tanpa device: tidak ada baris sama sekali (tanpa ruang kosong —
-terukur tinggi kolom stat 64px vs 88px saat ada device).
+**Kenapa dulu tidak muncul:** barisnya sudah ada dan `Bluetooth.connected_devices`
+memang berisi device (`Redmi Buds 6`, baterai 65%, sink
+`bluez_output.64_8F_DB_52_8A_74.1`), tetapi baris itu hanya berada di halaman
+`idle`. Saat ada media player aktif, halaman istirahatnya `media`, jadi baris
+idle tidak pernah ter-map (terukur `visible=true`, `mapped=false`). Selain itu
+barisnya hanya satu teks tanpa info device maupun pengaturan volume.
 
-```
-  WH-1000XM4 · 82%
-```
+Sekarang ada **halaman `bluetooth`** (dot nav ke-7) yang menampilkan:
 
-- Sumber: service Bluetooth AGS (BlueZ) → `Bluetooth.connected_devices`.
-  Tidak ada polling `bluetoothctl`: baris ikut event `changed` service.
+- ikon device, nama, tipe (Headset/Speaker/...), alamat, dan baterai;
+- slider volume Cairo (klik + drag) beserta persentase;
+- tombol bisu (glyph speaker berubah) yang men-toggle `sink.is_muted`.
+
+Baris ringkas di halaman idle tetap ada (hanya saat ada device) dan sekarang
+**bisa diklik** untuk membuka halaman detail. Baris memakai `EventBox` (bukan
+`Gtk.Button`) supaya tinggi/background bawaan tema tidak ikut berubah.
+
+- Sumber device: service Bluetooth AGS (BlueZ) → `Bluetooth.connected_devices`.
+  Tidak ada polling `bluetoothctl`: halaman ikut event `changed` service.
+- Sumber volume: `Audio.speakers` (Gvc). Sink dicocokkan lewat **alamat device**
+  (`bluez_output.64_8F_DB_52_8A_74.1`), bukan asal sink default — jadi volume
+  yang diatur tetap milik headset meskipun output default berganti. Kalau sink
+  belum tersedia (profil audio belum siap), baris volume disembunyikan.
+- Halaman juga ikut event `changed` dari `Audio`, jadi slider/persentase
+  mengikuti perubahan volume dari sumber lain tanpa timer polling.
+- Slider memakai `event.get_coords()`/`event.get_button()` (helper
+  `modules/pointer.js`): GJS di mesin ini **tidak mengekspos field**
+  `event.x`/`event.button`, sehingga handler gaya lama selalu berhenti di
+  `if (event.button !== 1) return false`. Setelah helper dipakai, klik 25% →
+  75% → 38% benar-benar mengubah sink `bluez_output.64_8F_DB_52_8A_74.1` dan
+  label UI ikut berubah.
+- Menggeser slider / menekan mute **tidak** memunculkan OSD volume: hook
+  `speaker-changed` di `modules/osd.js` dilewati saat `page.value ===
+  'bluetooth'`. Tanpa guard itu halaman BT tertutup OSD 1.6 detik setiap kali
+  volume berubah. Terukur: page tetap `bluetooth` selama slider/mute dipakai.
 - Glyph mengikuti `icon_name` device: headset/headphone, speaker, keyboard,
-  mouse, phone, fallback logo Bluetooth. Pencocokan dari yang paling spesifik
-  (`audio-speaker` → speaker, bukan headphone, karena juga mengandung "audio").
-- Baterai device ditampilkan kalau BlueZ melaporkan `battery_percentage`
-  (banyak headset mengirim Battery1); kalau tidak ada, hanya nama.
-- Beberapa device sekaligus: device audio diprioritaskan, sisanya menjadi `+N`.
-  Tooltip berisi daftar lengkap; untuk satu device tooltip dikosongkan.
-- Baris memakai kelas yang sama dengan baris stat lain
-  (`dyn-island-idle-stat*`) dan disembunyikan lewat `visible` +
-  `set_no_show_all()` supaya `show_all()` tidak memunculkannya kembali.
+  mouse, phone, fallback logo Bluetooth. Baterai memakai glyph F240..F244
+  sesuai level.
+- Beberapa device sekaligus: device audio diprioritaskan, sisanya menjadi `+N`
+  di baris idle; tooltip berisi daftar lengkap + "Klik untuk detail".
+- Tanpa device: halaman menampilkan "Tidak ada perangkat" + petunjuk
+  ("Hubungkan headset atau speaker" / "Bluetooth nonaktif").
 - Debug tanpa device fisik (dipakai saat menguji):
   `ags -r "globalThis.dynIsland.btPreview.value=[{name:'X', icon_name:'audio-headset', battery_percentage:80}]"`
   — kosongkan lagi dengan `=[]`.
@@ -421,7 +444,7 @@ Catatan penting:
 
 Saat **expanded** (dan di state lirik), muncul baris navigasi `‹ ● ●●●●● ›`
 di bawah-tengah kartu (latar **transparan** — hanya titik & panah yang terlihat;
-**6 titik** = `PAGE_ORDER`; lirik bukan halaman, jadi
+**7 titik** = `PAGE_ORDER`; lirik bukan halaman, jadi
 tidak punya dot). Titik aktif memanjang & terang — saat tampilan lirik terbuka,
 titik yang aktif tetap **media**.
 Panah memanggil `stepPage(±1)` lalu halaman itu **di-pin** selama `pinTimeout`
@@ -442,10 +465,12 @@ Dengan aksi di press, yang diklik adalah posisi yang terlihat saat itu juga.
 
 **Hover diverifikasi ke kompositor.** GTK3 mengirim `leave-notify-event` juga
 saat pointer pindah ke child ber-GdkWindow (tombol, dots, DrawingArea, isi
-halaman) — dan pada GJS/AGS ini objek event-nya **tidak mengekspos field apa
-pun** (`event.detail` selalu `undefined`, sudah diperiksa), sehingga pengecekan
-`INFERIOR` tidak pernah cocok. Dulu itu membuat notch menutup begitu pointer
-menyentuh konten; sekarang setiap `leave` memeriksa posisi pointer sebenarnya
+halaman) — dan pada GJS/AGS ini objek event-nya **tidak mengekspos field struct**
+(`event.detail`, `event.button`, `event.x` semuanya `undefined`; pakai
+`event.get_coords()`/`event.get_button()` lewat `modules/pointer.js`), sehingga
+pengecekan `INFERIOR` tidak pernah cocok. Dulu itu membuat notch menutup begitu
+pointer menyentuh konten; sekarang setiap `leave` memeriksa posisi pointer
+sebenarnya
 lewat `hyprctl -j cursorpos` (+ rect monitor yang di-cache, diperbarui saat
 monitor fokus berubah), dan hanya menutup kalau pointer benar-benar di luar
 badan island. Token mencegah hasil pemeriksaan yang basi menutup notch setelah
@@ -674,6 +699,7 @@ index.js           window, Stack, clipping, mesin geometri, registrasi AGS
 modules/closed.js  ring + jam + tanggal/equalizer
 modules/idle.js    jam besar + tanggal + ringkasan baterai/todo/air/bluetooth
 modules/bluetooth.js  baris device Bluetooth terhubung (glyph + nama + baterai)
+modules/bluetooth-page.js halaman detail bluetooth: info device + slider volume + mute
 modules/timefmt.js format jam, tanggal Indonesia, ticker global 1 detik + deteksi resume
 modules/monitor.js pemetaan monitor Hyprland -> index GdkMonitor + ikuti monitor fokus
 modules/media.js   kartu MPRIS (art, judul, artis, progress, kontrol)
@@ -685,6 +711,7 @@ modules/nav.js     page dots (Cairo) + panah
 modules/lyrics.js      fetch LRCLIB + parse LRC + cache
 modules/lyrics-page.js tampilan lirik (sub-bagian media: meta kiri + daftar sinkron kanan)
 modules/progress.js    progress bar Cairo bersama (media & lirik)
+modules/pointer.js     helper event GJS: get_button()/get_coords() (field event undefined)
 modules/pomodoro.js    timer fokus / istirahat singkat / istirahat panjang + chime & notifikasi
 modules/pomodoro-page.js halaman pomodoro (ring + countdown + pill)
 modules/water.js       state air + persistensi JSON + pengingat tiap jam
@@ -750,6 +777,14 @@ modules/shelf-page.js  halaman shelf (drop zone, kartu file, drag out)
   Diverifikasi tanpa mengganti lagu: path belum ada → `loaded=false`; file
   dibuat → `setPath(path)` yang sama langsung `loaded=true`; tanpa `setPath`
   kedua, timer memuatnya sendiri.
+- **Field `GdkEvent` tidak terbaca di GJS ini; pakai method `get_*()`.** Di
+  callback `button-press-event`, `event.button`, `event.x`, dan `event.detail`
+  semuanya `undefined`. Akibatnya handler lama seperti
+  `if (event.button !== 1) return false` **selalu** berhenti — progress bar
+  media yang katanya bisa diklik sebenarnya tidak pernah seek. Helper
+  `modules/pointer.js` memakai `event.get_button()` (`[ok, button]`) dan
+  `event.get_coords()` (`[ok, x, y]`). Terukur setelah fix: klik 50% progress
+  bar → posisi 142 detik dari 282 detik.
 - `GtkStack` memberi child alokasi PENUH. Karena nav adalah overlay di dasar
   kartu, ruangnya dipotong dari **isi konten** (`stack.margin_bottom`) — lihat
   catatan di bagian Motion tentang kenapa bukan dari clip.

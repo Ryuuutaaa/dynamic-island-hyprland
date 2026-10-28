@@ -4,6 +4,7 @@ import * as Utils from 'resource:///com/github/Aylur/ags/utils.js';
 import Mpris from 'resource:///com/github/Aylur/ags/service/mpris.js';
 import { palette, hexToRgb } from '../theme.js';
 import { roundedRect } from '../draw.js';
+import { eventButton, eventX } from './pointer.js';
 
 const FG = hexToRgb(palette.fg);
 const ACCENT = hexToRgb(palette.accent2);
@@ -40,12 +41,12 @@ export default function Progress(width = 150) {
                 self.queue_draw();
             }, self);
             self.connect('button-press-event', (_widget, event) => {
-                if (event.button !== 1) return false;
+                if (eventButton(event) !== 1) return false;
                 const player = activePlayer();
                 const length = player?.length ?? 0;
                 if (!player || length <= 0) return false;
                 const area = self.get_allocation();
-                const ratio = Math.min(1, Math.max(0, event.x / Math.max(1, area.width)));
+                const ratio = Math.min(1, Math.max(0, eventX(event) / Math.max(1, area.width)));
                 try {
                     player.position = ratio * length;
                 } catch (error) {

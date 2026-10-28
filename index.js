@@ -22,6 +22,7 @@ import PomodoroPage from './modules/pomodoro-page.js';
 import WaterPage from './modules/water-page.js';
 import TodoPage from './modules/todo-page.js';
 import ShelfPage from './modules/shelf-page.js';
+import BluetoothPage from './modules/bluetooth-page.js';
 import {
     shelf, shelfDragOver, shelfUndo, undoLast as shelfUndoLast,
     addPaths as shelfAdd, removeItem as shelfRemove, clearShelf as shelfClear,
@@ -130,6 +131,7 @@ function DynamicIsland() {
             water: WaterPage(),
             todo: TodoPage(),
             shelf: ShelfPage(),
+            bluetooth: BluetoothPage(),
             volume: VolumeOsd(),
             brightness: BrightnessOsd(),
             notify: Notify(),

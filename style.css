@@ -137,6 +137,63 @@ tooltip > box {
     color: __FG__;
 }
 
+/* ── bluetooth (halaman detail) ──────────────────────────────── */
+/* Baris ringkas di halaman idle sekarang bisa diklik -> halaman detail.
+   EventBox dipakai supaya tidak ada background/min-height bawaan Button. */
+.dyn-island-bt-row {
+    background-color: transparent;
+    background-image: none;
+    border: none;
+    box-shadow: none;
+    border-radius: 6px;
+    padding: 0;
+}
+.dyn-island-bt-row:hover {
+    background-color: __SURFACE_DIM__;
+}
+
+.dyn-island-bluetooth {
+    min-width: 340px;
+}
+.dyn-island-bt-head {
+    min-width: 340px;
+}
+.dyn-island-bt-text {
+    min-width: 200px;
+}
+.dyn-island-bt-icon {
+    font-size: 26px;
+    color: __ACCENT2__;
+}
+.dyn-island-bt-name {
+    font-size: 15px;
+    font-weight: 700;
+    color: __FG__;
+}
+.dyn-island-bt-meta {
+    font-size: 11px;
+    color: __MUTED__;
+}
+.dyn-island-bt-batt-box {
+    min-width: 64px;
+}
+.dyn-island-bt-batt-icon {
+    font-size: 13px;
+    color: __ACCENT2__;
+}
+.dyn-island-bt-batt {
+    font-size: 12px;
+    color: __FG__;
+}
+.dyn-island-bt-vol {
+    min-width: 340px;
+}
+.dyn-island-bt-vol-text {
+    font-size: 12px;
+    color: __MUTED__;
+    min-width: 36px;
+}
+
 /* ── media (kartu besar 420x140) ──────────────────────────────── */
 /* album art digambar Cairo (modules/cover.js) supaya sudutnya benar-benar
    membulat — border-radius CSS tidak meng-clip pixbuf di GTK3 */
