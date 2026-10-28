@@ -28,11 +28,20 @@ let replacesId = 0;
 let inHints = false;
 let hintKey = '';
 let desktopEntry = '';
+// dbus-monitor mencetak isi string APA ADANYA: newline dari aplikasi menjadi
+// baris baru di output (tidak di-escape). Notifikasi web Chromium berbentuk
+// "<origin>\n\n<body>", jadi body-nya selalu multi-baris. Dulu regex
+// per-baris gagal menangkapnya -> body hilang dan popup hanya menampilkan
+// judul + fallback "Pesan baru". pendingString mengumpulkan baris lanjutan
+// sampai tanda kutip penutup.
+let pendingString = null;
 // body terakhir per id notifikasi: update dari Chrome/WhatsApp Web kadang
 // datang dengan body kosong (mis. hanya mengubah judul); jangan sampai
 // menimpa body yang sudah tampil dengan kosong.
 const lastBodyById = new Map();
 let started = false;
+
+const BROWSER = /brave|chrome|chromium|firefox/i;
 
 const decode = (text) => text
     .replace(/\\"/g, '"')
@@ -116,6 +125,52 @@ const latestWithId = (id) => {
     if (lastBodyById.size > 30) lastBodyById.delete(lastBodyById.keys().next().value);
 };
 
+// Chromium menambahkan "<origin>\n\n" di depan body notifikasi web, mis.
+// "web.whatsapp.com\n\nHalo, apa kabar". Origin itu dibuang supaya popup
+// hanya menampilkan isi pesannya.
+const isOrigin = head =>
+    /^(?:[a-z][a-z0-9+.-]*:\/\/)?(?:localhost|[^\s/]+\.[^\s/]+)(?::\d+)?$/i.test(head);
+
+const cleanBody = (app, body) => {
+    let text = String(body ?? '');
+    if (BROWSER.test(String(app || ''))) {
+        const split = text.indexOf('\n\n');
+        if (split >= 0 && isOrigin(text.slice(0, split).trim()))
+            text = text.slice(split + 2);
+    }
+    // satu baris untuk kartu popup & halaman notify (label tidak wrap)
+    return text.replace(/\r/g, '').replace(/\s+/g, ' ').trim();
+};
+
+// Chromium menyertakan action "settings" ("Settings") di setiap web
+// notification; itu membuka setelan notifikasi browser, bukan aksi pesan.
+// Chip-nya hanya memakan lebar kartu 340px.
+const dropBrowserSettings = (list) => {
+    const kept = [];
+    for (let i = 0; i + 1 < list.length; i += 2) {
+        if (list[i] === 'settings') continue;
+        kept.push(list[i], list[i + 1]);
+    }
+    return kept;
+};
+
+// Ambil satu nilai string hasil parsing (header, actions, atau key hints).
+const takeString = (value) => {
+    if (inHints) {
+        hintKey = value;
+        return;
+    }
+    if (inActions) actions.push(value);
+    else if (!sawActions) fields.push(value);
+};
+
+// `rest` = isi setelah `string "`. Kalau tanda kutip penutup belum ada di
+// baris ini, string berlanjut ke baris-baris berikutnya.
+const startString = (rest) => {
+    if (rest.endsWith('"')) takeString(decode(rest.slice(0, -1)));
+    else pendingString = { parts: [rest] };
+};
+
 // Argumen Notify dari dbus-monitor (setelah baris `member=Notify`):
 //   string <app>   uint32 <replaces_id>   string <icon>
 //   string <summary>   string <body>   array [ string <key> string <label> ... ]
@@ -132,9 +187,10 @@ const flush = () => {
     actions = [];
     inActions = false;
     sawActions = false;
+    pendingString = null;
     if (captured.length < 3) return;
     const [app, icon, summary, body = ''] = captured;
-    const isBrowser = /brave|chrome|chromium|firefox/i.test(String(app || ''));
+    const isBrowser = BROWSER.test(String(app || ''));
     const hint = isBrowser ? browserWindowTitles() : '';
     const provider = detectProvider(`${app} ${desktopEntry} ${hint}`);
     const iconLocal = cacheIcon(icon);
@@ -144,25 +200,25 @@ const flush = () => {
     let text = body;
     if (!text && replacesId && lastBodyById.has(replacesId))
         text = lastBodyById.get(replacesId);
-    // WhatsApp Web (PWA di Chromium) kadang mengirim body kosong — isi pesan
-    // tidak ada di payload sama sekali. Daripada popup menampilkan judul saja
-    // (terlihat rusak), tampilkan keterangan netral. Kalau body ada, teksnya
-    // dipakai apa adanya; grup WA mengirim "Pengirim: pesan" di body.
+    // Body yang benar-benar kosong (bukan gagal parse) tetap diberi keterangan
+    // netral supaya kartu tidak terlihat rusak.
     const bodyMissing = !text;
     if (bodyMissing) text = 'Pesan baru';
+    else text = cleanBody(app, text);
 
-    // Diagnostik: satu baris per notifikasi, supaya payload asli (mis. Chrome /
-    // WhatsApp Web) bisa diperiksa saat ada laporan body kosong.
+    // Diagnostik: satu baris per notifikasi. `body` = mentah (newline
+    // di-escape oleh JSON.stringify), `shown` = yang dipakai popup.
     console.log(`[dyn-island] notif app=${JSON.stringify(app)} icon=${JSON.stringify(icon)}`
         + ` summary=${JSON.stringify(summary)} body=${JSON.stringify(body)}`
-        + ` replaces=${replacesId} bodyMissing=${bodyMissing}`
+        + ` shown=${JSON.stringify(text)} replaces=${replacesId} bodyMissing=${bodyMissing}`
         + ` desktopEntry=${JSON.stringify(desktopEntry)} provider=${provider ? provider.id : '-'}`
         + ` iconLocal=${JSON.stringify(iconLocal)}`
         + (hint ? ` webHint=${JSON.stringify(hint.slice(0, 60))}` : ''));
 
+    const shownActions = isBrowser ? dropBrowserSettings(acts) : acts;
     current.value = { app, summary, body: text, provider };
     showTransient('notify', CONFIG.notifyTimeout);
-    latest.value = { app, icon, iconLocal, summary, body: text, actions: acts, provider, id: 0, seq: ++seq };
+    latest.value = { app, icon, iconLocal, summary, body: text, actions: shownActions, provider, id: 0, seq: ++seq };
 };
 
 const parseLine = (line) => {
@@ -183,6 +239,7 @@ const parseLine = (line) => {
         callSerial = serial ? Number(serial[1]) : 0;
         awaitingId = false;
         replacesId = 0;
+        pendingString = null;
         return;
     }
     if (line.includes('method return')) {
@@ -200,6 +257,18 @@ const parseLine = (line) => {
         return;
     }
     if (!capturing) return;
+
+    // baris lanjutan string multi-baris (newline tidak di-escape oleh
+    // dbus-monitor). Nilai selesai saat baris ditutup tanda kutip.
+    if (pendingString) {
+        pendingString.parts.push(line);
+        if (line.endsWith('"')) {
+            const value = pendingString.parts.join('\n').slice(0, -1);
+            pendingString = null;
+            takeString(decode(value));
+        }
+        return;
+    }
 
     // uint32 pertama = replaces_id (argumen kedua Notify)
     if (!sawActions && replacesId === 0) {
@@ -243,15 +312,12 @@ const parseLine = (line) => {
             hintKey = '';           // nilai non-string (byte/int/boolean)
             return;
         }
-        const hm = /^string "(.*)"$/.exec(line);
-        if (hm) hintKey = decode(hm[1]);
-        return;
+        // `string "..."` di dalam dictionary = KEY hint; jatuh ke penanganan
+        // string di bawah supaya takeString() menyimpannya sebagai hintKey.
     }
-    const match = /^string "(.*)"$/.exec(line);
+    const match = /^string "(.*)$/.exec(line);
     if (!match) return;
-    const value = decode(match[1]);
-    if (inActions) actions.push(value);
-    else if (!sawActions) fields.push(value);
+    startString(match[1]);
 };
 
 // Panggil action notifikasi (mis. "default" untuk membuka aplikasi sumber).

@@ -9,19 +9,25 @@ hover**: sudut atas rata menempel layar, hanya sudut bawah melengkung, plus
 
 | State | Pemicu | Ukuran notch | Telinga | Isi |
 |---|---|---|---|---|
-| **closed** | default | **150×30** | 10 | ring baterai + jam + equalizer 5 bar |
+| **closed** | default | **150×50** | 10 | ring baterai + jam + equalizer 5 bar |
 | **expanded** | pointer hover | **420×140** | 22 | halaman aktif sebagai kartu + navigasi |
-| **peek** | OSD / notifikasi | **310×60** | 13 | volume / brightness / notifikasi |
+| **peek** | OSD / notifikasi | **240×80** | 13 | volume / brightness / notifikasi |
 
 Prioritas: `peek` (transient) menang atas `expanded`, `expanded` menang atas
 `closed`. Semua angka itu ada di `config.js` → `geometry`.
+
+**Rasio seragam 3:1** untuk `closed` (150×50), `peek` (240×80), dan `expanded`
+(420×140). Sebelumnya `closed` 150×30 = 5:1, sehingga saat menutup lebar dan
+tinggi menyusut dengan persentase berbeda (w −64%, h −78%) dan kartu terlihat
+"stretch" melebar di tengah animasi. Terukur sesudah perubahan: rasio setiap
+frame 2,98–3,02 sepanjang 420×140 → 150×50.
 
 ## Motion
 
 - **Ukuran** dianimasikan dengan `cubic-bezier(.34, 1.32, .5, 1)` selama
   **620ms** (`bezierTween` di `spring.js`, solver bezier sungguhan — bukan
   spring fisika). Overshoot-nya terlihat: membesar berhenti di 473×144 lalu
-  duduk di 464×140; menyusut sempat 161×26 lalu duduk di 170×30.
+  duduk di 464×140; menyusut berakhir tepat di 170×50 (150 + 2×telinga 10).
 - **Radius sudut & telinga** ikut state (14/32/19 dan 10/22/13). Telinga
   dianimasikan per frame (ikut tween ukuran); `border-radius` sendiri tidak
   bisa dianimasikan di GTK3, jadi nilainya dipasang sekali per state.
@@ -211,11 +217,13 @@ maupun keyframes di GTK3.
 **Data**: `modules/notify.js` menyadap `Notify` di bus (bukan menjadi daemon;
 swaync tetap pemilik `org.freedesktop.Notifications`). Parser mengambil
 app/icon/summary/body, **array actions**, dan **id** dari method return
-(`reply_serial` dicocokkan dengan serial call). Monitor memakai **dua** match
-rule: `interface=org.freedesktop.Notifications` dan `type=method_return` —
-method return tidak punya field interface, jadi tanpa rule kedua id selalu 0.
-`latest` membawa `seq` supaya kedatangan id tidak memicu popup tampil ulang.
-Terukur setelah perbaikan: `id=54, actions=["default","Open"]`.
+(`reply_serial` dicocokkan dengan serial call). Nilai string bisa **multi-baris**
+(Chromium menambahkan origin ke body — lihat bagian WhatsApp Web). Monitor
+memakai **dua** match rule: `interface=org.freedesktop.Notifications` dan
+`type=method_return` — method return tidak punya field interface, jadi tanpa
+rule kedua id selalu 0. `latest` membawa `seq` supaya kedatangan id tidak
+memicu popup tampil ulang. Terukur setelah perbaikan: `id=54,
+actions=["default","Open"]`.
 
 **Tampilan** (`modules/notif-popup.js` + kelas `.dyn-island-popup*`): kartu
 340px hitam solid radius 16, ikon 26px (fallback glyph lonceng), judul 13px,
@@ -261,28 +269,55 @@ bar 10px, bar 310×3 (selebar isi kartu), sisa bawah 11px. Lebar kartu dipatok
   `uninstall.sh` menghapusnya.
 - Uji: `./tools/test-popup.sh` (butuh sesi tidak terkunci).
 
-## Notifikasi WhatsApp Web (body kosong)
+## Notifikasi WhatsApp Web (isi pesan tidak tampil)
 
-Gejala: notifikasi WA Web hanya menampilkan nama pengirim, tanpa isi pesan.
-Penyebabnya di **payload pengirim**, bukan di popup: Chrome/WhatsApp Web bisa
-mengirim `Notify` dengan `body` kosong (mis. update untuk id yang sama, atau
-ketika pratinjau pesan dimatikan di HP). Yang sudah ditangani di sisi island:
+Gejala: notifikasi WA Web (PWA WhatsApp di Brave/Chrome) hanya menampilkan nama
+pengirim + fallback **"Pesan baru"**, tanpa isi pesan. Chip **Settings** juga
+muncul padahal tidak berguna.
 
-- **Update tanpa body tidak menimpa body yang sudah tampil.** Parser sekarang
-  membaca `replaces_id` (argumen kedua `Notify`) dan menyimpan body terakhir
-  per id (maks 30 entri). Kalau update datang dengan `body=""` dan
-  `replaces_id` cocok, body lama dipakai. Terukur: notif pertama
-  `body="Isi pesan asli…"`, update `body="" replaces=97` → popup tetap
-  menampilkan isi pesan.
-- **Log diagnostik** di `modules/notify.js`: satu baris per notifikasi
-  (`app`, `icon`, `summary`, `body`, `replaces`). Setelah pesan WA berikutnya
-  masuk, cek `~/.cache/ags-dynamic-island.log` — kalau `body=""` bahkan pada
-  notifikasi pertama, berarti sumbernya memang tidak mengirim isi pesan.
-- Kalau body memang tidak pernah dikirim, cek:
-  WhatsApp di HP → **Setelan → Notifikasi → Pratinjau pesan** (harus
-  menampilkan isi), WhatsApp Web → **Setelan → Notifikasi**, dan izin
-  notifikasi situs web.whatsapp.com di Chrome.
-- Catatan privasi: log diagnostik memuat isi pesan (lokal, hanya di mesin ini).
+Penyebabnya **bukan** payload kosong dan bukan setelan pratinjau WhatsApp:
+Chromium **menambahkan origin di depan body** pada setiap web notification,
+sehingga body selalu berupa string multi-baris:
+
+```
+   string "localhost:8765
+
+Baris satu
+Baris dua "kutip""
+```
+
+`dbus-monitor` mencetak isi string apa adanya — newline menjadi baris baru dan
+tanda kutip tidak di-escape. Parser lama mencocokkan **satu baris** dengan
+`^string "(.*)"$`, jadi string multi-baris tidak cocok sama sekali: body hilang,
+`bodyMissing=true`, dan popup hanya menampilkan judul + "Pesan baru". Semua
+notifikasi Chromium terkena (WhatsApp, Gemini, web app lain), bukan hanya WA.
+
+Perbaikan di `modules/notify.js`:
+
+- **`pendingString`**: baris lanjutan sebuah string dikumpulkan sampai tanda
+  kutip penutup, lalu diproses sebagai satu nilai. Berlaku untuk header
+  (app/icon/summary/body), actions, dan key hints.
+- **`cleanBody()`**: untuk aplikasi browser, prefix origin
+  (`web.whatsapp.com\n\n`, `localhost:8765\n\n`, boleh dengan scheme/port)
+  dibuang; newline/whitespace dirapatkan jadi satu baris supaya muat di kartu
+  popup dan halaman notify.
+- **Action `settings` dibuang** untuk notifikasi browser: chip "Settings" milik
+  Chromium membuka setelan notifikasi browser, bukan aksi pesan.
+- Log diagnostik mencetak `body` (mentah, newline di-escape JSON) dan `shown`
+  (hasil bersih yang dipakai UI).
+
+Verifikasi tanpa menunggu pesan WA asli: halaman lokal di Chrome yang memanggil
+`new Notification('Cimi Mochi Cimi Michi', { body: 'Halo, ini isi pesan…' })`
+mengirim payload `localhost:8765\n\nHalo, ini isi pesan…`. Popup menampilkan
+**judul + isi** (`shown="Halo, ini isi pesan…"`, `actions=["default","Activate"]`);
+screenshot kartu mengonfirmasi teks isi tampil dan chip Settings hilang.
+Uji multiline dengan `notify-send` juga lolos
+(`body="baris satu baris dua baris empat"`).
+
+Kalau `body` di log benar-benar `""` (mis. pratinjau pesan dimatikan), fallback
+"Pesan baru" tetap dipakai; cek WhatsApp di HP → **Setelan → Notifikasi →
+Pratinjau pesan**. Update yang datang tanpa body untuk `replaces_id` yang sama
+tetap memakai body terakhir yang tersimpan (maks 30 id).
 
 ## Water
 
@@ -630,7 +665,8 @@ index.js           window, Stack, clipping, mesin geometri, registrasi AGS
 modules/closed.js  ring + jam + tanggal/equalizer
 modules/idle.js    jam besar + tanggal + ringkasan baterai/todo/air/bluetooth
 modules/bluetooth.js  baris device Bluetooth terhubung (glyph + nama + baterai)
-modules/timefmt.js format jam, tanggal Indonesia, tick sekali per menit
+modules/timefmt.js format jam, tanggal Indonesia, ticker global 1 detik + deteksi resume
+modules/monitor.js pemetaan monitor Hyprland -> index GdkMonitor + ikuti monitor fokus
 modules/media.js   kartu MPRIS (art, judul, artis, progress, kontrol)
 modules/cover.js   album art Cairo: pixbuf dimuat sendiri, sudut membulat, fallback aman
 modules/osd.js     volume (Audio service) + brightness (sysfs)
@@ -716,24 +752,65 @@ modules/shelf-page.js  halaman shelf (drop zone, kartu file, drag out)
   dihancurkan. Dulu dua label jam memakai `poll(1000)` sehingga bangun 2x/detik
   sepanjang waktu. Nama hari/bulan ditulis manual karena locale sistem (en_US)
   tidak menghasilkan bahasa Indonesia.
-- **Rantai `onMinute` dulu bisa mati diam-diam.** `arm()` dipanggil *setelah*
-  `callback()`, jadi satu exception dari callback menghentikan rantai tanpa
-  tick berikutnya — terukur jam beku di `14:08` saat jam sistem `17:27`
-  (proses hidup 24 menit lalu berhenti menulis label, tanpa error terlihat
-  karena stderr AGS diarahkan ke `/dev/null`). Sekarang callback dibungkus
-  try/catch + `console.error`, `arm()` selalu jalan di `finally`, dan ada
-  **watchdog 30 detik** yang memanggil ulang callback kalau tidak ada tick
-  selama > 65 detik (menutup kasus suspend panjang / source hilang).
+- **Jam memakai SATU ticker global (1 detik).** `modules/timefmt.js` dulu
+  memberi setiap pemanggil rantai timer sendiri (jadwal ke batas menit +
+  watchdog 30s). Rantai per-pemanggil bisa mati diam-diam — terukur: label
+  beku di `06:03` saat jam sistem `12:34`, padahal timer baru di proses yang
+  sama tetap fire tepat `12:37:00`. Sekarang satu ticker membandingkan menit
+  berjalan dengan menit terakhir; jika berbeda, semua callback dipanggil.
+  Terverifikasi di batas menit: label `12:38` → `12:39` dalam ~2 detik, dan
+  error pada satu callback tidak memengaruhi yang lain.
+- **Suspend/resume**: timer GLib memakai `CLOCK_MONOTONIC` yang berhenti selama
+  laptop tidur, sehingga jam bisa tertinggal di waktu saat suspend. `timefmt.js`
+  mendeteksi resume lewat **dua jalur**:
+  1. sinyal logind **`PrepareForSleep(false)`** — ticker dipasang ulang dan semua
+     label dipaksa refresh;
+  2. **selisih jam dinding vs monotonic > 5 detik** di ticker 1 detik — cadangan
+     kalau sinyal logind terlewat (hibernasi, D-Bus telat, sesi tanpa logind).
+  Keduanya memanggil `onResume(cb)` (dipakai `index.js` untuk memeriksa window &
+  monitor) lalu `refreshClocks()`. Terukur tanpa suspend nyata: label dipaksa
+  `00:00`, `Date.now` digeser +6 detik (simulasi bangun), tick berikutnya
+  mengembalikan label ke jam sistem (`17:08`) dan window tetap hidup.
+
 - **Double-click dapat DUA event press.** Untuk klik kedua dalam satu
   double-click, GDK mengirim `BUTTON_PRESS` *dan* `2BUTTON_PRESS`, dan GTK3
   memancarkan `button-press-event` untuk keduanya (terukur: 2 klik fisik → 3
   emission, dua di antaranya pada ms yang sama). Karena `event.type` tidak
   terbaca, panah nav memakai dedupe 40ms supaya dua klik cepat = dua langkah,
   bukan tiga.
-- **Hotplug monitor**: kalau monitor tempat island berada dicabut/dimatikan,
-  GTK menghancurkan window island dan window itu tidak dibuat ulang otomatis.
-  Untuk memunculkannya lagi di monitor yang tersisa: `ags quit && ags &`
-  (atau jalankan ulang `install.sh`).
+- **Window island DI-DISPOSE saat layer surface ditutup compositor.** Terukur
+  setelah resume (28 Okt 16:41): proses AGS hidup, tetapi
+  `App.getWindow('dynamic-island').is_destroyed === true`, `visible=false`, dan
+  tidak ada layer `dynamic-island` (hanya waybar). Penyebabnya di gtk-layer-shell
+  0.9: `zwlr_layer_surface_v1.closed` →
+  `layer_surface_handle_closed()` → `gtk_window_close()` (default
+  `respect_surface_closed = TRUE`); GTK3 menghancurkan window karena tidak ada
+  handler `delete-event`. Hyprland mengirim `closed` saat output layer surface
+  hilang — monitor dicabut / topologi berubah saat resume (di mesin ini
+  HDMI-A-1 ada di config tetapi sudah tidak terpasang; eDP-1 tertinggal di
+  x=3840).
+  - `visible = true` **tidak bisa** menghidupkan window yang sudah disposed.
+    Watchdog lama hanya melakukan itu, jadi diam saja (probe hanya memunculkan
+    `Object .Ags_Window has been already disposed`).
+  - Sekarang `index.js` punya `mountIsland()`: sinyal `destroy` window
+    menjadwalkan rebuild 200ms, watchdog 2 detik memeriksa `is_destroyed`, dan
+    `onResume` memeriksa/membangun ulang. Entri `App._windows` dilepas dulu
+    supaya nama `dynamic-island` tidak dobel.
+  - **Semua koneksi ke Variable global** (`hovered`, `page`, `mediaView`)
+    dilepas di handler `destroy`. Tanpa itu handler window lama tetap jalan dan
+    menunjuk widget disposed (log banjir `Ags_Box/Ags_Stack ... already
+    disposed`) sehingga animasi hover window baru tidak pernah kebagian jalan.
+  - Diverifikasi tanpa suspend: `ags -r "...window.close()"` (jalur yang sama
+    dengan `gtk_window_close`) dan `...window.destroy()`. Layer kembali dalam
+    ≤200ms (destroy) / ≤2s (watchdog); hover 420x140 tetap bekerja setelah 3
+    siklus rebuild; 0 critical; daftar window App tidak dobel.
+- **Hyprland monitor `id` bukan index GdkMonitor.** AGS `Window.monitor`
+  memakai index GdkMonitor. Dulu `patchMonitor` dan popup menulis id Hyprland
+  langsung; setelah monitor dicabut saat resume index GDK bergeser (mis. id 1
+  sementara GDK tinggal index 0) sehingga window dipasang ke monitor yang tidak
+  ada/salah. Sekarang `modules/monitor.js` mencocokkan geometri (x/y/lebar,
+  sadar `scale`) dan memakai index 0 langsung bila hanya ada satu monitor.
+  Terukur: fokus `eDP-1@3840` → GDK index 0, island center 4800 = center monitor.
 - **`Utils.fetch` (libsoup3) mengembalikan HTTP 400 untuk SEMUA request di
   mesin ini** — termasuk `example.com` (curl 200 dengan URL/UA yang sama).
   Karena itu lirik diambil lewat `curl` (`Utils.execAsync`).
@@ -758,6 +835,8 @@ modules/shelf-page.js  halaman shelf (drop zone, kartu file, drag out)
 ./tools/check-center.sh          # offset notch vs center monitor (harus 0)
 ./tools/test-nav.sh 3            # uji regresi navigasi dgn klik mouse NYATA
 ags -r "globalThis.dynIsland.hovered.value = true"   # paksa expanded
+ags -r "globalThis.dynIsland.window.close()"         # simulasi layer surface ditutup compositor
+ags -r "globalThis.dynIsland.window.destroy()"       # uji watchdog rebuild (layer harus kembali)
 ags -r "globalThis.dynIsland.showTransient('volume', 20000)"  # paksa peek/OSD
 ags -r "globalThis.dynIsland.stepPage(1)"            # pindah + pin halaman
 ags -r "globalThis.dynIsland.retryLyrics()"          # ambil ulang lirik lagu ini

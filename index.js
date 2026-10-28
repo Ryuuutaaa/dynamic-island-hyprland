@@ -3,7 +3,7 @@ import Gdk from 'gi://Gdk?version=3.0';
 import Gtk from 'gi://Gtk?version=3.0';
 import App from 'resource:///com/github/Aylur/ags/app.js';
 import Widget from 'resource:///com/github/Aylur/ags/widget.js';
-import Hyprland from 'resource:///com/github/Aylur/ags/service/hyprland.js';
+import * as Utils from 'resource:///com/github/Aylur/ags/utils.js';
 import CONFIG from './config.js';
 import {
     page, hovered, isTransientActive, watchMpris, showTransient, refreshBase,
@@ -36,6 +36,8 @@ import {
 import { pomodoro, MODES as pomodoroModes, setMode as pomodoroSetMode, toggleRunning as pomodoroToggle, reset as pomodoroReset } from './modules/pomodoro.js';
 import { watchLyrics, lyrics as lyricsStore, retryLyrics } from './modules/lyrics.js';
 import { btPreview } from './modules/bluetooth.js';
+import { focusedRect, refresh as refreshMonitors, followFocused, applyFocused } from './modules/monitor.js';
+import { onResume } from './modules/timefmt.js';
 import NotificationPopup from './modules/notif-popup.js';
 
 const STYLE_PATH = `${App.configDir}/dynamic-iland/style.css`;
@@ -65,17 +67,11 @@ function patchMonitor(window) {
         window.monitor = CONFIG.monitor;
         return;
     }
-    const follow = () => {
-        const id = Hyprland.active?.monitor?.id;
-        if (typeof id !== 'number' || id < 0) return;
-        if (window.monitor === id) return;
-        // Pindah monitor: state hover milik monitor lama tidak berlaku lagi,
-        // kalau tidak notch bisa muncul dalam keadaan terbuka tanpa pointer.
-        window.monitor = id;
-        hovered.value = false;
-    };
-    follow();
-    window.hook(Hyprland.active.monitor, follow, 'changed');
+    // `Window.monitor` AGS adalah index GdkMonitor, sedangkan Hyprland memberi
+    // `id` monitor — bukan namespace yang sama. followFocused mencocokkan
+    // keduanya lewat geometri (lihat modules/monitor.js) dan melepas state
+    // hover saat window benar-benar pindah monitor.
+    followFocused(window, () => { hovered.value = false; });
 }
 
 // "Telinga" notch: kurva konkaf di kiri/kanan tepi atas supaya notch
@@ -176,26 +172,19 @@ function DynamicIsland() {
     // tidak pernah cocok dan notch menutup setiap kali pointer menyentuh
     // konten. Akibatnya klik "next" kadang berhasil (kalau press mendahului
     // animasi tutup) dan kadang tidak — yang terlihat sebagai island "keluar".
-    // Rect monitor di-cache: pengecekan pointer jadi satu proses hyprctl saja
-    // (dipanggil juga oleh watchdog hover). Diperbarui saat monitor fokus
-    // berubah.
-    let monRect = null;
-    const refreshMonRect = async () => {
-        try {
-            const mons = JSON.parse(await Utils.execAsync(['hyprctl', '-j', 'monitors']));
-            const mon = mons.find(m => m.focused);
-            if (mon) monRect = { x: mon.x, y: mon.y, w: mon.width };
-        } catch (_) { }
-    };
-    refreshMonRect();
-    Hyprland.active.monitor.connect('changed', refreshMonRect);
-
+    // Rect monitor di-cache bersama oleh modules/monitor.js: pengecekan
+    // pointer dan penentuan monitor window memakai satu hasil `hyprctl -j
+    // monitors`, diperbarui saat monitor fokus berubah.
     const pointerOnIsland = async () => {
         try {
             // hyprctl -j dipakai karena objek `Hyprland.active.monitor` dari
             // AGS tidak punya field x/width (rect jadi NaN -> pointer selalu
             // dianggap di luar, hover lepas setiap ada crossing).
-            if (!monRect) await refreshMonRect();
+            let monRect = focusedRect();
+            if (!monRect) {
+                const rects = await refreshMonitors();
+                monRect = rects.find(m => m.focused) ?? null;
+            }
             if (!monRect) return false;
             const cursor = JSON.parse(await Utils.execAsync(['hyprctl', '-j', 'cursorpos']));
             if (!Number.isFinite(cursor?.x) || !Number.isFinite(cursor?.y)) return false;
@@ -231,7 +220,17 @@ function DynamicIsland() {
         GLib.source_remove(hoverWatch);
         hoverWatch = 0;
     };
-    hovered.connect('changed', () => {
+    // Variable global (hovered/page/mediaView) hidup lebih lama dari window.
+    // Koneksi di bawah wajib dilepas saat window di-destroy: setelah rebuild,
+    // handler window lama masih menunjuk widget yang sudah disposed sehingga
+    // membanjiri log dengan Gjs-CRITICAL dan mengganggu handler window baru.
+    let dead = false;
+    const variableConns = [];
+    const bindVariable = (variable, callback) => {
+        variableConns.push([variable, variable.connect('changed', callback)]);
+    };
+
+    bindVariable(hovered, () => {
         if (hovered.value) startHoverWatch();
         else stopHoverWatch();
     });
@@ -459,9 +458,27 @@ function DynamicIsland() {
         }
         fadeIn.stop();
         if (target === GEO.closed) {
-            // menutup: konten kecil langsung dipakai dan LANGSUNG terlihat.
-            // Dulu di-fade dari opacity 0 sehingga ada 1-2 frame kartu kosong
-            // di tengah penyusutan (terekam: kartu hitam tanpa isi).
+            // Konten halaman fade-out cepat (140ms) sebelum konten closed
+            // dipasang. Tanpa ini, konten halaman yang masih penuh terlihat
+            // terpotong oleh kartu yang menyusut pada frame-frame awal.
+            const prev = stack.shown;
+            if (prev && prev !== 'closed') {
+                const out = ramp({
+                    duration: 140,
+                    onFrame: value => stack.set_opacity(1 - value),
+                });
+                out.start();
+                swapTimer = GLib.timeout_add(GLib.PRIORITY_DEFAULT, 140, () => {
+                    swapTimer = 0;
+                    // hentikan ramp fade-out dulu: tick terakhirnya bisa jatuh
+                    // setelah swap dan menimpa opacity 1 (terukur opacity 0).
+                    out.stop();
+                    setShown('closed');
+                    stack.set_opacity(1);
+                    return GLib.SOURCE_REMOVE;
+                });
+                return;
+            }
             setShown('closed');
             stack.set_opacity(1);
             return;
@@ -511,6 +528,7 @@ function DynamicIsland() {
     };
 
     const syncSubmap = () => {
+        if (dead) return;
         if (submapTimer) {
             GLib.source_remove(submapTimer);
             submapTimer = 0;
@@ -525,6 +543,7 @@ function DynamicIsland() {
     };
 
     const sync = () => {
+        if (dead) return;
         const next = targetFor();
         syncSubmap();
         if (next === target && tween && tween.running) return;
@@ -532,10 +551,10 @@ function DynamicIsland() {
         syncContent();
     };
 
-    hovered.connect('changed', sync);
-    page.connect('changed', sync);
+    bindVariable(hovered, sync);
+    bindVariable(page, sync);
     // buka/tutup tampilan lirik: lebar kartu (520) dan isi stack ikut berubah
-    mediaView.connect('changed', sync);
+    bindVariable(mediaView, sync);
 
     // state awal: tertutup
     notch.css = `border-radius: 0px 0px ${GEO.closed.r}px ${GEO.closed.r}px;`;
@@ -596,6 +615,26 @@ function DynamicIsland() {
         nav.visible = false;
         syncSubmap();
     });
+    // Teardown: lepas semua yang hidup di luar umur window (lihat bindVariable
+    // dan komentar di atasnya), hentikan animasi/timer yang masih menunjuk
+    // widget yang akan disposed.
+    island.connect('destroy', () => {
+        dead = true;
+        for (const [variable, id] of variableConns)
+            variable.disconnect(id);
+        variableConns.length = 0;
+        stopHoverWatch();
+        if (submapTimer) {
+            GLib.source_remove(submapTimer);
+            submapTimer = 0;
+        }
+        if (swapTimer) {
+            GLib.source_remove(swapTimer);
+            swapTimer = 0;
+        }
+        if (tween) tween.stop();
+        fadeIn.stop();
+    });
 
     island.stack = stack;
     island.notch = notch;
@@ -608,6 +647,109 @@ function DynamicIsland() {
     return island;
 }
 
+// Referensi window di `dynIsland` bisa berubah saat window dibangun ulang
+// (lihat mountIsland), jadi objeknya dibuat sekali di sini dan field window
+// diisi ulang oleh publishIsland().
+const dyn = {
+    page, hovered, showTransient, refreshBase, config: CONFIG,
+    notif: notifCurrent, notifLatest,
+    stepPage, pinPage, PAGE_ORDER, isPinned, mediaView, btPreview,
+    lyrics: lyricsStore, retryLyrics, pomodoro,
+    pomodoroModes, pomodoroSetMode, pomodoroToggle, pomodoroReset,
+    water, waterDrink, waterSetGoal, waterToggleReminder,
+    todo, todoAdd, todoToggle, todoRemove,
+    shelf, shelfAdd, shelfRemove, shelfClear, shelfDragOver, shelfUndo, shelfUndoLast,
+};
+globalThis.dynIsland = dyn;
+
+let island = null;
+let mounting = false;
+let rebuildTimer = 0;
+
+const publishIsland = win => {
+    dyn.window = win;
+    dyn.notch = win.notch;
+    dyn.clip = win.clip;
+    dyn.stack = win.stack;
+    dyn.nav = win.nav;
+    dyn.sync = win.sync;
+    dyn.geo = win.geo;
+    dyn.target = win.target;
+    dyn.navKey = win.navKey;
+};
+
+// Lepaskan window dari daftar App tanpa menyentuh window yang sudah
+// di-dispose (memanggil destroy()/nama pada objek disposed hanya memunculkan
+// Gjs-CRITICAL "already disposed").
+const detachWindow = name => {
+    const map = App._windows;
+    const existing = map?.get?.(name)
+        ?? App.windows.find(w => {
+            try {
+                return w.name === name;
+            } catch (_) {
+                return false;
+            }
+        });
+    if (!existing) return;
+
+    if (!existing.is_destroyed) {
+        App.removeWindow(existing);
+        return;
+    }
+    if (typeof map?.delete === 'function')
+        map.delete(name);
+};
+
+// Bangun window island dari nol. Dipakai saat start dan saat window lama mati:
+// gtk-layer-shell memanggil gtk_window_close() ketika compositor mengirim
+// zwlr_layer_surface_v1.closed (monitor dicabut / hilang saat resume), dan GTK3
+// menghancurkan window-nya. Window yang sudah di-dispose tidak bisa hidup lagi
+// lewat `visible = true`, jadi satu-satunya jalan adalah membuat instance baru.
+function mountIsland() {
+    if (mounting) return island;
+    if (island && !island.is_destroyed) return island;
+
+    // Jangan membuat layer-shell window saat GDK belum melihat monitor:
+    // gtk-layer-shell tidak bisa map dan GTK bisa keluar saat map tanpa monitor.
+    const display = Gdk.Display.get_default();
+    if (!display || display.get_n_monitors() === 0) return null;
+
+    mounting = true;
+    try {
+        detachWindow('dynamic-island');
+        island = null;
+        // state hover milik window lama tidak berlaku untuk window baru
+        hovered.value = false;
+        // submap keyboard bisa tertinggal aktif kalau window mati saat nav tampil
+        Utils.execAsync(['hyprctl', 'dispatch', 'submap', 'reset']).catch(() => { });
+
+        const win = DynamicIsland();
+        App.addWindow(win);
+        island = win;
+        publishIsland(win);
+        console.log('[dyn-island] window dipasang');
+
+        win.connect('destroy', () => {
+            if (mounting) return;
+            island = null;
+            // compositor menutup layer surface: bangun ulang setelah event loop
+            // selesai, jangan dari dalam sinyal destroy
+            if (rebuildTimer) return;
+            rebuildTimer = GLib.timeout_add(GLib.PRIORITY_DEFAULT, 200, () => {
+                rebuildTimer = 0;
+                mountIsland();
+                return GLib.SOURCE_REMOVE;
+            });
+        });
+    } catch (error) {
+        console.error('[dyn-island] gagal memasang window:', error);
+    } finally {
+        mounting = false;
+    }
+    return island;
+}
+
 try {
     watchMpris();
     watchNotifications();
@@ -616,6 +758,7 @@ try {
 // masuk control center swaync.
 const notifPopup = NotificationPopup();
 App.addWindow(notifPopup);
+dyn.notifPopup = notifPopup;
 // Catatan: DND TIDAK dipaksa lagi. Dulu island menjalankan `swaync-client -dn`
 // tiap 3 detik supaya popup swaync tidak dobel, akibatnya toggle DND user
 // selalu kembali nyala (indikator DND tidak bisa dimatikan). Penggantinya:
@@ -625,18 +768,33 @@ App.addWindow(notifPopup);
     watchWater();
     watchTodo();
     App.connect('config-parsed', applyStyle);
-    const island = DynamicIsland();
-    App.addWindow(island);
-    globalThis.dynIsland = {
-        page, hovered, showTransient, refreshBase, config: CONFIG, notif: notifCurrent, notifLatest, notifPopup,
-        window: island, notch: island.notch, clip: island.clip, stack: island.stack,
-        nav: island.nav, sync: island.sync, geo: island.geo, target: island.target, navKey: island.navKey,
-        stepPage, pinPage, PAGE_ORDER, isPinned, mediaView, btPreview, lyrics: lyricsStore, retryLyrics, pomodoro,
-        pomodoroModes, pomodoroSetMode, pomodoroToggle, pomodoroReset,
-        water, waterDrink, waterSetGoal, waterToggleReminder,
-        todo, todoAdd, todoToggle, todoRemove,
-        shelf, shelfAdd, shelfRemove, shelfClear, shelfDragOver, shelfUndo, shelfUndoLast,
-    };
+    mountIsland();
 } catch (error) {
     console.error('[dyn-island] gagal inisialisasi:', error);
 }
+
+// ── watchdog kesehatan window ───────────────────────────────────────────────
+// Setelah suspend/hotplug, window layer-shell bisa DI-DISPOSE oleh GTK (bukan
+// sekadar tidak ter-map): terukur window.is_destroyed=true, visible=false, dan
+// layer "dynamic-island" hilang dari compositor. Watchdog lama hanya set
+// `visible = true` sehingga tidak pernah memulihkan apa pun. Sekarang window
+// yang mati dibangun ulang; window hidup yang sekadar tidak ter-map ditampilkan.
+Utils.interval(2000, () => {
+    try {
+        if (!island || island.is_destroyed) {
+            mountIsland();
+            return;
+        }
+        if (!island.visible) island.visible = true;
+    } catch (error) {
+        console.error('[dyn-island] watchdog gagal:', error);
+    }
+});
+
+// Resume: pastikan window hidup dan monitor di-resolve ulang. Sinyal monitor
+// Hyprland bisa terlewat saat socket-nya putus beberapa ratus ms setelah resume.
+onResume(() => {
+    mountIsland();
+    if (island && !island.is_destroyed)
+        applyFocused(island, () => { hovered.value = false; }).catch(() => { });
+});

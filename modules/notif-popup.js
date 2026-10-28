@@ -3,11 +3,11 @@ import GdkPixbuf from 'gi://GdkPixbuf?version=2.0';
 import GLib from 'gi://GLib';
 import Widget from 'resource:///com/github/Aylur/ags/widget.js';
 import * as Utils from 'resource:///com/github/Aylur/ags/utils.js';
-import Hyprland from 'resource:///com/github/Aylur/ags/service/hyprland.js';
 import { ramp } from '../spring.js';
 import { palette, hexToRgb } from '../theme.js';
 import { roundedRect } from '../draw.js';
 import { latest, invokeAction, closeNotification } from './notify.js';
+import { followFocused } from './monitor.js';
 
 // Popup notifikasi kanan atas, digambar sendiri (bukan swaync) supaya bisa:
 // slide masuk dari kanan, loading bar 5 detik, tombol X, klik -> buka aplikasi,
@@ -333,13 +333,9 @@ export default () => {
     win.popupAdj = adj;       // untuk pengujian (ags -r)
     win.hidePopup = () => hide();   // untuk pengujian (ags -r)
 
-    // ikuti monitor yang sedang fokus (sama seperti island)
-    const follow = () => {
-        const id = Hyprland.active?.monitor?.id;
-        if (typeof id === 'number' && win.monitor !== id) win.monitor = id;
-    };
-    follow();
-    win.hook(Hyprland.active.monitor, follow, 'changed');
+    // ikuti monitor yang sedang fokus (sama seperti island). Pemetaannya lewat
+    // modules/monitor.js: id Hyprland bukan index GdkMonitor.
+    followFocused(win);
 
     const show = item => {
         currentId = item.id || 0;

@@ -1,4 +1,5 @@
 import GLib from 'gi://GLib';
+import Gio from 'gi://Gio';
 
 const DAYS = ['Minggu', 'Senin', 'Selasa', 'Rabu', 'Kamis', 'Jumat', 'Sabtu'];
 const MONTHS = ['Januari', 'Februari', 'Maret', 'April', 'Mei', 'Juni', 'Juli',
@@ -18,68 +19,134 @@ export const formatDate = (dt = GLib.DateTime.new_now_local()) =>
 export const formatDateShort = (dt = GLib.DateTime.new_now_local()) =>
     `${dt.get_day_of_month()} ${monthName(dt).slice(0, 3)}`;
 
-// Panggil callback tepat saat menit berganti — lebih hemat daripada polling
-// 1 detik (dua label jam dulu bangun 2x/detik sepanjang waktu).
+// Satu ticker untuk SEMUA label jam.
 //
-// Rantai ini dulu rapuh: `arm()` dipanggil SETELAH `callback()`, jadi satu
-// exception dari callback (atau label yang sudah dihancurkan) menghentikan
-// rantai tanpa jejak — jam beku selamanya (terukur: label 14:08 saat jam
-// sistem 17:27, proses hidup 24 menit lalu diam). Sekarang callback dibungkus
-// try/catch, `arm()` selalu jalan di `finally`, dan ada watchdog 30 detik yang
-// menjadwalkan ulang kalau tidak ada tick selama > 65 detik (mis. setelah
-// suspend panjang atau source yang hilang).
-export function onMinute(callback, bind = null) {
-    let dead = false;
-    let source = 0;
-    let watch = 0;
-    let last = Date.now();
+// Dulu setiap pemanggil punya rantai timer sendiri (jadwal ke batas menit +
+// watchdog). Rantai per-pemanggil bisa mati diam-diam — terukur: label jam
+// beku di 06:03 saat jam sistem 12:34, padahal timer baru yang didaftarkan di
+// proses yang sama tetap fire tepat 12:37:00. Dengan satu ticker: satu timer,
+// semua callback dipanggil saat menit berubah, dan error satu callback tidak
+// memengaruhi yang lain.
+//
+// Biaya: satu wakeup per detik; label hanya ditulis ketika menit berubah.
+const subscribers = new Set();
+const resumeListeners = new Set();
+let ticker = 0;
+let lastMinute = '';
+// Baseline untuk mendeteksi resume tanpa bergantung pada sinyal logind.
+let lastWall = 0;
+let lastMono = 0;
 
-    const stop = () => {
-        if (!source) return;
-        GLib.source_remove(source);
-        source = 0;
-    };
-
-    const fire = () => {
-        if (dead) return;
+const notifyAll = (minute) => {
+    lastMinute = minute;
+    for (const cb of Array.from(subscribers)) {
         try {
-            callback();
+            cb();
         } catch (e) {
-            console.error('[dyn-island] onMinute callback gagal:', e);
+            console.error('[dyn-island] clock callback gagal:', e);
         }
-        last = Date.now();
-        arm();
-    };
+    }
+};
 
-    const arm = () => {
-        if (dead) return;
-        stop();
-        const now = GLib.DateTime.new_now_local();
-        const wait = (60 - now.get_second()) * 1000
-            - Math.floor(now.get_microsecond() / 1000);
-        source = GLib.timeout_add(GLib.PRIORITY_DEFAULT, Math.max(250, wait), () => {
-            source = 0;
-            fire();
-            return GLib.SOURCE_REMOVE;
-        });
-    };
+export const refreshClocks = () => {
+    notifyAll(GLib.DateTime.new_now_local().format('%H:%M'));
+};
 
-    if (bind) {
-        bind.connect('destroy', () => {
-            dead = true;
-            stop();
-            if (watch) {
-                GLib.source_remove(watch);
-                watch = 0;
-            }
-        });
+const notifyResume = () => {
+    for (const cb of Array.from(resumeListeners)) {
+        try {
+            cb();
+        } catch (e) {
+            console.error('[dyn-island] resume callback gagal:', e);
+        }
+    }
+};
+
+const handleResume = () => {
+    lastWall = Date.now();
+    lastMono = GLib.get_monotonic_time() / 1000;
+    refreshClocks();
+    notifyResume();
+};
+
+// Timer GLib memakai CLOCK_MONOTONIC yang BERHENTI selama suspend, sedangkan
+// jam dinding tetap berjalan. Selisih kedua delta > 5 detik berarti sistem baru
+// bangun (atau jam diubah). Deteksi ini tidak butuh logind, jadi tetap bekerja
+// kalau PrepareForSleep terlewat (hibernasi, D-Bus telat, tanpa logind).
+const RESUME_JUMP_MS = 5000;
+
+const tick = () => {
+    const wall = Date.now();
+    const mono = GLib.get_monotonic_time() / 1000;
+    if (lastWall && Math.abs((wall - lastWall) - (mono - lastMono)) > RESUME_JUMP_MS) {
+        handleResume();
+        return GLib.SOURCE_CONTINUE;
     }
 
-    watch = GLib.timeout_add_seconds(GLib.PRIORITY_LOW, 30, () => {
-        if (dead) return GLib.SOURCE_REMOVE;
-        if (Date.now() - last > 65000) fire();
-        return GLib.SOURCE_CONTINUE;
-    });
+    lastWall = wall;
+    lastMono = mono;
+    const minute = GLib.DateTime.new_now_local().format('%H:%M');
+    if (minute !== lastMinute) notifyAll(minute);
+    return GLib.SOURCE_CONTINUE;
+};
 
-    arm();
+const startTicker = () => {
+    if (ticker) return;
+    watchSleep();
+    lastWall = Date.now();
+    lastMono = GLib.get_monotonic_time() / 1000;
+    ticker = GLib.timeout_add(GLib.PRIORITY_DEFAULT, 1000, tick);
+};
+
+// Setelah resume, source timer bisa ikut "diam" selama tidur. Pasang ulang
+// ticker supaya jadwal 1 detiknya bersih, lalu paksa semua label refresh.
+const restartTicker = () => {
+    if (ticker) {
+        const id = ticker;
+        ticker = 0;
+        GLib.source_remove(id);
+    }
+    startTicker();
+};
+
+let sleepWatch = false;
+const watchSleep = () => {
+    if (sleepWatch) return;
+    sleepWatch = true;
+    try {
+        Gio.DBus.system.signal_subscribe(
+            'org.freedesktop.login1',
+            'org.freedesktop.login1.Manager',
+            'PrepareForSleep',
+            '/org/freedesktop/login1',
+            null,
+            Gio.DBusSignalFlags.NONE,
+            (_c, _sender, _path, _iface, _signal, params) => {
+                let asleep = false;
+                try { asleep = params.get_child_value(0).get_boolean(); } catch (e) { }
+                if (asleep) return;
+                restartTicker();
+                handleResume();
+            });
+    } catch (e) {
+        // biarkan bisa dicoba lagi di startTicker berikutnya; deteksi drift
+        // di ticker tetap menjadi jalur cadangan
+        sleepWatch = false;
+        console.error('[dyn-island] sleep watcher gagal:', e);
+    }
+};
+
+export function onMinute(callback, bind = null) {
+    startTicker();
+    subscribers.add(callback);
+    if (bind) {
+        bind.connect('destroy', () => subscribers.delete(callback));
+    }
+}
+
+// Dipanggil setelah sistem bangun dari suspend. Dipakai index.js untuk
+// memastikan window island masih hidup dan monitor di-resolve ulang.
+export function onResume(callback) {
+    startTicker();
+    resumeListeners.add(callback);
 }

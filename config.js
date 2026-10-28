@@ -10,9 +10,13 @@ export default {
     // tertutup kecil, membesar saat hover, transient (OSD/notif) pakai peek.
     // r = radius sudut bawah, ear = ukuran telinga.
     geometry: {
-        closed: { w: 150, h: 30, r: 14, ear: 10 },
+        // Rasio 3:1 — sama dengan expanded (420x140) supaya animasi
+        // buka/tutup tidak mengubah aspek (dulu 150x30 = 5:1 -> terlihat
+        // "stretch" saat menutup).
+        closed: { w: 150, h: 50, r: 16, ear: 10 },
         expanded: { w: 420, h: 140, r: 32, ear: 22 },
-        peek: { w: 310, h: 60, r: 19, ear: 13 },
+        // 240x80 = 3:1 supaya transisi closed <-> peek juga seragam.
+        peek: { w: 240, h: 80, r: 20, ear: 13 },
         // halaman lirik lebih lebar (Nusa: 520) karena terbelah dua
         lyrics: { w: 520, h: 140, r: 32, ear: 22 },
     },
