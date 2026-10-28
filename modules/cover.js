@@ -21,6 +21,50 @@ function loadPixbuf(path, size) {
 export default function Cover({ size = 72, radius = 10 } = {}) {
     let current = '';
     let pixbuf = null;
+    let retryTimer = 0;
+    let attempts = 0;
+
+    // Cover MPRIS dicache AGS secara ASYNC: event metadata pertama datang
+    // sebelum file cover selesai dicopy (`Gio.File.copy_async`). Percobaan
+    // pertama hampir selalu gagal untuk lagu baru. Dulu path langsung ditandai
+    // "sudah dimuat" sehingga percobaan berikutnya (setelah file ada) menjadi
+    // no-op — cover media tetap kotak kosong sampai AGS restart, sedangkan
+    // cover di halaman lirik kebetulan dimuat belakangan. Sekarang kegagalan
+    // tidak menyimpan state dan ada retry singkat sebagai jaring pengaman.
+    const MAX_ATTEMPTS = 5;
+
+    const stopRetry = () => {
+        if (!retryTimer) return;
+        GLib.source_remove(retryTimer);
+        retryTimer = 0;
+    };
+
+    const reload = () => {
+        // widget bisa dihancurkan di tengah retry (rebuild window island):
+        // queue_draw pada objek disposed hanya memunculkan Gjs-CRITICAL
+        if (area.is_destroyed) {
+            stopRetry();
+            return false;
+        }
+        pixbuf = loadPixbuf(current, size);
+        area.queue_draw();
+        return !!pixbuf;
+    };
+
+    const scheduleRetry = () => {
+        if (retryTimer || attempts >= MAX_ATTEMPTS) return;
+        const delay = 120 + attempts * 120;   // 120..600ms, total ~1.8s
+        retryTimer = GLib.timeout_add(GLib.PRIORITY_DEFAULT, delay, () => {
+            retryTimer = 0;
+            if (reload()) {
+                attempts = 0;
+                return GLib.SOURCE_REMOVE;
+            }
+            attempts += 1;
+            scheduleRetry();
+            return GLib.SOURCE_REMOVE;
+        });
+    };
 
     const area = Widget.DrawingArea({
         className: 'dyn-island-cover-art',
@@ -52,11 +96,36 @@ export default function Cover({ size = 72, radius = 10 } = {}) {
 
     area.setPath = next => {
         const path = next ?? '';
-        if (path === current) return;
+
+        // Path sama: kalau sudah termuat tidak ada yang perlu dilakukan.
+        if (path === current) {
+            if (pixbuf || !path) return;
+            // event `changed('cover-path')` datang setelah copy selesai ->
+            // coba muat sekarang, jangan menunggu timer retry
+            if (reload()) {
+                stopRetry();
+                attempts = 0;
+                return;
+            }
+            scheduleRetry();
+            return;
+        }
+
+        stopRetry();
+        attempts = 0;
         current = path;
-        pixbuf = loadPixbuf(path, size);
-        area.queue_draw();
+        if (!path) {
+            pixbuf = null;
+            area.queue_draw();
+            return;
+        }
+        if (reload()) return;
+        scheduleRetry();
     };
+
+    // untuk diagnostik di `ags -r`
+    area.getCoverState = () => ({ path: current, loaded: !!pixbuf });
+    area.connect('destroy', stopRetry);
 
     return area;
 }

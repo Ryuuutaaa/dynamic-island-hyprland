@@ -79,10 +79,12 @@ tooltip > box {
 }
 
 /* ── navigasi (dots + panah), overlay saat hover ─────────────── */
-/* opaque & sedikit lebih terang dari notch: menutup konten di belakangnya
-   sekaligus tetap terbaca sebagai pill */
+/* bar & tombol transparan: hanya dots/panah yang terlihat, mengikuti
+   konten di belakangnya (lebih clean). Hover tetap memberi umpan balik. */
 .dyn-island-nav {
-    background-color: __SURFACE_STRONG__;
+    background-color: transparent;
+    background-image: none;
+    box-shadow: none;
     border-radius: 999px;
     padding: 2px 8px;
     margin-bottom: 8px;
@@ -93,11 +95,14 @@ tooltip > box {
     min-height: 18px;
     padding: 0px 4px;
     border-radius: 9px;
-    background-color: __SURFACE__;
+    background-color: transparent;
+    background-image: none;
+    border: none;
+    box-shadow: none;
     transition: 140ms ease-out;
 }
 .dyn-island-nav-btn:hover {
-    background-color: __SURFACE_HOVER__;
+    background-color: __SURFACE_DIM__;
 }
 .dyn-island-nav-btn:active {
     background-color: __ACCENT__;
@@ -152,6 +157,12 @@ tooltip > box {
 .dyn-island-ctl {
     padding: 2px 8px;
     border-radius: 10px;
+    /* tombol kontrol tanpa background bawaan tema (GTK3 tetap menggambar
+       background/box-shadow button walau kelas tidak mendeklarasikannya) */
+    background-color: transparent;
+    background-image: none;
+    border: none;
+    box-shadow: none;
     transition: 140ms ease-out;
 }
 .dyn-island-ctl:hover {
@@ -185,7 +196,16 @@ tooltip > box {
 .dyn-island-lyric {
     padding: 1px 4px;
     border-radius: 6px;
+    /* tiap baris lirik adalah GtkButton: tanpa ini tema menggambar kotak abu
+       di belakang setiap baris */
+    background-color: transparent;
+    background-image: none;
+    border: none;
+    box-shadow: none;
     transition: 180ms ease-out;
+}
+.dyn-island-lyric:hover {
+    background-color: __SURFACE_DIM__;
 }
 .dyn-island-lyric-text {
     font-size: 12px;

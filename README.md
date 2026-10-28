@@ -98,6 +98,14 @@ lirik. Dot tetap menandai `media`, dan panah tetap di tengah bawah.
   bisa dibaca.
 - Klik baris → lompat ke waktu baris itu (`player.position = time`).
   Terukur: klik baris `136.94s` memindahkan posisi 78.06 → 136.94.
+- **Tampilan minimalis (tanpa background tombol).** Baris lirik adalah
+  `GtkButton` (untuk seek) dan kontrol media juga tombol; tanpa deklarasi
+  eksplisit tema GTK3 menggambar kotak abu di belakang tiap baris/tombol.
+  `style.css` memaksa `.dyn-island-lyric` dan `.dyn-island-ctl` memakai
+  `background-color: transparent`, `background-image: none`, `border: none`,
+  `box-shadow: none`. Nav (`.dyn-island-nav` + panah) juga transparan — hanya
+  dots & panah yang terlihat. Umpan balik hover tetap ada: baris/panah memakai
+  `__SURFACE_DIM__`, kontrol memakai `__ACCENT_SOFT__`; state aktif tetap aksen.
 - Keluar dari lirik: tombol **↩ Kembali ke musik** di baris kontrol (kiri
   tombol prev), panah **←**, atau pindah halaman lewat panah (sub-tampilan
   otomatis kembali ke kartu musik). Terukur: ← di tampilan lirik mengembalikan
@@ -411,8 +419,9 @@ Catatan penting:
 
 ## Navigasi (page dots + panah)
 
-Saat **expanded** (dan di state lirik), muncul pill `‹ ● ●●●●● ›`
-di bawah-tengah kartu (**6 titik** = `PAGE_ORDER`; lirik bukan halaman, jadi
+Saat **expanded** (dan di state lirik), muncul baris navigasi `‹ ● ●●●●● ›`
+di bawah-tengah kartu (latar **transparan** — hanya titik & panah yang terlihat;
+**6 titik** = `PAGE_ORDER`; lirik bukan halaman, jadi
 tidak punya dot). Titik aktif memanjang & terang — saat tampilan lirik terbuka,
 titik yang aktif tetap **media**.
 Panah memanggil `stepPage(±1)` lalu halaman itu **di-pin** selama `pinTimeout`
@@ -425,8 +434,8 @@ Nav adalah `Gtk.Overlay` sehingga **tidak menambah ukuran** notch, tapi ruangnya
 dipotong dari tinggi isi konten (`stack.margin_bottom = NAV_SPACE = 34`) — lihat
 bagian Motion. Target klik panah 18px (dulu 14px) dan keduanya punya tooltip.
 
-**Panah aktif saat press, bukan release.** Pill nav di-anchor ke dasar notch,
-jadi selama notch membuka/menutup pill-nya ikut bergerak (terukur: posisi pill
+**Panah aktif saat press, bukan release.** Nav di-anchor ke dasar notch,
+jadi selama notch membuka/menutup posisinya ikut bergerak (terukur: posisi nav
 `y≈93..114` di 120ms pertama, `y=107..128` setelah settle). Kalau aksi menunggu
 release, tombol sudah pindah dan release jatuh di luar tombol → klik dibatalkan.
 Dengan aksi di press, yang diklik adalah posisi yang terlihat saat itu juga.
@@ -726,6 +735,21 @@ modules/shelf-page.js  halaman shelf (drop zone, kartu file, drag out)
 - **`Gdk.cairo_set_source_pixbuf()`** dipakai untuk menggambar album art:
   binding GJS tidak menyediakan `cr.setSourcePixbuf()`. `border-radius` CSS
   tidak meng-clip pixbuf `GtkImage` di GTK3, jadi cover harus digambar sendiri.
+- **Cover MPRIS di-cache ASYNC — percobaan yang gagal tidak boleh di-cache.**
+  `MprisPlayer._cacheCoverArt()` mengisi `_coverPath` lalu memulai
+  `Gio.File.copy_async` dan baru memancarkan `changed('cover-path')` setelah
+  file selesai. Event metadata pertama karena itu datang **sebelum file cover
+  ada**. `Cover.setPath()` dulu langsung menyimpan path sebagai "sudah dimuat"
+  walau `pixbuf=null`, sehingga percobaan berikutnya (setelah file ada) menjadi
+  no-op: kartu media menampilkan kotak kosong. Cover di halaman lirik bisa
+  muncul karena instance-nya mendapat rebuild belakangan (saat data lirik
+  datang, file sudah ada) — persis gejala "cover hilang di kartu media tapi ada
+  di lirik". Sekarang kegagalan tidak menyimpan state; `Cover` mencoba lagi saat
+  `setPath()` yang sama dipanggil (event `changed('cover-path')`) dan punya
+  retry timer 120..600ms (maks 5x, total ~1.8s) sebagai jaring pengaman.
+  Diverifikasi tanpa mengganti lagu: path belum ada → `loaded=false`; file
+  dibuat → `setPath(path)` yang sama langsung `loaded=true`; tanpa `setPath`
+  kedua, timer memuatnya sendiri.
 - `GtkStack` memberi child alokasi PENUH. Karena nav adalah overlay di dasar
   kartu, ruangnya dipotong dari **isi konten** (`stack.margin_bottom`) — lihat
   catatan di bagian Motion tentang kenapa bukan dari clip.
