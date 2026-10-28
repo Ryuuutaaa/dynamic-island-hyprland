@@ -25,6 +25,7 @@ import ShelfPage from './modules/shelf-page.js';
 import BluetoothPage from './modules/bluetooth-page.js';
 import PrayerPage from './modules/prayer-page.js';
 import { watchPrayer, prayer as prayerState, notifyPrayer } from './modules/prayer.js';
+import { sky, watchSky, drawSky, refreshSky } from './modules/sky.js';
 import {
     shelf, shelfDragOver, shelfUndo, undoLast as shelfUndoLast,
     addPaths as shelfAdd, removeItem as shelfRemove, clearShelf as shelfClear,
@@ -122,6 +123,20 @@ function Ear(side) {
 function DynamicIsland() {
     const GEO = CONFIG.geometry;
     const notch = Widget.Box({ className: 'dyn-island-notch' });
+    notch.skyRadius = GEO.closed.r;
+    // Background langit digambar sendiri (bukan CSS) supaya bisa gradient +
+    // bintang. CSS notch dibuat transparan; dasar hitam primary tetap digambar
+    // di sini agar warna utama tidak hilang.
+    notch.connect('draw', (self, cr) => {
+        drawSky(
+            cr,
+            self.get_allocated_width(),
+            self.get_allocated_height(),
+            self.skyRadius,
+            sky.value,
+        );
+        return false;
+    });
 
     const stack = Widget.Stack({
         children: {
@@ -410,7 +425,9 @@ function DynamicIsland() {
                 if (step !== radiusStep) {
                     radiusStep = step;
                     const r = Math.round(fromR + (next.r - fromR) * (step / 10));
+                    notch.skyRadius = r;
                     notch.css = `border-radius: 0px 0px ${r}px ${r}px;`;
+                    notch.queue_draw();
                 }
                 applyGeometry();
                 applyEar();
@@ -428,7 +445,9 @@ function DynamicIsland() {
             onDone: () => {
                 if (widthChanges) frameWrap.set_size_request(-1, -1);
                 radiusNow = next.r;
+                notch.skyRadius = next.r;
                 notch.css = `border-radius: 0px 0px ${next.r}px ${next.r}px;`;
+                notch.queue_draw();
                 stack.margin_bottom = nextNav ? NAV_SPACE : 0;
                 nav.visible = nextNav;
                 nav.set_opacity(nextNav ? 1 : 0);
@@ -563,8 +582,11 @@ function DynamicIsland() {
     bindVariable(page, sync);
     // buka/tutup tampilan lirik: lebar kartu (520) dan isi stack ikut berubah
     bindVariable(mediaView, sync);
+    // background langit berubah tiap fase sholat
+    bindVariable(sky, () => notch.queue_draw());
 
     // state awal: tertutup
+    notch.skyRadius = GEO.closed.r;
     notch.css = `border-radius: 0px 0px ${GEO.closed.r}px ${GEO.closed.r}px;`;
     applyGeometry();
     applyEar();
@@ -664,6 +686,7 @@ const dyn = {
     stepPage, pinPage, PAGE_ORDER, isPinned, mediaView, btPreview,
     lyrics: lyricsStore, retryLyrics, pomodoro,
     prayer: prayerState, prayerNotify: notifyPrayer,
+    sky, skyRefresh: refreshSky,
     pomodoroModes, pomodoroSetMode, pomodoroToggle, pomodoroReset,
     water, waterDrink, waterSetGoal, waterToggleReminder,
     todo, todoAdd, todoToggle, todoRemove,
@@ -777,6 +800,7 @@ dyn.notifPopup = notifPopup;
     watchWater();
     watchTodo();
     watchPrayer();
+    watchSky();
     App.connect('config-parsed', applyStyle);
     mountIsland();
 } catch (error) {

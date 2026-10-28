@@ -57,7 +57,7 @@ frame 2,98–3,02 sepanjang 420×140 → 150×50.
 | `todo` | checkmark hijau + strikethrough, counter `X/Y`, pill Tambah/Ubah |
 | `shelf` | drop zone putus-putus + kartu file (thumbnail, nama, ukuran) |
 | `bluetooth` | info device tersambung (ikon, nama, tipe, alamat, baterai) + slider volume + tombol bisu |
-| `prayer` | jadwal sholat: busur matahari Subuh→Magrib + 5 waktu + countdown sholat berikutnya |
+| `prayer` | jadwal sholat: busur matahari Subuh→Magrib + 5 waktu + countdown sholat berikutnya; background langit mengikuti fase |
 | `volume` / `brightness` | ikon + bar (Cairo) + persen |
 | `notify` | ikon + `Judul · isi` |
 
@@ -221,11 +221,25 @@ prayer: {
   transient di island. `catchUpMinutes` menangani AGS yang baru hidup beberapa
   menit setelah waktu masuk; `prayer.json` (`{date, notified}`) mencegah
   notifikasi dobel setelah restart. Tanpa device/network tetap jalan.
+- **Background langit** (`modules/sky.js`): dasar tetap hitam primary
+  (`NOTCH_COLOR`, opaque) yang digambar Cairo; CSS notch transparan. Di atas
+  dasar itu ada gradient glow rendah-alpha dari bawah + bintang, diinterpolasi
+  kontinu setiap 30 detik:
+  - **Subuh**: glow fajar hangat + bintang (bintang memudar sampai sunrise).
+  - **Fajar/sunrise**: warna hangat paling kuat (matahari terbit).
+  - **Dzuhur**: tint tipis (primary tetap dominan).
+  - **Ashar**: hangat tipis, makin kuat menjelang Magrib.
+  - **Magrib**: glow sunset merah-oranye.
+  - **Isya/malam**: hitam primary + bintang (28 titik, posisi deterministik).
+  Primary tidak pernah diganti; glow hanya overlay alpha (0.05–0.36) supaya
+  teks tetap terbaca.
 - **Uji:** `ags -r "globalThis.dynIsland.prayerNotify('maghrib')"` untuk
   mengirim notifikasi uji, `ags -r "JSON.stringify(globalThis.dynIsland.prayer.value)"`
   untuk melihat jadwal + `next`, dan
   `ags -r "globalThis.__prayerNowMinutes = 720"` untuk memaksa posisi matahari
   di jam 12:00 saat menguji animasi siang (hapus dengan `= undefined`).
+  Untuk background: set `__prayerNowMinutes` lalu
+  `ags -r "globalThis.dynIsland.skyRefresh()"`.
 
 ## Notifikasi (popup swaync)
 
@@ -668,6 +682,9 @@ submap = reset
 
 Badan notch **hitam murni opaque** (`NOTCH_COLOR`/`NOTCH_ALPHA` di
 `theme.js`), telinga memakai warna yang sama (Cairo) jadi tanpa seam.
+Badan notch digambar Cairo di `modules/sky.js` (CSS `background-color`
+transparan) supaya bisa ditimpa **background langit**: gradient glow rendah
+alpha + bintang mengikuti waktu sholat — hitam primary tetap mayoritas.
 Tanpa border; box-shadow tidak dipakai karena layer surface setinggi notch
 membuat apa pun di luar kotak widget ter-clip. Warna **teks & aksen** tetap
 dari wallust (`__FG__`, `__ACCENT__`, `__ACCENT2__`, `__MUTED__`).
@@ -752,6 +769,7 @@ modules/bluetooth-page.js halaman detail bluetooth: info device + slider volume 
 modules/prayer-calc.js  algoritma waktu sholat (PrayTimes) + pilihan metode
 modules/prayer.js       state jadwal harian + pengingat + persistensi prayer.json
 modules/prayer-page.js  halaman jadwal sholat (busur matahari + strip 5 waktu)
+modules/sky.js          background langit notch: glow fajar/sunset + bintang per fase
 modules/timefmt.js format jam, tanggal Indonesia, ticker global 1 detik + deteksi resume
 modules/monitor.js pemetaan monitor Hyprland -> index GdkMonitor + ikuti monitor fokus
 modules/media.js   kartu MPRIS (art, judul, artis, progress, kontrol)

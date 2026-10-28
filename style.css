@@ -29,8 +29,10 @@
 }
 
 .dyn-island-notch {
-    /* hitam murni opaque (NOTCH_COLOR) — lihat catatan di theme.js */
-    background-color: __BG_SOLID__;
+    /* Dasar hitam primary + background langit digambar Cairo (modules/sky.js)
+       supaya bisa gradient & bintang. CSS-nya transparan; jangan diisi warna
+       solid lagi atau langit tertutup. */
+    background-color: transparent;
     /* tanpa border: pemisah dengan wallpaper cukup dari hitamnya sendiri,
        dan tidak ada garis terang di pertemuan dengan telinga */
     border-style: none;

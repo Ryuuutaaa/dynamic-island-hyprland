@@ -114,7 +114,11 @@ export function computeTimes(date, location = {}) {
         return { key, name: NAMES[key], minutes, label: formatMinutes(minutes) };
     });
 
-    return { date: dateKey(date), times, method: method.label, error: null };
+    // sunrise tidak ditampilkan di halaman, tapi dipakai background langit
+    // (transisi bintang -> warna fajar).
+    const sunrise = Math.ceil((dhuhr - sunriseAngle) * 60);
+
+    return { date: dateKey(date), times, sunrise, method: method.label, error: null };
 }
 
 const timestampFor = (date, minutes) => {
