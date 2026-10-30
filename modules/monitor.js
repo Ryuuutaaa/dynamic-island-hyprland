@@ -34,8 +34,11 @@ export function refresh() {
                     id: m.id,
                     x: m.x,
                     y: m.y,
-                    w: m.width / scale,
-                    h: m.height / scale,
+                    // Bulatkan: 1920 / 0.8333333 = 2304.00009... dan GDK
+                    // melaporkan 2304. Tanpa pembulatan, perbandingan lebar
+                    // gagal dan window tidak pernah pindah monitor.
+                    w: Math.round(m.width / scale),
+                    h: Math.round(m.height / scale),
                     scale,
                     focused: !!m.focused,
                 };
@@ -62,7 +65,9 @@ export function gdkIndex(rect) {
     const match = (x, y, width) => {
         for (let i = 0; i < count; i++) {
             const geo = display.get_monitor(i).get_geometry();
-            if (geo.width === width
+            // toleransi 2px juga untuk lebar: pembulatan fractional scaling
+            // bisa menyisakan selisih pecahan (2304 vs 2304.00009...).
+            if (Math.abs(geo.width - width) <= 2
                 && Math.abs(geo.x - x) <= 2
                 && Math.abs(geo.y - y) <= 2)
                 return i;

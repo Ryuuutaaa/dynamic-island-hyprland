@@ -271,9 +271,34 @@ function DynamicIsland() {
     // itu — jadi enter-notify-event di EventBox tidak pernah fire (terukur 0
     // saat kursor tepat di notch). Window layer-shell selalu menerima
     // enter/leave untuk seluruh surface, jadi dipakai sebagai sumber hover.
-    const onIslandEnter = () => {
-        hoverToken += 1;
-        hovered.value = true;
+    const onIslandEnter = (self, event) => {
+        // Jangan langsung percaya enter: window layer-shell juga mencakup
+        // area transparan (lebar dikunci selama animasi). Kalau pointer masuk
+        // dari samping saat lock 464px masih aktif, notch akan berkedip
+        // terbuka lalu ditutup watchdog. Validasi dengan koordinat event
+        // (window-local, sinkron) terhadap badan visual island.
+        const token = ++hoverToken;
+        const apply = inside => {
+            if (token === hoverToken && inside) hovered.value = true;
+        };
+
+        let coords = null;
+        try { coords = event?.get_coords?.(); } catch (_) { coords = null; }
+
+        if (Array.isArray(coords) && coords[0]) {
+            const x = Number(coords[1]);
+            const y = Number(coords[2]);
+            const winW = self.get_allocated_width();
+            const visualW = geo.w + 2 * geo.ear;
+            const left = (winW - visualW) / 2;
+            apply(Number.isFinite(x) && Number.isFinite(y)
+                && x >= left - 1 && x <= left + visualW + 1
+                && y >= -1 && y <= geo.h + 1);
+            return false;
+        }
+
+        // fallback: event tidak mengekspos koordinat
+        pointerOnIsland().then(apply);
         return false;
     };
     const onIslandLeave = () => {
@@ -394,7 +419,10 @@ function DynamicIsland() {
 
         if (navAnimated) {
             nav.visible = true;
-            nav.set_opacity(prevNav && nextNav ? 1 : 0);
+            // closing: mulai dari opacity 1 (bukan 0). Dulu `prevNav &&
+            // nextNav` membuat nav sempat opacity 0 satu frame saat mulai
+            // menutup, lalu kembali 1 — terlihat sebagai kedip.
+            nav.set_opacity(prevNav ? 1 : 0);
             nav.set_sensitive(prevNav && nextNav);
         } else {
             nav.visible = false;
@@ -405,16 +433,22 @@ function DynamicIsland() {
         // jadi hilang). Headroom perlu karena tween overshoot: tanpa itu
         // notch 429 + telinga membuat window ikut melebar 464 -> 473 -> 464.
         const widthChanges = Math.abs(next.w - from.w) > 0.5;
+        let widthLocked = false;
         if (widthChanges) {
             // headroom 16px hanya saat membuka: kurva overshoot membuat notch
             // melebihi target (429 vs 420). Saat menutup nilainya di-clamp ke
             // target, jadi headroom cuma membuat window melebar 464 -> 480
             // tanpa ada yang perlu ditampung.
             const headroom = next.w > from.w ? 16 : 0;
-            frameWrap.set_size_request(
-                Math.round(Math.max(next.w, from.w) + 2 * Math.max(next.ear, from.ear)) + headroom,
-                -1,
-            );
+            // Sertakan lebar yang SEDANG teralokasi: konten (mis. halaman
+            // media) bisa lebih lebar dari geometri target, sehingga tanpa ini
+            // surface ikut menyusut 480 -> 464 per frame saat menutup.
+            const lockWidth = Math.round(Math.max(
+                frameWrap.get_allocated_width(),
+                Math.max(next.w, from.w) + 2 * Math.max(next.ear, from.ear) + headroom,
+            ));
+            frameWrap.set_size_request(lockWidth, -1);
+            widthLocked = true;
         } else {
             // Jangan biarkan lebar terkunci kalau animasi ini TIDAK mengubah
             // lebar. Kasus nyata: animasi buka dihentikan sebelum frame
@@ -454,6 +488,14 @@ function DynamicIsland() {
                 }
                 applyGeometry();
                 applyEar();
+                // Saat menutup, lepas lock begitu notch visual mencapai
+                // target. Tween masih berjalan (nilai di-clamp), tapi surface
+                // transparan tidak perlu tetap lebar sampai onDone (~620ms) —
+                // itu 350ms area mati yang bisa menelan klik di top bar.
+                if (widthLocked && next.w < from.w && geo.w <= next.w + 0.5) {
+                    frameWrap.set_size_request(-1, -1);
+                    widthLocked = false;
+                }
                 // Ruang nav disusutkan mengikuti tinggi kartu. Dulu margin
                 // dicabut sekaligus (34 -> 0) saat konten swap di awal tutup,
                 // sehingga konten closed melompat turun ~15px (terukur
@@ -466,7 +508,8 @@ function DynamicIsland() {
                 }
             },
             onDone: () => {
-                if (widthChanges) frameWrap.set_size_request(-1, -1);
+                if (widthLocked) frameWrap.set_size_request(-1, -1);
+                widthLocked = false;
                 radiusNow = next.r;
                 notch.skyRadius = next.r;
                 notch.css = `border-radius: 0px 0px ${next.r}px ${next.r}px;`;
@@ -489,6 +532,7 @@ function DynamicIsland() {
         onFrame: value => stack.set_opacity(value),
     });
     let swapTimer = 0;
+    let fadeOut = null;
 
     // Ganti isi stack. Crossfade hanya untuk page <-> page; saat melewati
     // state closed crossfade membuat konten lama dan konten closed tampil
@@ -506,6 +550,10 @@ function DynamicIsland() {
             GLib.source_remove(swapTimer);
             swapTimer = 0;
         }
+        if (fadeOut) {
+            fadeOut.stop();
+            fadeOut = null;
+        }
         fadeIn.stop();
         if (target === GEO.closed) {
             // Konten halaman fade-out cepat (140ms) sebelum konten closed
@@ -513,18 +561,32 @@ function DynamicIsland() {
             // terpotong oleh kartu yang menyusut pada frame-frame awal.
             const prev = stack.shown;
             if (prev && prev !== 'closed') {
-                const out = ramp({
-                    duration: 140,
-                    onFrame: value => stack.set_opacity(1 - value),
-                });
-                out.start();
-                swapTimer = GLib.timeout_add(GLib.PRIORITY_DEFAULT, 140, () => {
-                    swapTimer = 0;
-                    // hentikan ramp fade-out dulu: tick terakhirnya bisa jatuh
-                    // setelah swap dan menimpa opacity 1 (terukur opacity 0).
-                    out.stop();
+                let finished = false;
+                let out = null;
+                const finish = () => {
+                    if (finished) return;
+                    finished = true;
+                    if (swapTimer) {
+                        GLib.source_remove(swapTimer);
+                        swapTimer = 0;
+                    }
+                    if (fadeOut === out) fadeOut = null;
                     setShown('closed');
                     stack.set_opacity(1);
+                };
+                out = ramp({
+                    duration: 140,
+                    onFrame: value => stack.set_opacity(1 - value),
+                    // Swap di frame yang sama dengan tick terakhir fade-out:
+                    // tidak ada frame kartu kosong antara opacity 0 dan 1.
+                    onDone: finish,
+                });
+                fadeOut = out;
+                out.start();
+                // jaring pengaman bila ramp terhenti tanpa onDone
+                swapTimer = GLib.timeout_add(GLib.PRIORITY_DEFAULT, 200, () => {
+                    swapTimer = 0;
+                    finish();
                     return GLib.SOURCE_REMOVE;
                 });
                 return;
@@ -551,6 +613,10 @@ function DynamicIsland() {
     // menyentuh submap lain (mis. resize): switch hanya dari `default`, reset
     // hanya dari `island`. `escape` di dalam submap = jalan keluar manual.
     const SUBMAP = 'island';
+    // Nav aktif (bisa dipakai keyboard) berbeda dari nav.visible: opacity
+    // memudar sampai onDone, tetapi submap harus lepas begitu island mulai
+    // menutup. Tanpa ini panah tetap tertelan ~620ms setelah notch tertutup.
+    let navActive = false;
     let submapTimer = 0;
     let submapRunning = false;
     let submapAgain = false;
@@ -558,7 +624,7 @@ function DynamicIsland() {
     const applySubmap = async () => {
         submapRunning = true;
         try {
-            const want = nav.visible;
+            const want = navActive;
             const current = String(await Utils.execAsync(['hyprctl', 'submap'])).trim();
             if (want && current === 'default')
                 await Utils.execAsync(['hyprctl', 'dispatch', `hl.dsp.submap("${SUBMAP}")`]);
@@ -595,6 +661,7 @@ function DynamicIsland() {
     const sync = () => {
         if (dead) return;
         const next = targetFor();
+        navActive = navVisibleFor(next);
         syncSubmap();
         if (next === target && tween && tween.running) return;
         animateTo(next);
@@ -637,7 +704,7 @@ function DynamicIsland() {
     // Bind di dalam submap bersifat consuming, jadi aplikasi fokus (YouTube,
     // editor) tidak ikut menerima panah selama island terbuka.
     const navKey = delta => {
-        if (!nav.visible) return false;
+        if (!navActive) return false;
         stepPage(delta);
         return true;
     };
@@ -666,10 +733,12 @@ function DynamicIsland() {
     syncSubmap();
     island.connect('notify::monitor', () => {
         nav.visible = navVisibleFor(target);
+        navActive = nav.visible;
         syncSubmap();
     });
     island.connect('map', () => {
         nav.visible = false;
+        navActive = false;
         syncSubmap();
     });
     // Teardown: lepas semua yang hidup di luar umur window (lihat bindVariable
@@ -691,6 +760,10 @@ function DynamicIsland() {
         }
         if (tween) tween.stop();
         fadeIn.stop();
+        if (fadeOut) {
+            fadeOut.stop();
+            fadeOut = null;
+        }
     });
 
     island.stack = stack;

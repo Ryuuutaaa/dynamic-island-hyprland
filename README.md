@@ -531,12 +531,15 @@ GdkWindow dan mengisi 100% areanya. GDK mengirim crossing event ke window
 terdalam (clip) dan propagasi berhenti di batas window itu — terukur
 `enter-notify` di EventBox = **0** walau kursor tepat di notch. Karena itu
 `enter/leave-notify` dipasang di window island; window selalu menerima crossing
-untuk seluruh surface. Saat pointer pindah ke child ber-GdkWindow (tombol,
-dots, DrawingArea, isi halaman), GTK mengirim `leave` (detail INFERIOR),
-sehingga setiap `leave` memeriksa posisi pointer sebenarnya lewat
-`hyprctl -j cursorpos` + rect monitor logis yang di-cache, dan hanya menutup
-kalau pointer benar-benar di luar badan island. Token mencegah hasil
-pemeriksaan yang basi menutup notch setelah pointer kembali masuk.
+untuk seluruh surface. Karena surface juga mencakup area transparan saat lebar
+dikunci, `enter` divalidasi dengan `event.get_coords()` (window-local) terhadap
+badan visual island — pointer yang masuk dari samping tidak membuka notch.
+Saat pointer pindah ke child ber-GdkWindow (tombol, dots, DrawingArea, isi
+halaman), GTK mengirim `leave` (detail INFERIOR), sehingga setiap `leave`
+memeriksa posisi pointer sebenarnya lewat `hyprctl -j cursorpos` + rect monitor
+logis yang di-cache, dan hanya menutup kalau pointer benar-benar di luar badan
+island. Token mencegah hasil pemeriksaan yang basi menutup notch setelah
+pointer kembali masuk.
 
 **Hit-test memakai koordinat logis.** `hyprctl -j monitors` memberi `x/y` logis
 tetapi `width/height` **fisik**, sedangkan `cursorpos` dan GDK memakai
@@ -544,7 +547,10 @@ koordinat logis. Pada scale `0.8333` (1920 fisik → 2304 logis), mencampur
 keduanya menggeser hotspot hover **191px** — terukur: kursor di tengah notch
 (5224) dianggap di luar, sedangkan kursor 5033 (191px di kiri) justru membuka
 island. `modules/monitor.js` sekarang menormalkan `width/height` ke logis
-(`/ scale`) sebelum dipakai hit-test maupun pemetaan monitor.
+(`/ scale`, dibulatkan) sebelum dipakai hit-test maupun pemetaan monitor.
+Pembulatan penting: `1920 / 0.8333333 = 2304.00009`, sedangkan GDK melaporkan
+`2304` — tanpa pembulatan/toleransi, `gdkIndex()` gagal dan island tidak pindah
+monitor saat fokus berpindah ke layar fractional.
 
 Dua bug hover yang ditemukan lewat audit uinput:
 
@@ -554,10 +560,11 @@ Dua bug hover yang ditemukan lewat audit uinput:
   membaca `cursorpos` dan menutup kalau pointer sudah di luar; sakelar token
   tetap dipakai supaya hasil basi tidak menutup notch yang baru dimasuki.
 - **Submap `island` tertinggal aktif setelah island tertutup.** `nav.visible`
-  baru menjadi false di akhir tween, sedangkan `syncSubmap()` hanya dipanggil
-  saat `sync()` di awal animasi — terukur `hyprctl submap` masih `island`
-  setelah notch menutup (panah ikut tertelan). Sekarang `syncSubmap()`
-  dipanggil juga di `onDone` tween.
+  baru menjadi false di akhir tween (620ms), padahal nav sudah tidak terlihat
+  sejak ~200ms — panah masih tertelan selama sisa animasi. Sekarang submap
+  memakai `navActive` (state target, bukan visibilitas visual) dan dilepas
+  begitu island mulai menutup; terukur `hyprctl submap` kembali `default`
+  segera setelah pointer keluar.
 
 Skenario yang diuji dengan pointer nyata: hover di child (panah), padding atas
 y=2, tepi bawah y=h vs h+6 (dulu gagal, sekarang menutup), keluar 30ms lalu
@@ -609,11 +616,12 @@ Sampling 16ms selama buka/tutup menangkap empat hal yang lalu diperbaiki:
   isi di tengah penyusutan: konten media hilang seketika, sedangkan konten
   closed masih fade dari opacity 0. Sekarang konten closed langsung terlihat
   (opacity 1) pada saat swap, jadi tidak ada frame kosong.
-- **Window melebar 464 → 480 saat menutup.** Headroom 16px (untuk overshoot)
-  ikut dipakai saat menutup, padahal saat menutup nilainya di-clamp ke target.
-  Sekarang headroom hanya dipasang jika `next.w > from.w`; terukur window tetap
-  **464** sepanjang penutupan lalu turun sekali ke 170 di akhir (tidak terlihat
-  karena hanya surface transparan; notch tetap di tengah).
+- **Surface resize per frame saat menutup.** Lebar window dikunci ke
+  `max(lebar teralokasi, geometri target)`; konten media bisa lebih lebar dari
+  geometri (480 vs 464). Lock dilepas saat notch visual mencapai target, bukan
+  menunggu `onDone` (~620ms). Terukur close nyata 420→150 selesai ~284ms dengan
+  window **480 konstan**, lalu turun sekali ke 170 — tanpa resize 480→464 per
+  frame dan tanpa area transparan 464px yang menetap.
 - **Lock lebar 480px bisa tertinggal.** Reset lebar dulu hanya terjadi di
   `onDone` dan hanya jika animasi mengubah lebar. Kalau animasi buka dihentikan
   sebelum frame pertama (hover flicker <16ms), `geo.w` masih 150 sehingga
@@ -673,9 +681,10 @@ submap = reset
 - **Panah bersifat consuming** (`bind`, bukan `bindn`): selama island terbuka,
   panah **tidak** diteruskan ke aplikasi fokus. Menonton YouTube sambil hover
   notch lalu menekan → tidak akan ikut seek/scroll.
-- Submap hanya aktif saat nav tampil; `index.js` yang mengurus switch-nya
-  (`syncSubmap()`, debounce 80 ms, hanya `default → island` dan
-  `island → reset`, jadi submap lain seperti resize tidak terganggu).
+- Submap hanya aktif saat nav aktif (mulai membuka sampai mulai menutup);
+  `index.js` yang mengurus switch-nya (`syncSubmap()`, debounce 80 ms, hanya
+  `default → island` dan `island → reset`, jadi submap lain seperti resize
+  tidak terganggu).
 - Di tampilan lirik, **← kembali ke kartu musik** dan → lanjut ke halaman
   berikutnya (lirik bukan halaman nav, hanya sub-tampilan media).
 - Di luar island (submap `default`), panah 100% normal.
