@@ -525,29 +525,34 @@ jadi selama notch membuka/menutup posisinya ikut bergerak (terukur: posisi nav
 release, tombol sudah pindah dan release jatuh di luar tombol → klik dibatalkan.
 Dengan aksi di press, yang diklik adalah posisi yang terlihat saat itu juga.
 
-**Hover diverifikasi ke kompositor.** GTK3 mengirim `leave-notify-event` juga
-saat pointer pindah ke child ber-GdkWindow (tombol, dots, DrawingArea, isi
-halaman) — dan pada GJS/AGS ini objek event-nya **tidak mengekspos field struct**
-(`event.detail`, `event.button`, `event.x` semuanya `undefined`; pakai
-`event.get_coords()`/`event.get_button()` lewat `modules/pointer.js`), sehingga
-pengecekan `INFERIOR` tidak pernah cocok. Dulu itu membuat notch menutup begitu
-pointer menyentuh konten; sekarang setiap `leave` memeriksa posisi pointer
-sebenarnya
-lewat `hyprctl -j cursorpos` (+ rect monitor yang di-cache, diperbarui saat
-monitor fokus berubah), dan hanya menutup kalau pointer benar-benar di luar
-badan island. Token mencegah hasil pemeriksaan yang basi menutup notch setelah
-pointer kembali masuk.
+**Hover diambil dari window layer-shell, bukan EventBox.** EventBox punya
+GdkWindow sendiri, tetapi anaknya (`clip`/GtkScrolledWindow) juga punya
+GdkWindow dan mengisi 100% areanya. GDK mengirim crossing event ke window
+terdalam (clip) dan propagasi berhenti di batas window itu — terukur
+`enter-notify` di EventBox = **0** walau kursor tepat di notch. Karena itu
+`enter/leave-notify` dipasang di window island; window selalu menerima crossing
+untuk seluruh surface. Saat pointer pindah ke child ber-GdkWindow (tombol,
+dots, DrawingArea, isi halaman), GTK mengirim `leave` (detail INFERIOR),
+sehingga setiap `leave` memeriksa posisi pointer sebenarnya lewat
+`hyprctl -j cursorpos` + rect monitor logis yang di-cache, dan hanya menutup
+kalau pointer benar-benar di luar badan island. Token mencegah hasil
+pemeriksaan yang basi menutup notch setelah pointer kembali masuk.
+
+**Hit-test memakai koordinat logis.** `hyprctl -j monitors` memberi `x/y` logis
+tetapi `width/height` **fisik**, sedangkan `cursorpos` dan GDK memakai
+koordinat logis. Pada scale `0.8333` (1920 fisik → 2304 logis), mencampur
+keduanya menggeser hotspot hover **191px** — terukur: kursor di tengah notch
+(5224) dianggap di luar, sedangkan kursor 5033 (191px di kiri) justru membuka
+island. `modules/monitor.js` sekarang menormalkan `width/height` ke logis
+(`/ scale`) sebelum dipakai hit-test maupun pemetaan monitor.
 
 Dua bug hover yang ditemukan lewat audit uinput:
 
 - **Notch bisa tertahan terbuka saat pointer keluar lewat padding.**
-  `leave-notify` hanya terkirim sekali, yaitu saat pointer keluar dari
-  EventBox (area isi). Badan notch masih punya padding 3/13px: kalau pointer
-  berhenti di situ, pemeriksaan saat `leave` menjawab "di dalam" dan tidak ada
-  event lanjutan — terukur pointer 6px di bawah kartu 140px tetap
-  `hovered=true`. Sekarang ada **watchdog 150ms selama hover** yang membaca
-  `cursorpos` dan menutup kalau pointer sudah di luar; sakelar token tetap
-  dipakai supaya hasil basi tidak menutup notch yang baru dimasuki.
+  `leave-notify` tidak selalu terkirim saat pointer keluar melewati child
+  (isi halaman) menuju luar. Sekarang ada **watchdog 100ms selama hover** yang
+  membaca `cursorpos` dan menutup kalau pointer sudah di luar; sakelar token
+  tetap dipakai supaya hasil basi tidak menutup notch yang baru dimasuki.
 - **Submap `island` tertinggal aktif setelah island tertutup.** `nav.visible`
   baru menjadi false di akhir tween, sedangkan `syncSubmap()` hanya dipanggil
   saat `sync()` di awal animasi — terukur `hyprctl submap` masih `island`
@@ -609,6 +614,13 @@ Sampling 16ms selama buka/tutup menangkap empat hal yang lalu diperbaiki:
   Sekarang headroom hanya dipasang jika `next.w > from.w`; terukur window tetap
   **464** sepanjang penutupan lalu turun sekali ke 170 di akhir (tidak terlihat
   karena hanya surface transparan; notch tetap di tengah).
+- **Lock lebar 480px bisa tertinggal.** Reset lebar dulu hanya terjadi di
+  `onDone` dan hanya jika animasi mengubah lebar. Kalau animasi buka dihentikan
+  sebelum frame pertama (hover flicker <16ms), `geo.w` masih 150 sehingga
+  animasi tutup menghitung `widthChanges=false` dan lock 480 tidak pernah
+  dilepas — surface transparan 480×50 menetap di atas bar. Sekarang reset juga
+  dijalankan saat animasi tidak mengubah lebar; terukur 170×50 setelah 20×
+  flicker 5ms.
 - **Radius 10 langkah** (dari 5) supaya perubahan sudut saat menyusut tidak
   terlihat "bertingkat".
 - **Watchdog hover 100ms** (dari 150ms) supaya penutupan mulai lebih cepat.
@@ -619,9 +631,9 @@ Sampling 16ms selama buka/tutup menangkap empat hal yang lalu diperbaiki:
   34 → 29 → 24 → 23 → 20`, monoton tanpa lompatan.
 - Catatan: `leave-notify` tidak selalu terkirim saat pointer keluar melewati
   child (isi halaman) menuju luar, jadi penutupan normal bisa tertunda sampai
-  watchdog 150ms berikutnya; delay itu yang membatasi.
+  watchdog 100ms berikutnya; delay itu yang membatasi.
 
-Interupsi juga diuji: buka 200ms lalu tutup (379×123 → … → 150×30 tanpa
+Interupsi juga diuji: buka 200ms lalu tutup (379×123 → … → 150×50 tanpa
 lompatan) dan tutup 200ms lalu buka lagi (191×47 → … → 420×140).
 
 Catatan perilaku: **transient hanya memakai geometri peek saat notch tertutup**.
@@ -633,17 +645,29 @@ selama durasi peek.
 
 Window island memakai `keymode: 'none'` — ia **tidak pernah** mengambil fokus
 keyboard, jadi tombol panah tidak bisa ditangkap langsung oleh GTK. Navigasi
-dipasang lewat **submap Hyprland** (`island`), ditambahkan `install.sh` ke
-`~/.config/hypr/UserConfigs/UserKeybinds.conf`:
+dipasang lewat **submap Hyprland** (`island`). Pada Hyprland 0.57 dengan config
+Lua, `install.sh` menambahkan blok ke
+`~/.config/hypr/UserConfigs/UserKeybinds.lua`:
+
+```lua
+-- dyn-island-kbd: begin — panah kiri/kanan untuk navigasi halaman island.
+hl.define_submap("island", function()
+  hl.bind("left", hl.dsp.exec_cmd([[ags -r "globalThis.dynIsland.navKey(-1)"]]), { description = "island: prev" })
+  hl.bind("right", hl.dsp.exec_cmd([[ags -r "globalThis.dynIsland.navKey(1)"]]), { description = "island: next" })
+  hl.bind("escape", hl.dsp.submap("reset"), { description = "island: close" })
+end)
+-- dyn-island-kbd: end
+```
+
+Untuk config hyprlang lama (`.conf`), blok yang sama memakai dispatcher Lua
+karena sintaks `hyprctl dispatch submap ...` sudah dihapus di 0.57:
 
 ```conf
-# dyn-island-kbd: begin — panah kiri/kanan untuk navigasi halaman island.
 submap = island
 bind = , left, exec, ags -r "globalThis.dynIsland.navKey(-1)"
 bind = , right, exec, ags -r "globalThis.dynIsland.navKey(1)"
-bind = , escape, exec, hyprctl dispatch submap reset
+bind = , escape, exec, hyprctl dispatch 'hl.dsp.submap("reset")'
 submap = reset
-# dyn-island-kbd: end
 ```
 
 - **Panah bersifat consuming** (`bind`, bukan `bindn`): selama island terbuka,
@@ -657,12 +681,12 @@ submap = reset
 - Di luar island (submap `default`), panah 100% normal.
 - **`escape`** di dalam submap = jalan keluar manual bila submap tertinggal
   (mis. AGS mati saat island terbuka). `index.js` juga menjalankan
-  `submap reset` saat start sebagai jaring pengaman.
+  `hl.dsp.submap("reset")` saat start sebagai jaring pengaman.
 - Catatan trade-off: selama submap `island` aktif, bind lain (mis.
   `SUPER+←/→` untuk pindah workspace) tidak aktif — hanya selama pointer berada
   di atas notch.
 - `uninstall.sh` menghapus blok ini (dan blok `bindn` versi lama) lagi, lalu
-  `submap reset` + `hyprctl reload`. Backup: `.dyn-island.bak`.
+  `hl.dsp.submap("reset")` + `hyprctl reload`. Backup: `.dyn-island.bak`.
 
 ## Konfigurasi (`config.js`)
 
@@ -740,10 +764,12 @@ ke `~/.config-backup-dynisland-<timestamp>/`):
    masih `center`, install akan mencetak peringatan.
 5. **OSD ganda** — `notify-send` di `Volume.sh` & `Brightness.sh`
    dinonaktifkan (OSD ditangani notch); suara tetap jalan.
-6. **Hyprland `UserKeybinds.conf`** — submap `island` berisi bind panah
-   kiri/kanan yang *consuming* untuk navigasi island (lihat bagian Keyboard).
-   Ber-marker `dyn-island-kbd: begin/end`, dengan backup `.dyn-island.bak`.
-   Versi lama yang memakai `bindn` (non-consuming) dimigrasikan otomatis.
+6. **Hyprland keybind** — submap `island` berisi bind panah kiri/kanan yang
+   *consuming* untuk navigasi island (lihat bagian Keyboard). Ditulis ke
+   `UserKeybinds.lua` saat config Hyprland 0.57+ (Lua) aktif, atau ke
+   `UserKeybinds.conf` untuk config hyprlang lama. Ber-marker
+   `dyn-island-kbd: begin/end`, dengan backup `.dyn-island.bak`. Versi lama
+   yang memakai `bindn` (non-consuming) dimigrasikan otomatis.
 7. **swaync `style.css`** — dua blok append-only ber-marker, backup
    `.dyn-island.bak`: `dyn-island-notif` untuk popup
    (`.floating-notifications`) dan `dyn-island-cc` untuk panel control-center.

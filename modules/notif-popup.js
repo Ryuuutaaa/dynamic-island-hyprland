@@ -174,7 +174,7 @@ export default () => {
                 .then(raw => {
                     const hit = JSON.parse(raw).find(c =>
                         `${c.class} ${c.title}`.toLowerCase().includes(query));
-                    if (hit) Utils.execAsync(['hyprctl', 'dispatch', 'focuswindow', `address:${hit.address}`]);
+                    if (hit) Utils.execAsync(['hyprctl', 'dispatch', `hl.dsp.focus({window="address:${hit.address}"})`]);
                 })
                 .catch(() => { });
         }

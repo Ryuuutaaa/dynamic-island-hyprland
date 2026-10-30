@@ -122,6 +122,9 @@ function Ear(side) {
 
 function DynamicIsland() {
     const GEO = CONFIG.geometry;
+    // Ukuran berjalan (dianimasikan). Dideklarasikan di awal karena dipakai
+    // pointerOnIsland() untuk hit-test hover.
+    const geo = { w: GEO.closed.w, h: GEO.closed.h, ear: GEO.closed.ear };
     const notch = Widget.Box({ className: 'dyn-island-notch' });
     notch.skyRadius = GEO.closed.r;
     // Background langit digambar sendiri (bukan CSS) supaya bisa gradient +
@@ -210,6 +213,10 @@ function DynamicIsland() {
             if (!Number.isFinite(cursor?.x) || !Number.isFinite(cursor?.y)) return false;
 
             const w = geo.w + 2 * geo.ear;
+            // focusedRect() menyimpan koordinat LOGIS (x/y dari Hyprland,
+            // lebar/tinggi sudah dibagi scale oleh modules/monitor.js), sama
+            // seperti hyprctl cursorpos. Jangan pakai lebar fisik di sini:
+            // pada scale 0.8333 hotspot bergeser ~191px.
             const left = monRect.x + monRect.w / 2 - w / 2;
             const top = monRect.y + CONFIG.marginTop;
             return cursor.x >= left && cursor.x <= left + w
@@ -256,12 +263,20 @@ function DynamicIsland() {
     });
 
     let hoverToken = 0;
-    hoverArea.connect('enter-notify-event', () => {
+    // Handler hover dipasang di WINDOW, bukan di hoverArea EventBox.
+    //
+    // EventBox punya GdkWindow sendiri, tetapi anaknya (clip / GtkScrolledWindow)
+    // juga punya GdkWindow dan mengisi 100% areanya. GDK mengirim crossing
+    // event ke window TERDALAM (clip), dan propagasi berhenti di batas window
+    // itu — jadi enter-notify-event di EventBox tidak pernah fire (terukur 0
+    // saat kursor tepat di notch). Window layer-shell selalu menerima
+    // enter/leave untuk seluruh surface, jadi dipakai sebagai sumber hover.
+    const onIslandEnter = () => {
         hoverToken += 1;
         hovered.value = true;
         return false;
-    });
-    hoverArea.connect('leave-notify-event', () => {
+    };
+    const onIslandLeave = () => {
         // Jangan langsung menutup: pastikan pointer benar-benar sudah keluar
         // dari badan island. Token mencegah hasil cek yang basi menutup notch
         // setelah pointer kembali masuk.
@@ -270,7 +285,7 @@ function DynamicIsland() {
             if (token === hoverToken && !inside) hovered.value = false;
         });
         return false;
-    });
+    };
     notch.child = hoverArea;
 
     // ── drag & drop masuk (shelf) ───────────────────────────────────
@@ -315,7 +330,7 @@ function DynamicIsland() {
     const rightEar = Ear('right');
 
     // ── mesin geometri ──────────────────────────────────────────────
-    const geo = { w: GEO.closed.w, h: GEO.closed.h, ear: GEO.closed.ear };
+    // `geo` sudah dideklarasikan di atas (dipakai hit-test hover).
     let target = GEO.closed;
     let tween = null;
     let radiusNow = GEO.closed.r;
@@ -400,6 +415,14 @@ function DynamicIsland() {
                 Math.round(Math.max(next.w, from.w) + 2 * Math.max(next.ear, from.ear)) + headroom,
                 -1,
             );
+        } else {
+            // Jangan biarkan lebar terkunci kalau animasi ini TIDAK mengubah
+            // lebar. Kasus nyata: animasi buka dihentikan sebelum frame
+            // pertama (hover flicker <16ms) -> geo masih 150, animasi tutup
+            // menghitung widthChanges=false. Dulu reset hanya di onDone,
+            // sehingga lock 480px tertinggal permanen di surface transparan
+            // (menelan klik di atas waybar).
+            frameWrap.set_size_request(-1, -1);
         }
 
         // radius diinterpolasi bertahap (5 langkah): GTK3 tidak bisa
@@ -538,9 +561,9 @@ function DynamicIsland() {
             const want = nav.visible;
             const current = String(await Utils.execAsync(['hyprctl', 'submap'])).trim();
             if (want && current === 'default')
-                await Utils.execAsync(['hyprctl', 'dispatch', 'submap', SUBMAP]);
+                await Utils.execAsync(['hyprctl', 'dispatch', `hl.dsp.submap("${SUBMAP}")`]);
             else if (!want && current === SUBMAP)
-                await Utils.execAsync(['hyprctl', 'dispatch', 'submap', 'reset']);
+                await Utils.execAsync(['hyprctl', 'dispatch', 'hl.dsp.submap("reset")']);
         }
         catch (_) {
             // Hyprland tidak tersedia: navigasi keyboard memang tidak aktif.
@@ -632,6 +655,10 @@ function DynamicIsland() {
 
     // harus setelah konstruksi: gtk_layer_init_for_window baru jalan di situ
     patchMonitor(island);
+    // hover: window layer-shell menerima enter/leave untuk seluruh surface
+    // (lihat onIslandEnter/onIslandLeave).
+    island.connect('enter-notify-event', onIslandEnter);
+    island.connect('leave-notify-event', onIslandLeave);
     // jangan biarkan nav nyangkut setelah window dipindah / di-map ulang
     nav.visible = false;
     // sekaligus membersihkan submap `island` yang mungkin tertinggal kalau AGS
@@ -754,7 +781,7 @@ function mountIsland() {
         // state hover milik window lama tidak berlaku untuk window baru
         hovered.value = false;
         // submap keyboard bisa tertinggal aktif kalau window mati saat nav tampil
-        Utils.execAsync(['hyprctl', 'dispatch', 'submap', 'reset']).catch(() => { });
+        Utils.execAsync(['hyprctl', 'dispatch', 'hl.dsp.submap("reset")']).catch(() => { });
 
         const win = DynamicIsland();
         App.addWindow(win);

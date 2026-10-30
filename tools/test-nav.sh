@@ -23,22 +23,30 @@ fi
 # Geometri: island selalu di tengah monitor yang fokus. Posisi panah/titik
 # DIUKUR dari widget (bukan asumsi offset): jumlah dot berubah-ubah, dan pill
 # yang lebih sempit menggeser panah beberapa px.
-CX=$(hyprctl monitors -j | jq -r '.[]|select(.focused)|(.x + .width/2)' | cut -d. -f1)
+#
+# Koordinat harus LOGIS (sama seperti hyprctl cursorpos):
+#   CX = x + (width / scale) / 2
+# Jangan pakai width fisik — pada scale 0.8333 hasilnya meleset ~191px.
+# Monitor juga tidak selalu di (0,0); klik memakai offset y monitor.
+read -r MX MY CX <<< "$(hyprctl monitors -j | jq -r '.[]|select(.focused)|"\(.x) \(.y) \(.x + (.width / .scale) / 2)"')"
+CX=${CX%.*}
+TOP=$((MY + 12))
+OUT_Y=$((MY + 700))
 LAYERPOS() { hyprctl layers -j | jq -r 'to_entries[].value.levels|to_entries[]|.value[]|select(.namespace=="dynamic-island")|"\(.x) \(.w)"' | head -1; }
 # NAVPOS <tooltip> -> "localX localY" relatif ke window island
 NAVPOS() {
     timeout 20 ags -r "await new Promise(r=>setTimeout(r,10)); const d=globalThis.dynIsland; const walk=(w,p)=>{ if(p(w)) return w; const c=w.get_children?w.get_children():[]; for(const k of c){const r=walk(k,p); if(r) return r;} return null; }; const b=walk(d.window,w=>w.get_mapped&&w.get_mapped()&&w.tooltip_text==='$1'); if(!b) return ''; const a=b.get_allocation(); const [ok,x,y]=b.translate_coordinates(d.window,0,0); return Math.round(x+a.width/2)+' '+Math.round(y+a.height/2);" 2>/dev/null | tail -1
 }
-CX_L=""; CX_R=""; NY=118
+CX_L=""; CX_R=""; NY=$((MY + 118))
 measure_nav() {
     prep media
-    python3 "$CLICK" click "$CX" 12 70 400 >/dev/null 2>&1
+    python3 "$CLICK" click "$CX" "$TOP" 70 400 >/dev/null 2>&1
     sleep 1.1
     local lx lw lp rp
     read -r lx lw <<< "$(LAYERPOS)"
     lp=$(NAVPOS 'Halaman sebelumnya'); rp=$(NAVPOS 'Halaman berikutnya')
     if [[ -n "$lp" && -n "$rp" && -n "$lx" ]]; then
-        CX_L=$((CX + ${lp% *} - lw / 2)); NY=${lp#* }
+        CX_L=$((CX + ${lp% *} - lw / 2)); NY=$((MY + ${lp#* }))
         CX_R=$((CX + ${rp% *} - lw / 2))
         echo "nav terukur: kiri=$CX_L kanan=$CX_R y=$NY (layer x=$lx w=$lw)"
     else
@@ -48,7 +56,8 @@ measure_nav() {
 }
 
 prep() {
-    hyprctl dispatch movecursor "$CX" 700 >/dev/null 2>&1
+    # hyprctl dispatch movecursor sudah mati di Hyprland 0.57; pakai uinput
+    python3 "$CLICK" move "$CX" "$OUT_Y" 150 >/dev/null 2>&1
     timeout 15 ags -r "await new Promise(r=>setTimeout(r,10)); const d=globalThis.dynIsland; d.hovered.value=false; d.pinPage('$1',{sticky:true}); await new Promise(r=>setTimeout(r,350)); return d.page.value" >/dev/null 2>&1
     sleep 0.15
 }
@@ -63,7 +72,7 @@ ARROW_AT() {  # $1 tooltip
     pos=$(NAVPOS "$1"); [ -z "$pos" ] && return 1
     read -r lx lw <<< "$(LAYERPOS)"
     read -r ax ay <<< "$pos"
-    echo "$((lx + ax)) $ay"
+    echo "$((lx + ax)) $((MY + ay))"
 }
 
 check_single() {  # label start tooltip expected
@@ -71,7 +80,7 @@ check_single() {  # label start tooltip expected
     for _ in $(seq 1 "$ROUNDS"); do
         prep "$2"
         # buka island lalu bidik panah di posisi yang terlihat saat itu
-        python3 "$CLICK" click "$CX" 12 700 30 >/dev/null 2>&1
+        python3 "$CLICK" click "$CX" "$TOP" 700 30 >/dev/null 2>&1
         g=$(ARROW_AT "$3")
         [[ -z "$g" ]] && continue
         python3 "$CLICK" click "${g% *}" "${g#* }" 30 40 >/dev/null 2>&1
@@ -85,7 +94,7 @@ check_rapid() {  # label start tooltip expected (dua klik cepat)
     local ok=0 g
     for _ in $(seq 1 "$ROUNDS"); do
         prep "$2"
-        python3 "$CLICK" click "$CX" 12 700 30 >/dev/null 2>&1
+        python3 "$CLICK" click "$CX" "$TOP" 700 30 >/dev/null 2>&1
         g=$(ARROW_AT "$3"); [[ -z "$g" ]] && continue
         python3 "$CLICK" click "${g% *}" "${g#* }" 30 30 >/dev/null 2>&1
         python3 "$CLICK" click "$(( ${g% *} + 6 ))" "${g#* }" 30 30 >/dev/null 2>&1
@@ -116,23 +125,23 @@ check_rapid "water 2x next -> shelf"    water    "Halaman berikutnya" shelf
 echo
 echo "== klik dots (harus tidak navigasi) =="
 prep media
-out=$(python3 "$CLICK" flow2 "$CX" 12 "$CX" $((CX + 2)) "$NY" 150 450 2>&1)
+out=$(python3 "$CLICK" flow2 "$CX" "$TOP" "$CX" $((CX + 2)) "$NY" 150 450 2>&1)
 got=$(page_of "$out" 'akhir')
 [[ "$got" == "media" ]] && echo "  ok (tetap media)" || echo "  x  berubah jadi ${got:-?}"
 
 echo
 echo "== lirik = sub-tampilan media =="
 prep media
-python3 "$CLICK" click "$CX" 12 70 400 >/dev/null 2>&1
+python3 "$CLICK" click "$CX" "$TOP" 70 400 >/dev/null 2>&1
 sleep 0.9
 POS=$(timeout 20 ags -r "await new Promise(r=>setTimeout(r,10)); const d=globalThis.dynIsland; const walk=(w,p)=>{ if(p(w)) return w; const c=w.get_children?w.get_children():[]; for(const k of c){const r=walk(k,p); if(r) return r;} return null; }; const b=walk(d.window,w=>w.get_mapped&&w.get_mapped()&&w.tooltip_text==='Tampilkan lirik'); if(!b) return ''; const a=b.get_allocation(); const [ok,x,y]=b.translate_coordinates(d.window,0,0); return Math.round(x+a.width/2)+','+Math.round(y+a.height/2);" 2>/dev/null | tail -1)
 if [[ -n "$POS" ]]; then
     IFS=, read -r bx by <<< "$POS"
     LX=$(hyprctl layers -j | jq -r 'to_entries[].value.levels|to_entries[]|.value[]|select(.namespace=="dynamic-island")|.x' | head -1)
-    python3 "$CLICK" click "$((LX + bx))" "$by" 70 400 >/dev/null 2>&1
+    python3 "$CLICK" click "$((LX + bx))" "$((MY + by))" 70 400 >/dev/null 2>&1
     sleep 1.0
     echo "  buka lirik: $(timeout 15 ags -r "await new Promise(r=>setTimeout(r,10)); const d=globalThis.dynIsland; return 'page='+d.page.value+' view='+d.mediaView.value+' geo='+Math.round(d.geo.w)+'x'+Math.round(d.geo.h)+' nav='+d.nav.visible" 2>/dev/null | tail -1)"
-    python3 "$CLICK" flow "$CX" 12 "$CX_L" "$NY" 450 70 >/dev/null 2>&1
+    python3 "$CLICK" flow "$CX" "$TOP" "$CX_L" "$NY" 450 70 >/dev/null 2>&1
     sleep 0.6
     echo "  panah kiri: $(timeout 15 ags -r "await new Promise(r=>setTimeout(r,10)); const d=globalThis.dynIsland; return 'page='+d.page.value+' view='+d.mediaView.value+' geo='+Math.round(d.geo.w)" 2>/dev/null | tail -1)"
 else
@@ -142,12 +151,12 @@ fi
 echo
 echo "== klik di luar island (harus menutup notch) =="
 prep media
-python3 "$CLICK" click "$CX" 12 70 400 >/dev/null 2>&1
+python3 "$CLICK" click "$CX" "$TOP" 70 400 >/dev/null 2>&1
 sleep 0.3
-python3 "$CLICK" click "$CX" 700 70 300 >/dev/null 2>&1
+python3 "$CLICK" click "$CX" "$OUT_Y" 70 300 >/dev/null 2>&1
 sleep 0.3
 timeout 15 ags -r "await new Promise(r=>setTimeout(r,10)); const d=globalThis.dynIsland; return 'hovered=' + d.hovered.value + ' geo=' + Math.round(d.geo.w)" 2>/dev/null | tail -1
 
-hyprctl dispatch movecursor "$CX" 700 >/dev/null 2>&1
+python3 "$CLICK" move "$CX" "$OUT_Y" 150 >/dev/null 2>&1
 echo
 echo "selesai."

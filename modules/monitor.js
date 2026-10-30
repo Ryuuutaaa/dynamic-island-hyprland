@@ -10,8 +10,8 @@ import * as Utils from 'resource:///com/github/Aylur/ags/utils.js';
 //
 // Pencocokan dilakukan lewat geometri (x/y/lebar), dengan satu monitor sebagai
 // jalan pintas supaya tidak perlu memanggil hyprctl sama sekali di mayoritas
-// sesi. `scale` dipakai untuk mencocokkan koordinat fisik Hyprland dengan
-// koordinat logis GDK pada fractional scaling.
+// sesi. `refresh()` menormalkan lebar/tinggi Hyprland (fisik) ke koordinat
+// logis dengan membaginya `scale`; x/y Hyprland memang sudah logis.
 
 let rects = [];
 let inflight = null;
@@ -22,16 +22,24 @@ export function refresh() {
 
     inflight = Utils.execAsync(['hyprctl', '-j', 'monitors'])
         .then(raw => {
-            rects = JSON.parse(raw).map(m => ({
-                name: m.name,
-                id: m.id,
-                x: m.x,
-                y: m.y,
-                w: m.width,
-                h: m.height,
-                scale: Number(m.scale) || 1,
-                focused: !!m.focused,
-            }));
+            rects = JSON.parse(raw).map(m => {
+                // Hyprland: x/y sudah LOGIS (layout), tetapi width/height
+                // masih FISIK. GDK memakai koordinat logis, dan
+                // `hyprctl cursorpos` juga logis — jadi normalisasi di sini.
+                // Tanpa ini, pada scale 0.8333 lebar 1920 vs 2304 membuat
+                // hit-test bergeser ~191px dan gdkIndex tidak pernah cocok.
+                const scale = Number(m.scale) || 1;
+                return {
+                    name: m.name,
+                    id: m.id,
+                    x: m.x,
+                    y: m.y,
+                    w: m.width / scale,
+                    h: m.height / scale,
+                    scale,
+                    focused: !!m.focused,
+                };
+            });
             return rects;
         })
         .catch(() => rects)
@@ -63,12 +71,16 @@ export function gdkIndex(rect) {
     };
 
     const index = match(rect.x, rect.y, rect.w);
-    if (index >= 0 || rect.scale === 1) return index;
+    if (index >= 0) return index;
 
+    // Cadangan untuk GDK yang melaporkan ukuran fisik (mis. GDK_SCALE > 1):
+    // kalikan koordinat logis dengan scale. Jangan membagi x/y — x/y dari
+    // Hyprland sudah logis, dan membaginya adalah bug lama.
+    if (rect.scale === 1) return -1;
     return match(
-        Math.round(rect.x / rect.scale),
-        Math.round(rect.y / rect.scale),
-        Math.round(rect.w / rect.scale),
+        Math.round(rect.x * rect.scale),
+        Math.round(rect.y * rect.scale),
+        Math.round(rect.w * rect.scale),
     );
 }
 

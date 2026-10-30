@@ -45,10 +45,12 @@ if [[ -f "$CONFIG" ]] && grep -q "dyn-island" "$CONFIG"; then
     echo "-  import dihapus dari config.js"
 fi
 
-# keybind panah di Hyprland (versi submap dan versi bindn lama)
+# keybind panah di Hyprland (versi submap .conf, versi .lua, dan bindn lama)
 HYPR_KEYS="${HOME}/.config/hypr/UserConfigs/UserKeybinds.conf"
+HYPR_KEYS_LUA="${HOME}/.config/hypr/UserConfigs/UserKeybinds.lua"
+removed=0
+
 if [[ -f "$HYPR_KEYS" ]]; then
-    removed=0
     if grep -q '^# dyn-island-kbd: begin' "$HYPR_KEYS"; then
         sed -i '/^# dyn-island-kbd: begin/,/^# dyn-island-kbd: end/d' "$HYPR_KEYS"
         removed=1
@@ -57,11 +59,30 @@ if [[ -f "$HYPR_KEYS" ]]; then
         sed -i '/^# dyn-island: begin/,/^# dyn-island: end/d' "$HYPR_KEYS"
         removed=1
     fi
-    if (( removed )); then
-        hyprctl dispatch submap reset >/dev/null 2>&1 || true
-        hyprctl reload >/dev/null 2>&1 || true
-        echo "-  keybind panah dihapus dari UserKeybinds.conf"
+fi
+
+if [[ -f "$HYPR_KEYS_LUA" ]]; then
+    if grep -q '^-- dyn-island-kbd: begin' "$HYPR_KEYS_LUA"; then
+        sed -i '/^-- dyn-island-kbd: begin/,/^-- dyn-island-kbd: end/d' "$HYPR_KEYS_LUA"
+        removed=1
     fi
+    # Blok yang ditambahkan manual sebelum marker ada: komentar
+    # `-- dyn-island-kbd:` sampai `end)` milik hl.define_submap.
+    if grep -q '^-- dyn-island-kbd:' "$HYPR_KEYS_LUA"; then
+        tmp="$(mktemp)"
+        awk '
+            drop == 0 && /^-- dyn-island-kbd:/ { drop = 1; next }
+            drop == 1 && /^[[:space:]]*end\)/ { drop = 0; next }
+            drop == 0 { print }
+        ' "$HYPR_KEYS_LUA" > "$tmp" && mv "$tmp" "$HYPR_KEYS_LUA"
+        removed=1
+    fi
+fi
+
+if (( removed )); then
+    hyprctl dispatch 'hl.dsp.submap("reset")' >/dev/null 2>&1 || true
+    hyprctl reload >/dev/null 2>&1 || true
+    echo "-  keybind panah dihapus dari UserKeybinds.conf/.lua"
 fi
 
 # notch lockscreen (hyprlock)

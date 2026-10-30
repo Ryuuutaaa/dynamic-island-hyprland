@@ -19,7 +19,8 @@ Yang diubah saat mode normal:
   1. symlink ~/.config/ags/dynamic-iland -> folder proyek ini
   2. satu baris import di ~/.config/ags/config.js (dengan backup .dyn-island.bak)
   3. blok CSS ber-marker di theme waybar aktif (dengan backup .dyn-island.bak)
-  4. submap `island` (panah kiri/kanan) di Hyprland UserKeybinds.conf
+  4. submap `island` (panah kiri/kanan) di UserKeybinds.lua (0.57+) atau
+     UserKeybinds.conf (config hyprlang lama)
   5. blok gaya popup notifikasi di ~/.config/swaync/style.css (backup .dyn-island.bak)
   6. restart waybar & AGS memakai argumen yang sama seperti proses yang jalan
 TXT
@@ -366,10 +367,52 @@ fi
 # 3c. panah keyboard untuk navigasi island. Submap `island` berisi bind
 #     *consuming*: selama island terbuka panah tidak diteruskan ke aplikasi
 #     yang fokus (YouTube tidak ikut seek); di luar itu panah normal.
+#
+#     Hyprland 0.57 + config Lua: keybind dibaca dari UserKeybinds.lua yang
+#     di-require oleh hyprland.lua. Menulis ke UserKeybinds.conf TIDAK akan
+#     pernah dimuat. Karena itu target dipilih berdasarkan config yang aktif.
+HYPR_ENTRY_LUA="${HOME}/.config/hypr/hyprland.lua"
 HYPR_KEYS="${HOME}/.config/hypr/UserConfigs/UserKeybinds.conf"
-if [[ -f "$HYPR_KEYS" ]]; then
+HYPR_KEYS_LUA="${HOME}/.config/hypr/UserConfigs/UserKeybinds.lua"
+
+if [[ -f "$HYPR_ENTRY_LUA" && -f "$HYPR_KEYS_LUA" ]]; then
+    if grep -Eq "define_submap\\(['\"]island['\"]" "$HYPR_KEYS_LUA"; then
+        echo "•  keybind panah sudah ada (UserKeybinds.lua)"
+    else
+        act cp "$HYPR_KEYS_LUA" "${HYPR_KEYS_LUA}.dyn-island.bak"
+        note "menambahkan submap island ke ${HYPR_KEYS_LUA}"
+        if (( ! DRY_RUN )); then
+            cat >> "$HYPR_KEYS_LUA" <<'KEYS_LUA'
+
+-- dyn-island-kbd: begin — panah kiri/kanan untuk navigasi halaman island.
+-- Submap `island` hanya aktif saat island terbuka. Bind di dalam submap
+-- bersifat CONSUMING, jadi aplikasi fokus tidak ikut menerima panah.
+-- `escape` = jalan keluar manual bila submap tertinggal.
+hl.define_submap("island", function()
+  hl.bind("left", hl.dsp.exec_cmd([[ags -r "globalThis.dynIsland.navKey(-1)"]]), { description = "island: prev" })
+  hl.bind("right", hl.dsp.exec_cmd([[ags -r "globalThis.dynIsland.navKey(1)"]]), { description = "island: next" })
+  hl.bind("escape", hl.dsp.submap("reset"), { description = "island: close" })
+end)
+-- dyn-island-kbd: end
+KEYS_LUA
+            hyprctl reload >/dev/null 2>&1 || true
+            echo "+  keybind panah (submap island) ditambahkan (hyprctl reload)"
+        fi
+    fi
+elif [[ -f "$HYPR_KEYS" ]]; then
     if grep -q 'dyn-island-kbd: begin' "$HYPR_KEYS"; then
         echo "•  keybind panah sudah ada"
+        # Blok lama memasang escape dengan sintaks hyprlang yang DIHAPUS di
+        # Hyprland 0.57 (`hyprctl dispatch submap reset`). Perbaiki di tempat
+        # supaya escape tetap berfungsi kalau .conf dipakai lagi.
+        if grep -q 'hyprctl dispatch submap reset' "$HYPR_KEYS"; then
+            note "memperbaiki escape submap (sintaks Lua 0.57)"
+            if (( ! DRY_RUN )); then
+                sed -i "s|hyprctl dispatch submap reset|hyprctl dispatch 'hl.dsp.submap(\"reset\")'|" "$HYPR_KEYS"
+                hyprctl reload >/dev/null 2>&1 || true
+                echo "+  escape submap diperbarui ke sintaks Lua"
+            fi
+        fi
     else
         act cp "$HYPR_KEYS" "${HYPR_KEYS}.dyn-island.bak"
         # versi lama memakai bindn (non-consuming) -> buang supaya tidak dobel
@@ -390,7 +433,7 @@ if [[ -f "$HYPR_KEYS" ]]; then
 submap = island
 bind = , left, exec, ags -r "globalThis.dynIsland.navKey(-1)"
 bind = , right, exec, ags -r "globalThis.dynIsland.navKey(1)"
-bind = , escape, exec, hyprctl dispatch submap reset
+bind = , escape, exec, hyprctl dispatch 'hl.dsp.submap("reset")'
 submap = reset
 # dyn-island-kbd: end
 KEYS
@@ -399,7 +442,7 @@ KEYS
         fi
     fi
 else
-    echo "!  ${HYPR_KEYS} tidak ditemukan, keybind panah dilewati"
+    echo "!  UserKeybinds.lua/.conf tidak ditemukan, keybind panah dilewati"
 fi
 
 
