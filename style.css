@@ -700,3 +700,19 @@ tooltip > box {
     font-size: 12px;
     color: __FG__;
 }
+
+/* scrollbar tipis chat (vscroll automatic) */
+.dyn-island-chat-pane scrollbar {
+    background: transparent;
+    border: none;
+    min-width: 4px;
+}
+.dyn-island-chat-pane scrollbar trough {
+    background: transparent;
+    border: none;
+}
+.dyn-island-chat-pane scrollbar slider {
+    min-width: 4px;
+    border-radius: 2px;
+    background-color: __SURFACE_STRONG__;
+}

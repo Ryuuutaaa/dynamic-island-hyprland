@@ -31,18 +31,38 @@ const bubble = msg => Widget.Box({
 });
 
 export default () => {
-    // vscroll external + propagateNatural* false: tinggi pane tetap 108px
-    // walau riwayat chat panjang, isinya digulir.
+    // vscroll automatic + propagateNatural* false: tinggi pane tetap 108px,
+    // scrollbar tipis muncul saat riwayat panjang, wheel ditangani manual.
     const pane = Widget.Scrollable({
         className: 'dyn-island-chat-pane',
         hscroll: 'never',
-        vscroll: 'external',
+        vscroll: 'automatic',
         propagateNaturalWidth: false,
         propagateNaturalHeight: false,
     });
     const list = Widget.Box({ className: 'dyn-island-chat-list', vertical: true, spacing: 6 });
     pane.child = list;
     pane.set_size_request(PANE_W, PANE_H);
+
+    // Scroll wheel eksplisit. Pane ini nested di dalam Scrollable clip milik
+    // island; event wheel berhenti di outer clip (terukur), tidak sampai ke
+    // pane. Handler dipasang juga di toplevel window (lihat setup) supaya
+    // tetap bekerja. Fungsi ini dipakai kedua jalur.
+    const scrollPane = event => {
+        let dy = 0;
+        try {
+            const deltas = event.get_scroll_deltas?.();
+            if (Array.isArray(deltas) && deltas[0]) dy = Number(deltas[2]) || 0;
+        } catch (_) { }
+        if (!dy) return false;
+        const adjustment = pane.get_vadjustment();
+        if (!adjustment) return false;
+        const max = Math.max(0, adjustment.upper - adjustment.page_size);
+        if (max <= 0) return false;
+        adjustment.value = Math.max(0, Math.min(max, adjustment.value + dy * 36));
+        return true;
+    };
+    pane.connect('scroll-event', (_self, event) => scrollPane(event));
 
     // Empty state sebagai overlay di tengah pane, bukan baris pertama list:
     // baris di dalam Box selalu di atas, overlay bisa benar-benar center.
@@ -171,6 +191,17 @@ export default () => {
         setup: self => {
             rebuild();
             self.hook(chat, rebuild);
+            // Wheel sampai ke window island, bukan pane (nested Scrollable).
+            // Pasang handler di toplevel setelah halaman di-map.
+            self.connect('map', () => {
+                const top = self.get_toplevel();
+                if (!top || top.__chatScrollHooked) return;
+                top.__chatScrollHooked = true;
+                top.connect('scroll-event', (_w, event) => {
+                    if (page.value !== 'chat' || !pane.get_mapped()) return false;
+                    return scrollPane(event);
+                });
+            });
             // Jawaban bisa datang saat island tertutup (rofi/pointer keluar).
             // Setelah kartu dibuka / pindah ke halaman chat, layout baru siap
             // ~200ms (contentDelay) — gulir setelah itu.
