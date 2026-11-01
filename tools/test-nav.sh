@@ -114,7 +114,8 @@ check_single "pomodoro next -> water"   pomodoro "Halaman berikutnya" water
 check_single "media prev -> idle"       media    "Halaman sebelumnya" idle
 check_single "shelf next -> bluetooth"  shelf    "Halaman berikutnya" bluetooth
 check_single "bluetooth next -> prayer" bluetooth "Halaman berikutnya" prayer
-check_single "prayer next -> idle"      prayer   "Halaman berikutnya" idle
+check_single "prayer next -> chat"      prayer   "Halaman berikutnya" chat
+check_single "chat next -> idle"        chat     "Halaman berikutnya" idle
 
 echo
 echo "== dua klik cepat (geser 6px) =="

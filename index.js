@@ -24,6 +24,11 @@ import TodoPage from './modules/todo-page.js';
 import ShelfPage from './modules/shelf-page.js';
 import BluetoothPage from './modules/bluetooth-page.js';
 import PrayerPage from './modules/prayer-page.js';
+import ChatPage from './modules/chat-page.js';
+import {
+    chat as chatState, send as chatSend, retry as chatRetry,
+    clearChat as chatClear, ask as chatAsk,
+} from './modules/chat.js';
 import { watchPrayer, prayer as prayerState, notifyPrayer } from './modules/prayer.js';
 import { sky, watchSky, drawSky, refreshSky } from './modules/sky.js';
 import {
@@ -153,6 +158,7 @@ function DynamicIsland() {
             shelf: ShelfPage(),
             bluetooth: BluetoothPage(),
             prayer: PrayerPage(),
+            chat: ChatPage(),
             volume: VolumeOsd(),
             brightness: BrightnessOsd(),
             notify: Notify(),
@@ -364,7 +370,8 @@ function DynamicIsland() {
     // Tanpa ini halaman lirik jadi jalan buntu: tombol panah satu-satunya
     // jalan keluar, tapi pill-nya tidak pernah muncul.
     const navVisibleFor = next =>
-        next === GEO.expanded || next === GEO.lyrics || next === GEO.prayer;
+        next === GEO.expanded || next === GEO.lyrics || next === GEO.prayer
+        || next === GEO.chat;
 
     const applyGeometry = () => {
         const w = Math.max(1, Math.round(geo.w));
@@ -398,6 +405,8 @@ function DynamicIsland() {
             if (inLyricsView() && GEO.lyrics) return GEO.lyrics;
             // halaman sholat lebih lebar: busur matahari + 5 waktu
             if (page.value === 'prayer' && GEO.prayer) return GEO.prayer;
+            // chat: riwayat + input butuh kartu lebih tinggi
+            if (page.value === 'chat' && GEO.chat) return GEO.chat;
             return GEO.expanded;
         }
         return GEO.closed;
@@ -617,6 +626,9 @@ function DynamicIsland() {
     // memudar sampai onDone, tetapi submap harus lepas begitu island mulai
     // menutup. Tanpa ini panah tetap tertelan ~620ms setelah notch tertutup.
     let navActive = false;
+    // Sementara dimatikan saat rofi (input chat) terbuka, supaya Escape/
+    // panah tidak ditelan submap `island`.
+    let navSuppressed = false;
     let submapTimer = 0;
     let submapRunning = false;
     let submapAgain = false;
@@ -624,8 +636,10 @@ function DynamicIsland() {
     const applySubmap = async () => {
         submapRunning = true;
         try {
-            const want = navActive;
             const current = String(await Utils.execAsync(['hyprctl', 'submap'])).trim();
+            // Baca ulang setelah await: suppressNav(true) bisa terjadi saat
+            // query masih berjalan (rofi baru dibuka).
+            const want = navActive;
             if (want && current === 'default')
                 await Utils.execAsync(['hyprctl', 'dispatch', `hl.dsp.submap("${SUBMAP}")`]);
             else if (!want && current === SUBMAP)
@@ -661,11 +675,29 @@ function DynamicIsland() {
     const sync = () => {
         if (dead) return;
         const next = targetFor();
-        navActive = navVisibleFor(next);
+        navActive = !navSuppressed && navVisibleFor(next);
         syncSubmap();
         if (next === target && tween && tween.running) return;
         animateTo(next);
         syncContent();
+    };
+
+    // Dipakai modul chat saat rofi terbuka. true = lepas submap segera;
+    // false = hitung ulang setelah rofi selesai.
+    const setNavSuppressed = async value => {
+        navSuppressed = !!value;
+        if (!navSuppressed) {
+            sync();
+            return;
+        }
+        navActive = false;
+        if (submapTimer) {
+            GLib.source_remove(submapTimer);
+            submapTimer = 0;
+        }
+        try {
+            await Utils.execAsync(['hyprctl', 'dispatch', 'hl.dsp.submap("reset")']);
+        } catch (_) { }
     };
 
     bindVariable(hovered, sync);
@@ -733,7 +765,7 @@ function DynamicIsland() {
     syncSubmap();
     island.connect('notify::monitor', () => {
         nav.visible = navVisibleFor(target);
-        navActive = nav.visible;
+        navActive = !navSuppressed && nav.visible;
         syncSubmap();
     });
     island.connect('map', () => {
@@ -774,6 +806,7 @@ function DynamicIsland() {
     island.geo = geo;
     island.target = () => target;
     island.navKey = navKey;
+    island.suppressNav = setNavSuppressed;
     return island;
 }
 
@@ -786,6 +819,7 @@ const dyn = {
     stepPage, pinPage, PAGE_ORDER, isPinned, mediaView, btPreview,
     lyrics: lyricsStore, retryLyrics, pomodoro,
     prayer: prayerState, prayerNotify: notifyPrayer,
+    chat: chatState, chatSend, chatRetry, chatClear, chatAsk,
     sky, skyRefresh: refreshSky,
     pomodoroModes, pomodoroSetMode, pomodoroToggle, pomodoroReset,
     water, waterDrink, waterSetGoal, waterToggleReminder,
@@ -808,6 +842,7 @@ const publishIsland = win => {
     dyn.geo = win.geo;
     dyn.target = win.target;
     dyn.navKey = win.navKey;
+    dyn.suppressNav = win.suppressNav;
 };
 
 // Lepaskan window dari daftar App tanpa menyentuh window yang sudah

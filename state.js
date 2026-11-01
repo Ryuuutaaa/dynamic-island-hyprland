@@ -7,7 +7,7 @@ import CONFIG from './config.js';
 // Urutan halaman untuk navigasi manual (page dots + panah).
 // Hanya halaman "nyata": volume/brightness/notify adalah transient (muncul
 // sendiri saat OSD/notifikasi) dan dulu ikut bisa di-pin lewat panah.
-export const PAGE_ORDER = ['idle', 'media', 'pomodoro', 'water', 'todo', 'shelf', 'bluetooth', 'prayer'];
+export const PAGE_ORDER = ['idle', 'media', 'pomodoro', 'water', 'todo', 'shelf', 'bluetooth', 'prayer', 'chat'];
 
 export const page = Variable('idle');
 
@@ -106,7 +106,9 @@ export function stepPage(delta) {
     const next = PAGE_ORDER[(index + delta + PAGE_ORDER.length) % PAGE_ORDER.length];
     // sub-tampilan tidak ikut terbawa saat pindah halaman
     if (next !== 'media') mediaView.value = 'main';
-    pinPage(next);
+    // halaman chat bertahan sampai user pindah halaman; pin 10 detik akan
+    // memutus percakapan di tengah saat menunggu jawaban Gemini.
+    pinPage(next, { sticky: next === 'chat' });
 }
 
 export function watchMpris() {

@@ -496,4 +496,15 @@ echo "Geometri bar & island:"
 hyprctl layers -j 2>/dev/null | jq -r '[to_entries[]|.value.levels|to_entries[]|.value[]|select(.namespace=="waybar" or .namespace=="dynamic-island")|"  \(.namespace): y=\(.y) h=\(.h)"]|unique[]' 2>/dev/null || true
 
 (( DRY_RUN )) && { echo; echo "== dry-run selesai: tidak ada file maupun proses yang diubah =="; }
+
+# 5. chat Gemini: key TIDAK dibuat otomatis (jangan sentuh rahasia user).
+CHAT_ENV="${HOME}/.config/dynamic-iland/.env"
+CHAT_JSON="${HOME}/.config/dynamic-iland/gemini.json"
+if [[ ! -f "$CHAT_ENV" && ! -f "$CHAT_JSON" ]]; then
+    echo
+    echo "•  chat Gemini belum aktif. Salin template lalu isi API key:"
+    echo "     mkdir -p \"$(dirname "$CHAT_ENV")\""
+    echo "     cp \"${SRC_DIR}/.env.example\" \"${CHAT_ENV}\""
+    echo "     chmod 600 \"${CHAT_ENV}\""
+fi
 exit 0

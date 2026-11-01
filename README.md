@@ -58,6 +58,7 @@ frame 2,98–3,02 sepanjang 420×140 → 150×50.
 | `shelf` | drop zone putus-putus + kartu file (thumbnail, nama, ukuran) |
 | `bluetooth` | info device tersambung (ikon, nama, tipe, alamat, baterai) + slider volume + tombol bisu |
 | `prayer` | jadwal sholat: busur matahari Subuh→Magrib + 5 waktu + countdown sholat berikutnya; background langit mengikuti fase |
+| `chat` | riwayat chat Gemini + tombol **Tanya Gemini** (input rofi) + Hapus/Ulangi; halaman sticky saat dipilih |
 | `volume` / `brightness` | ikon + bar (Cairo) + persen |
 | `notify` | ikon + `Judul · isi` |
 
@@ -697,6 +698,42 @@ submap = reset
 - `uninstall.sh` menghapus blok ini (dan blok `bindn` versi lama) lagi, lalu
   `hl.dsp.submap("reset")` + `hyprctl reload`. Backup: `.dyn-island.bak`.
 
+### Chat (Gemini)
+
+Halaman `chat` memakai Gemini API **non-streaming** dan input teks lewat
+**rofi** (window island memakai `keymode: 'none'`, jadi tidak mengambil fokus
+keyboard). Klik **Tanya Gemini** → rofi muncul → ketik pertanyaan → Enter.
+Jawaban tampil di kartu; selama menunggu ada teks "Gemini sedang mengetik…".
+Tombol **Hapus** membersihkan riwayat, **Ulangi** mengirim ulang pesan terakhir
+saat terjadi error. Halaman chat bersifat sticky — tidak reset setelah 10 detik
+seperti halaman lain.
+
+Persiapan:
+
+```bash
+mkdir -p ~/.config/dynamic-iland
+cp .env.example ~/.config/dynamic-iland/.env
+chmod 600 ~/.config/dynamic-iland/.env
+# edit file tersebut, isi GEMINI_API_KEY=...
+```
+
+- API key **tidak** disimpan di repo atau `config.js`. Urutan pencarian:
+  environment `GEMINI_API_KEY` → `~/.config/dynamic-iland/.env` →
+  `~/.config/dynamic-iland/gemini.json` (`{"apiKey":"..."}`, fallback lama).
+  Modul memberi peringatan di log kalau permission file terlalu terbuka.
+- Request memakai `curl`. Key diletakkan di file config curl sementara (0600),
+  **bukan argv**, supaya tidak terlihat di `ps`. Body percakapan juga file
+  sementara 0600 dan dihapus setelah selesai.
+- Model default `gemini-3.5-flash-lite` (cepat/murah). Untuk kualitas lebih
+  tinggi, ganti `chat.model` ke `gemini-3.8-flash` dan set
+  `chat.thinkingLevel: 'low'` (3.8 mendukung low/medium/high). `systemPrompt`,
+  `maxTurns`, `maxOutputTokens`, dan `timeoutSec` juga bisa diubah.
+- Riwayat hanya di memori; restart AGS menghapusnya. Isi percakapan dikirim ke
+  Google sesuai ketentuan Gemini API.
+- Selama rofi terbuka, submap `island` dinonaktifkan sementara supaya Escape
+  dan panah di rofi tidak ditelan; setelah rofi selesai submap dihitung ulang.
+- Butuh `rofi` dan `curl`. Kalau rofi tidak terpasang, kartu menampilkan error.
+
 ## Konfigurasi (`config.js`)
 
 | Knob | Arti |
@@ -710,6 +747,7 @@ submap = reset
 | `contentDelay` / `contentFade` | jeda & durasi fade-in konten (ms) |
 | `mediaMaxChars` / `notifyMaxChars` | pemotongan teks |
 | `prayer` | `{ latitude, longitude, city, method, notify, catchUpMinutes }` — jadwal sholat lokal |
+| `chat` | `{ model, systemPrompt, maxTurns, maxOutputTokens, thinkingLevel, timeoutSec }` — Gemini; API key dari `GEMINI_API_KEY` / `~/.config/dynamic-iland/.env` |
 
 ### Warna
 
@@ -817,6 +855,10 @@ modules/lyrics.js      fetch LRCLIB + parse LRC + cache
 modules/lyrics-page.js tampilan lirik (sub-bagian media: meta kiri + daftar sinkron kanan)
 modules/progress.js    progress bar Cairo bersama (media & lirik)
 modules/pointer.js     helper event GJS: get_button()/get_coords() (field event undefined)
+modules/chat.js        state chat + Gemini API (curl, key file 0600) + input rofi
+modules/chat-page.js   halaman chat: bubble riwayat, indikator mengetik, Hapus/Ulangi
+.env.example          template API key (salin ke ~/.config/dynamic-iland/.env)
+gemini.example.json   template fallback format JSON
 modules/pomodoro.js    timer fokus / istirahat singkat / istirahat panjang + chime & notifikasi
 modules/pomodoro-page.js halaman pomodoro (ring + countdown + pill)
 modules/water.js       state air + persistensi JSON + pengingat tiap jam

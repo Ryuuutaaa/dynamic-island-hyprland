@@ -13,5 +13,11 @@
 *.tmp
 *.swp
 
+# Rahasia (API key). File asli ada di ~/.config/dynamic-iland/.env,
+# tapi abaikan juga kalau ada yang membuatnya di root repo.
+.env
+.env.*
+!.env.example
+
 # OS / editor
 .DS_Store

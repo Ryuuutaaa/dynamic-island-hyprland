@@ -639,3 +639,55 @@ tooltip > box {
     border: none;
     padding: 0;
 }
+
+/* ── chat (Gemini) ──────────────────────────────────────────── */
+.dyn-island-chat {
+    min-width: 440px;
+}
+.dyn-island-chat-head,
+.dyn-island-chat-foot {
+    min-width: 440px;
+}
+.dyn-island-chat-title {
+    font-size: 13px;
+    font-weight: 700;
+    color: __FG__;
+}
+.dyn-island-chat-sub {
+    font-size: 9px;
+    color: __MUTED__;
+}
+.dyn-island-chat-pane,
+.dyn-island-chat-pane viewport {
+    background-color: transparent;
+    border: none;
+}
+.dyn-island-chat-list {
+    background-color: transparent;
+}
+.dyn-island-chat-bubble {
+    padding: 4px 8px;
+    border-radius: 9px;
+    background-color: __SURFACE__;
+}
+.dyn-island-chat-bubble.user {
+    background-color: __ACCENT_SOFT__;
+}
+.dyn-island-chat-text {
+    font-size: 11px;
+    color: __FG__;
+}
+.dyn-island-chat-empty,
+.dyn-island-chat-hint {
+    font-size: 10px;
+    color: __MUTED__;
+}
+.dyn-island-chat-typing {
+    font-size: 10px;
+    color: __MUTED__;
+    font-style: italic;
+}
+.dyn-island-chat-error {
+    font-size: 10px;
+    color: __DANGER__;
+}

@@ -21,6 +21,8 @@ export default {
         lyrics: { w: 520, h: 140, r: 32, ear: 22 },
         // jadwal sholat: busur matahari + 5 waktu sholat butuh ruang lebih
         prayer: { w: 560, h: 140, r: 32, ear: 22 },
+        // chat Gemini: riwayat pesan + baris input butuh kartu lebih tinggi
+        chat: { w: 520, h: 220, r: 32, ear: 22 },
     },
 
     // MOTION (Nusa): width/height .62s cubic-bezier(.34,1.32,.5,1).
@@ -64,5 +66,25 @@ export default {
         method: 'kemenag',
         notify: true,
         catchUpMinutes: 15,
+    },
+
+    // CHAT (Gemini). API key TIDAK disimpan di file ini. Urutan pencarian:
+    //   1. env GEMINI_API_KEY
+    //   2. ~/.config/dynamic-iland/.env  (GEMINI_API_KEY=..., chmod 600)
+    //   3. ~/.config/dynamic-iland/gemini.json  ({"apiKey":"..."})
+    // Input memakai rofi karena window island `keymode: 'none'` (tidak
+    // mengambil fokus keyboard). Respons non-streaming.
+    chat: {
+        // 3.5 Flash-Lite: cepat & murah, cocok untuk kartu kecil.
+        // 3.8 Flash bisa dipakai kalau tersedia (set thinkingLevel: 'low').
+        model: 'gemini-3.5-flash-lite',
+        systemPrompt: 'Anda adalah asisten ringkas di dalam notch desktop. '
+            + 'Jawab dalam bahasa Indonesia, singkat dan jelas, maksimal sekitar '
+            + '600 karakter. Hindari tabel dan blok kode panjang.',
+        maxTurns: 6,            // jumlah pasangan pesan yang dikirim ke API
+        maxOutputTokens: 800,
+        // Gemini 3.x: low/medium/high. Kosongkan untuk model tanpa thinking.
+        thinkingLevel: '',
+        timeoutSec: 60,
     },
 };
