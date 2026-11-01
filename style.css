@@ -666,19 +666,22 @@ tooltip > box {
     background-color: transparent;
 }
 .dyn-island-chat-bubble {
-    padding: 4px 8px;
-    border-radius: 9px;
-    background-color: __SURFACE__;
+    padding: 5px 9px;
+    border-radius: 10px;
+    background-color: transparent;
+}
+.dyn-island-chat-bubble.model {
+    /* model: teks saja, tanpa kartu — peran dibaca dari alignment */
+    padding: 2px 0;
 }
 .dyn-island-chat-bubble.user {
-    background-color: __ACCENT_SOFT__;
+    background-color: __CHAT_USER__;
 }
 .dyn-island-chat-text {
-    font-size: 11px;
+    font-size: 11.5px;
     color: __FG__;
 }
-.dyn-island-chat-empty,
-.dyn-island-chat-hint {
+.dyn-island-chat-empty {
     font-size: 10px;
     color: __MUTED__;
 }

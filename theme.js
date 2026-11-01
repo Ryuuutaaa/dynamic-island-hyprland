@@ -77,6 +77,8 @@ export function buildCss(template) {
         __MUTED__: palette.muted,
         __BG_SOLID__: rgba(NOTCH_COLOR, NOTCH_ALPHA),
         __ACCENT_SOFT__: rgba(palette.accent2, 0.18),
+        // bubble user di halaman chat: lebih tegas dari surface biasa
+        __CHAT_USER__: rgba(palette.accent2, 0.26),
         // Permukaan (dulu rgba(255,255,255,...) hardcoded): ikut warna aksen
         // supaya notch nyatu dengan palet wallust, bukan selalu abu netral.
         __SURFACE_DIM__: rgba(palette.accent2, 0.05),

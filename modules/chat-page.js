@@ -40,9 +40,27 @@ export default () => {
         propagateNaturalWidth: false,
         propagateNaturalHeight: false,
     });
-    const list = Widget.Box({ className: 'dyn-island-chat-list', vertical: true, spacing: 4 });
+    const list = Widget.Box({ className: 'dyn-island-chat-list', vertical: true, spacing: 6 });
     pane.child = list;
     pane.set_size_request(PANE_W, PANE_H);
+
+    // Empty state sebagai overlay di tengah pane, bukan baris pertama list:
+    // baris di dalam Box selalu di atas, overlay bisa benar-benar center.
+    const emptyLabel = Widget.Label({
+        className: 'dyn-island-chat-empty',
+        label: 'Belum ada pesan. Klik Tanya Gemini.',
+        halign: Gtk.Align.CENTER,
+        valign: Gtk.Align.CENTER,
+        xalign: 0.5,
+        visible: false,
+        setup: self => self.set_no_show_all(true),
+    });
+    const content = Widget.Overlay({
+        child: pane,
+        // Overlay child dengan FILL agar mendapat seluruh area pane;
+        // CenterBox yang menaruh label tepat di tengah.
+        overlays: [Widget.CenterBox({ centerWidget: emptyLabel })],
+    });
 
     const title = Widget.Label({ className: 'dyn-island-chat-title', label: 'Chat', xalign: 0 });
     const sub = Widget.Label({
@@ -85,15 +103,10 @@ export default () => {
         setup: self => self.set_no_show_all(true),
     });
 
-    const hint = Widget.Label({
-        className: 'dyn-island-chat-hint',
-        label: 'input: rofi',
-        xalign: 1,
-    });
-    const foot = Widget.CenterBox({
+    const foot = Widget.Box({
         className: 'dyn-island-chat-foot',
-        startWidget: Widget.Box({ spacing: 6, children: [askBtn, retryBtn] }),
-        endWidget: hint,
+        spacing: 6,
+        children: [askBtn, retryBtn],
     });
     foot.set_size_request(PANE_W, -1);
 
@@ -121,15 +134,11 @@ export default () => {
                 xalign: 0,
                 maxWidthChars: 54,
             }));
-        } else if (!state.messages.length) {
-            rows.push(Widget.Label({
-                className: 'dyn-island-chat-empty',
-                label: 'Belum ada pesan. Klik Tanya Gemini.',
-                xalign: 0,
-            }));
         }
 
         list.children = rows;
+        emptyLabel.visible = !state.messages.length
+            && state.status !== 'loading' && state.status !== 'error';
         const showRetry = state.status === 'error'
             && state.messages.some(m => m.role === 'user');
         retryBtn.visible = showRetry;
@@ -147,7 +156,7 @@ export default () => {
         spacing: 6,
         halign: Gtk.Align.CENTER,
         valign: Gtk.Align.CENTER,
-        children: [head, pane, foot],
+        children: [head, content, foot],
         setup: self => {
             rebuild();
             self.hook(chat, rebuild);
