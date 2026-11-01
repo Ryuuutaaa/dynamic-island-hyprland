@@ -1,5 +1,6 @@
 import GLib from 'gi://GLib';
 import Gio from 'gi://Gio';
+import App from 'resource:///com/github/Aylur/ags/app.js';
 import Variable from 'resource:///com/github/Aylur/ags/variable.js';
 import * as Utils from 'resource:///com/github/Aylur/ags/utils.js';
 import CONFIG from '../config.js';
@@ -11,6 +12,7 @@ import CONFIG from '../config.js';
 const CONFIG_DIR = `${GLib.get_user_config_dir()}/dynamic-iland`;
 const ENV_FILE = `${CONFIG_DIR}/.env`;
 const KEY_FILE = `${CONFIG_DIR}/gemini.json`;
+const ISLAND_DIR = `${App.configDir}/dynamic-iland`;
 const KEY_HELP = `Isi GEMINI_API_KEY di ${ENV_FILE.replace(GLib.get_home_dir(), '~')} `
     + `(chmod 600) atau {"apiKey":"..."} di ${KEY_FILE.replace(GLib.get_home_dir(), '~')} `
     + 'lalu coba lagi.';
@@ -76,6 +78,27 @@ const keyInfo = () => {
 };
 
 const readKey = () => keyInfo().key;
+
+// Skill/context dari file markdown. Dibaca tiap request supaya edit file
+// langsung berlaku tanpa restart AGS. Path relatif dari island dir
+// (~/.config/ags/dynamic-iland); absolute path juga didukung.
+const resolvePath = path => String(path).startsWith('/')
+    ? String(path)
+    : `${ISLAND_DIR}/${path}`;
+
+const readSkills = () => {
+    const files = Array.isArray(CONFIG.chat?.skillFiles) ? CONFIG.chat.skillFiles : [];
+    const parts = [];
+    for (const file of files) {
+        try {
+            const [ok, bytes] = GLib.file_get_contents(resolvePath(file));
+            if (!ok) continue;
+            const text = new TextDecoder().decode(bytes).trim();
+            if (text) parts.push(text);
+        } catch (_) { }
+    }
+    return parts.join('\n\n---\n\n');
+};
 
 // Hanya karakter yang aman untuk header curl config. API key format baru
 // Google memakai titik (contoh: AQ.xxxx), jadi titik harus diizinkan.
@@ -165,8 +188,15 @@ const request = async () => {
             parts: [{ text: m.text }],
         })),
     };
-    if (CONFIG.chat?.systemPrompt)
-        body.systemInstruction = { parts: [{ text: String(CONFIG.chat.systemPrompt) }] };
+    const skillText = readSkills();
+    const skillBlock = skillText
+        ? `Ikuti instruksi skill berikut untuk setiap jawaban:\n\n${skillText}`
+        : '';
+    const instruction = [CONFIG.chat?.systemPrompt, skillBlock]
+        .filter(Boolean)
+        .join('\n\n---\n\n');
+    if (instruction)
+        body.systemInstruction = { parts: [{ text: instruction }] };
     if (Number(CONFIG.chat?.maxOutputTokens) > 0)
         body.generationConfig = { maxOutputTokens: Number(CONFIG.chat.maxOutputTokens) };
     if (CONFIG.chat?.thinkingLevel) {

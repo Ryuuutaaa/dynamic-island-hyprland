@@ -730,6 +730,12 @@ chmod 600 ~/.config/dynamic-iland/.env
   `maxTurns`, `maxOutputTokens`, dan `timeoutSec` juga bisa diubah.
 - Riwayat hanya di memori; restart AGS menghapusnya. Isi percakapan dikirim ke
   Google sesuai ketentuan Gemini API.
+- **Skill/context file**: `chat.skillFiles` (default `['skills/caveman.md']`)
+  dibaca tiap request, relatif ke `~/.config/ags/dynamic-iland` (absolute path
+  juga boleh). Isinya ditempel ke `systemInstruction` sebelum request.
+  Gemini **tidak** membaca filesystem sendiri — island yang membaca file lalu
+  mengirim isinya sebagai context. Edit file langsung berlaku pada request
+  berikutnya, tanpa restart AGS.
 - Selama rofi terbuka, submap `island` dinonaktifkan sementara supaya Escape
   dan panah di rofi tidak ditelan; setelah rofi selesai submap dihitung ulang.
 - Butuh `rofi` dan `curl`. Kalau rofi tidak terpasang, kartu menampilkan error.
@@ -747,7 +753,7 @@ chmod 600 ~/.config/dynamic-iland/.env
 | `contentDelay` / `contentFade` | jeda & durasi fade-in konten (ms) |
 | `mediaMaxChars` / `notifyMaxChars` | pemotongan teks |
 | `prayer` | `{ latitude, longitude, city, method, notify, catchUpMinutes }` — jadwal sholat lokal |
-| `chat` | `{ model, systemPrompt, maxTurns, maxOutputTokens, thinkingLevel, timeoutSec }` — Gemini; API key dari `GEMINI_API_KEY` / `~/.config/dynamic-iland/.env` |
+| `chat` | `{ model, systemPrompt, skillFiles, maxTurns, maxOutputTokens, thinkingLevel, timeoutSec }` — Gemini; API key dari `GEMINI_API_KEY` / `~/.config/dynamic-iland/.env` |
 
 ### Warna
 
@@ -857,6 +863,7 @@ modules/progress.js    progress bar Cairo bersama (media & lirik)
 modules/pointer.js     helper event GJS: get_button()/get_coords() (field event undefined)
 modules/chat.js        state chat + Gemini API (curl, key file 0600) + input rofi
 modules/chat-page.js   halaman chat: bubble riwayat, indikator mengetik, Hapus/Ulangi
+skills/caveman.md      skill/context chat (dibaca lalu dikirim ke Gemini)
 .env.example          template API key (salin ke ~/.config/dynamic-iland/.env)
 gemini.example.json   template fallback format JSON
 modules/pomodoro.js    timer fokus / istirahat singkat / istirahat panjang + chime & notifikasi

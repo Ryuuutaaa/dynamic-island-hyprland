@@ -81,6 +81,10 @@ export default {
         systemPrompt: 'Anda adalah asisten ringkas di dalam notch desktop. '
             + 'Jawab dalam bahasa Indonesia, singkat dan jelas, maksimal sekitar '
             + '600 karakter. Hindari tabel dan blok kode panjang.',
+        // File skill/context yang dibaca tiap request lalu ditempel ke
+        // systemInstruction. Path relatif di-resolve dari
+        // ~/.config/ags/dynamic-iland. Absolute path juga boleh.
+        skillFiles: ['skills/caveman.md'],
         maxTurns: 6,            // jumlah pasangan pesan yang dikirim ke API
         maxOutputTokens: 800,
         // Gemini 3.x: low/medium/high. Kosongkan untuk model tanpa thinking.
