@@ -694,3 +694,9 @@ tooltip > box {
     font-size: 10px;
     color: __DANGER__;
 }
+
+/* ikon pill chat dipisah dari label lewat Box spacing 6px */
+.dyn-island-pill-icon {
+    font-size: 12px;
+    color: __FG__;
+}

@@ -86,7 +86,14 @@ export default () => {
     const askBtn = Widget.Button({
         className: 'dyn-island-pill',
         tooltipText: 'Buka input rofi untuk bertanya ke Gemini',
-        child: Widget.Label({ className: 'dyn-island-pill-label', label: '\uf075 Tanya Gemini' }),
+        child: Widget.Box({
+            className: 'dyn-island-pill-content',
+            spacing: 6,
+            children: [
+                Widget.Label({ className: 'dyn-island-pill-icon', label: '\uf075' }),
+                Widget.Label({ className: 'dyn-island-pill-label', label: 'Tanya Gemini' }),
+            ],
+        }),
         onClicked: () => {
             // chat sticky: jangan reset ke halaman base saat rofi/menunggu jawaban
             pinPage('chat', { sticky: true });
