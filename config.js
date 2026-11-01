@@ -75,17 +75,12 @@ export default {
     // Input memakai rofi karena window island `keymode: 'none'` (tidak
     // mengambil fokus keyboard). Respons non-streaming.
     chat: {
-        // 3.6 Flash: respons ~2.7s dengan skill 4.7KB (uji 2026-11).
-        // 3.5 Flash-Lite lambat untuk prompt+skill ini (~27s); 3.8 Flash 503.
-        // 3.8 Flash bisa dicoba saat tersedia, set thinkingLevel: 'low'.
-        model: 'gemini-3.6-flash',
+        // 3.5 Flash-Lite: cepat untuk chat tanpa skill context.
+        // 3.6 Flash ~2.7s; 3.8 Flash 503 high demand (uji 2026-11).
+        model: 'gemini-3.5-flash-lite',
         systemPrompt: 'Anda adalah asisten ringkas di dalam notch desktop. '
             + 'Jawab dalam bahasa Indonesia, singkat dan jelas, maksimal sekitar '
             + '600 karakter. Hindari tabel dan blok kode panjang.',
-        // File skill/context yang dibaca tiap request lalu ditempel ke
-        // systemInstruction. Path relatif di-resolve dari
-        // ~/.config/ags/dynamic-iland. Absolute path juga boleh.
-        skillFiles: ['skills/caveman.md'],
         maxTurns: 6,            // jumlah pasangan pesan yang dikirim ke API
         maxOutputTokens: 300,   // cap output: jawaban pendek, tidak menunggu lama
         // Gemini 3.x: low/medium/high. Kosongkan untuk model tanpa thinking.
