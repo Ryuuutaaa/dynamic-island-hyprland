@@ -17,8 +17,8 @@ const KEY_HELP = `Isi GEMINI_API_KEY di ${ENV_FILE.replace(GLib.get_home_dir(), 
     + `(chmod 600) atau {"apiKey":"..."} di ${KEY_FILE.replace(GLib.get_home_dir(), '~')} `
     + 'lalu coba lagi.';
 
-// { status: idle|loading|ready|error, messages: [{role, text}], error }
-export const chat = Variable({ status: 'idle', messages: [], error: '' });
+// { status: idle|loading|ready|error, messages: [{role, text}], error, latencyMs }
+export const chat = Variable({ status: 'idle', messages: [], error: '', latencyMs: 0 });
 
 const MAX_HISTORY = Math.max(2, (Number(CONFIG.chat?.maxTurns) || 6) * 2);
 let requestSerial = 0;
@@ -169,13 +169,14 @@ const parseReply = data => {
 };
 
 const request = async () => {
+    const started = GLib.get_monotonic_time() / 1000;
     const key = readKey();
     if (!key) {
-        set({ status: 'error', error: `API key belum di-set. ${KEY_HELP}` });
+        set({ status: 'error', error: `API key belum di-set. ${KEY_HELP}`, latencyMs: 0 });
         return;
     }
     if (!keyOk(key)) {
-        set({ status: 'error', error: 'API key mengandung karakter tidak valid. Cek file gemini.json.' });
+        set({ status: 'error', error: 'API key mengandung karakter tidak valid. Cek file gemini.json.', latencyMs: 0 });
         return;
     }
     checkKeyMode();
@@ -206,7 +207,7 @@ const request = async () => {
         };
     }
 
-    set({ status: 'loading', error: '' });
+    set({ status: 'loading', error: '', latencyMs: 0 });
 
     const stamp = `${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
     const bodyPath = `${GLib.get_tmp_dir()}/dyn-island-chat-${stamp}.json`;
@@ -244,11 +245,13 @@ const request = async () => {
 
         const messages = [...chat.value.messages, { role: 'model', text: reply.text }]
             .slice(-MAX_HISTORY);
-        set({ status: 'ready', messages, error: '' });
+        const latencyMs = Math.round(GLib.get_monotonic_time() / 1000 - started);
+        set({ status: 'ready', messages, error: '', latencyMs });
     } catch (error) {
         if (my !== requestSerial) return;
         const message = String(error?.message ?? error).replace(/\s+/g, ' ').trim();
-        set({ status: 'error', error: message || 'Gagal menghubungi Gemini.' });
+        const latencyMs = Math.round(GLib.get_monotonic_time() / 1000 - started);
+        set({ status: 'error', error: message || 'Gagal menghubungi Gemini.', latencyMs });
     } finally {
         removeFile(bodyPath);
         removeFile(cfgPath);
@@ -262,6 +265,7 @@ export function send(text) {
         ...chat.value,
         status: 'idle',
         error: '',
+        latencyMs: 0,
         messages: [...chat.value.messages, { role: 'user', text: value }].slice(-MAX_HISTORY),
     };
     request();
@@ -277,7 +281,7 @@ export function retry() {
 export function clearChat() {
     // Batalkan respons yang masih terbang.
     requestSerial += 1;
-    chat.value = { status: 'idle', messages: [], error: '' };
+    chat.value = { status: 'idle', messages: [], error: '', latencyMs: 0 };
 }
 
 // Buka rofi untuk mengetik pertanyaan. Window island `keymode: 'none'`,

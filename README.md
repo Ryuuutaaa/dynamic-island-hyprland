@@ -724,10 +724,12 @@ chmod 600 ~/.config/dynamic-iland/.env
 - Request memakai `curl`. Key diletakkan di file config curl sementara (0600),
   **bukan argv**, supaya tidak terlihat di `ps`. Body percakapan juga file
   sementara 0600 dan dihapus setelah selesai.
-- Model default `gemini-3.5-flash-lite` (cepat/murah). Untuk kualitas lebih
-  tinggi, ganti `chat.model` ke `gemini-3.8-flash` dan set
-  `chat.thinkingLevel: 'low'` (3.8 mendukung low/medium/high). `systemPrompt`,
-  `maxTurns`, `maxOutputTokens`, dan `timeoutSec` juga bisa diubah.
+- Model default `gemini-3.6-flash`. Uji 2026-11 dengan skill 4.7KB: 3.6 Flash
+  ~2.7s; 3.5 Flash-Lite ~27s; 3.8 Flash 503 high demand. `maxOutputTokens` 300
+  dan `timeoutSec` 30 membatasi waktu tunggu. Streaming 3.6 first token 2.56s,
+  total 2.69s — belum dipakai karena bedanya kecil. Untuk kualitas lain, ganti
+  `chat.model`. `systemPrompt`, `maxTurns`, `maxOutputTokens`, dan `timeoutSec`
+  bisa diubah.
 - Riwayat hanya di memori; restart AGS menghapusnya. Isi percakapan dikirim ke
   Google sesuai ketentuan Gemini API.
 - **Skill/context file**: `chat.skillFiles` (default `['skills/caveman.md']`)

@@ -9,7 +9,7 @@ const BODY_CHARS = 46;
 const PANE_W = 440;
 const PANE_H = 108;
 
-const modelLabel = () => String(CONFIG.chat?.model ?? 'gemini-3.5-flash-lite');
+const modelLabel = () => String(CONFIG.chat?.model ?? 'gemini-3.6-flash');
 
 const bubble = msg => Widget.Box({
     className: `dyn-island-chat-row ${msg.role}`,
@@ -125,6 +125,10 @@ export default () => {
 
     const rebuild = () => {
         const state = chat.value;
+        const latency = Number(state.latencyMs) > 0
+            ? ` · ${(state.latencyMs / 1000).toFixed(1)}s`
+            : '';
+        sub.label = `Gemini · ${modelLabel()}${latency}`;
         const rows = state.messages.map(bubble);
 
         if (state.status === 'loading') {
