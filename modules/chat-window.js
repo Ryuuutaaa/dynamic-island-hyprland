@@ -74,6 +74,10 @@ export default () => {
         child: scroll,
         overlays: [Widget.CenterBox({ centerWidget: emptyBox })],
     });
+    // GtkOverlay memberi overlay child alokasi penuh area body (terukur
+    // 524x286) dan `pass_through` default FALSE: wheel dan klik berhenti di
+    // empty-state sehingga isi tidak pernah bisa di-scroll.
+    body.pass_through = true;
 
     // ── header ──────────────────────────────────────────────────────
     const title = Widget.Label({ className: 'gemini-chat-title', label: 'Gemini', xalign: 0 });
@@ -188,7 +192,7 @@ export default () => {
 
     // ── ukuran mengikuti isi (240..460) supaya tidak menyisakan ruang kosong ──
     const preferredH = widget => {
-        try { return widget.get_preferred_height(-1)[1]; } catch (_) { return 0; }
+        try { return widget.get_preferred_height()[1]; } catch (_) { return 0; }
     };
     const chromeH = () =>
         preferredH(header) + preferredH(inputRow) + preferredH(footHint)
@@ -198,7 +202,7 @@ export default () => {
 
     const fit = () => {
         let listH = 0;
-        try { listH = list.get_preferred_height(WIN_W - 40)[1]; } catch (_) { }
+        try { listH = list.get_preferred_height_for_width(WIN_W - 40)[1]; } catch (_) { }
         const want = chromeH() + listH + 8;
         root.set_size_request(WIN_W, Math.max(MIN_H, Math.min(MAX_H, want)));
     };
@@ -211,6 +215,7 @@ export default () => {
     const submit = () => {
         const text = String(entry.text ?? '').trim();
         if (!text) return;
+        follow = true;
         if (send(text)) {
             entry.text = '';
             syncPlaceholder();
@@ -218,10 +223,16 @@ export default () => {
         entry.grab_focus();
     };
 
-    const scrollToBottom = () => {
-        const adj = scroll.get_vadjustment();
-        if (adj) adj.value = Math.max(0, adj.upper - adj.page_size);
-    };
+    // Ikuti pesan terbaru hanya selama pengguna berada di dasar. Sinyal
+    // `changed` (bukan sekali panggil) yang penting: tinggi isi baru final
+    // setelah layout berikutnya, jadi satu kali scrollToBottom berhenti di
+    // tengah (terukur value 602 dari maksimum 890).
+    const adj = scroll.get_vadjustment();
+    const adjMax = () => Math.max(0, adj.upper - adj.page_size);
+    const scrollToBottom = () => { adj.value = adjMax(); };
+    let follow = true;
+    adj.connect('value-changed', () => { follow = adj.value >= adjMax() - 4; });
+    adj.connect('changed', () => { if (follow) adj.value = adjMax(); });
 
     const rebuild = () => {
         const state = chat.value;
@@ -274,7 +285,7 @@ export default () => {
         sendBtn.sensitive = state.status !== 'loading';
         clearBtn.visible = state.messages.length > 0;
         syncPlaceholder();
-        Utils.idle(() => { fit(); scrollToBottom(); });
+        Utils.idle(() => { fit(); if (follow) scrollToBottom(); });
     };
 
     root.hook(chat, rebuild);
@@ -304,9 +315,14 @@ export default () => {
     const focusEntry = () => {
         clearFocusTimers();
         for (const delay of [0, 60, 180, 400]) {
-            focusTimers.push(Utils.timeout(delay, () => {
+            // ID dilepas saat timer menyala; menghapus source yang sudah
+            // selesai memicu GLib-CRITICAL "Source ID was not found".
+            let id = 0;
+            id = Utils.timeout(delay, () => {
+                focusTimers = focusTimers.filter(timer => timer !== id);
                 try { entry.grab_focus(); } catch (_) { }
-            }));
+            });
+            focusTimers.push(id);
         }
     };
 
