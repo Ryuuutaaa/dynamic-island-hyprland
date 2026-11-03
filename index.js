@@ -48,6 +48,7 @@ import { btPreview } from './modules/bluetooth.js';
 import { focusedRect, refresh as refreshMonitors, followFocused, applyFocused } from './modules/monitor.js';
 import { onResume } from './modules/timefmt.js';
 import NotificationPopup from './modules/notif-popup.js';
+import GeminiChat from './modules/chat-window.js';
 
 const STYLE_PATH = `${App.configDir}/dynamic-iland/style.css`;
 
@@ -926,6 +927,12 @@ try {
 const notifPopup = NotificationPopup();
 App.addWindow(notifPopup);
 dyn.notifPopup = notifPopup;
+
+// Jendela chat Gemini di luar island (keymode exclusive). Dibuka dari tombol
+// "Tanya Gemini" di halaman chat island atau lewat keybind SUPER+ALT+G.
+const geminiChat = GeminiChat();
+App.addWindow(geminiChat);
+dyn.chatWindow = geminiChat;
 // Catatan: DND TIDAK dipaksa lagi. Dulu island menjalankan `swaync-client -dn`
 // tiap 3 detik supaya popup swaync tidak dobel, akibatnya toggle DND user
 // selalu kembali nyala (indikator DND tidak bisa dimatikan). Penggantinya:

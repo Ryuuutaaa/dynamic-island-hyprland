@@ -716,3 +716,206 @@ tooltip > box {
     border-radius: 2px;
     background-color: __SURFACE_STRONG__;
 }
+
+/* ── popup chat Gemini (jendela terpisah dari island) ───────── */
+.gemini-chat-window {
+    background: transparent;
+}
+
+.gemini-chat {
+    background: __BG_SOLID__;
+    border: 1px solid __SURFACE_STRONG__;
+    border-radius: 18px;
+    padding: 14px 16px;
+}
+
+.gemini-chat-title {
+    font-size: 14px;
+    font-weight: 700;
+    color: __FG__;
+}
+.gemini-chat-sub {
+    font-size: 10px;
+    color: __MUTED__;
+}
+
+.gemini-chat-scroll,
+.gemini-chat-scroll viewport {
+    background: transparent;
+    border: none;
+}
+.gemini-chat-list {
+    background: transparent;
+}
+.gemini-chat-scroll scrollbar {
+    background: transparent;
+    border: none;
+    min-width: 4px;
+}
+.gemini-chat-scroll scrollbar trough {
+    background: transparent;
+    border: none;
+}
+.gemini-chat-scroll scrollbar slider {
+    min-width: 4px;
+    border-radius: 2px;
+    background-color: __SURFACE_STRONG__;
+}
+
+.gemini-chat-hint {
+    font-size: 11px;
+    color: __MUTED__;
+}
+.gemini-chat-hint.error {
+    color: __DANGER__;
+}
+
+.gemini-chat-entry {
+    background: __SURFACE__;
+    border: 1px solid __SURFACE_STRONG__;
+    border-radius: 10px;
+    padding: 7px 10px;
+    color: __FG__;
+    font-size: 12px;
+    outline: none;
+    box-shadow: none;
+}
+.gemini-chat-entry:focus {
+    border-color: __ACCENT__;
+    outline: none;
+    box-shadow: none;
+}
+
+/* placeholder sendiri (GTK3 menyembunyikan placeholderText saat entry fokus) */
+.gemini-chat-entry-wrap {
+    background: transparent;
+}
+.gemini-chat-placeholder-layer {
+    background: transparent;
+    padding-left: 11px;
+}
+.gemini-chat-placeholder {
+    font-size: 12px;
+    color: __MUTED__;
+}
+
+.gemini-chat-send {
+    background: __ACCENT__;
+    border-radius: 10px;
+    padding: 7px 14px;
+}
+.gemini-chat-send:hover {
+    background: __ACCENT2__;
+}
+.gemini-chat-send:hover .gemini-chat-send-label {
+    color: __BG_SOLID__;
+}
+.gemini-chat-send:active {
+    background: __SURFACE_STRONG__;
+}
+.gemini-chat-send-label {
+    color: __FG__;
+    font-size: 12px;
+    font-weight: 600;
+}
+
+.gemini-chat-chip {
+    background: __SURFACE__;
+    border-radius: 8px;
+    padding: 4px 10px;
+}
+.gemini-chat-chip:hover {
+    background: __SURFACE_HOVER__;
+}
+.gemini-chat-chip-label {
+    color: __FG__;
+    font-size: 11px;
+}
+
+/* tombol ikon header: kotak 26px, tanpa latar sampai hover (standar HIG) */
+.gemini-chat-icon-btn {
+    min-width: 26px;
+    min-height: 26px;
+    padding: 0;
+    border: none;
+    border-radius: 8px;
+    background: transparent;
+    box-shadow: none;
+    outline: none;
+}
+.gemini-chat-icon-btn:focus {
+    border: none;
+    background: transparent;
+    box-shadow: none;
+    outline: none;
+}
+.gemini-chat-icon-btn:hover {
+    background: __SURFACE__;
+}
+.gemini-chat-icon-btn:active {
+    background: __SURFACE_STRONG__;
+}
+.gemini-chat-icon-label {
+    font-size: 12px;
+    color: __MUTED__;
+}
+.gemini-chat-icon-btn:hover .gemini-chat-icon-label {
+    color: __FG__;
+}
+/* hanya tombol tutup yang beraksen bahaya saat hover */
+.gemini-chat-close:hover {
+    background: __DANGER_SOFT__;
+}
+.gemini-chat-close:hover .gemini-chat-icon-label {
+    color: __DANGER__;
+}
+
+/* ── struktur & state ───────────────────────────────────────── */
+.gemini-chat-sep {
+    min-height: 1px;
+    background: __SURFACE_STRONG__;
+}
+.gemini-chat-body {
+    background: transparent;
+}
+.gemini-chat-scroll,
+.gemini-chat-scroll viewport {
+    padding-right: 2px;
+}
+.gemini-chat-list {
+    padding: 4px 2px 4px 0;
+}
+
+/* empty state di tengah area pesan */
+.gemini-chat-empty-icon {
+    font-size: 26px;
+    color: __MUTED__;
+}
+.gemini-chat-empty-text {
+    font-size: 11px;
+    color: __MUTED__;
+}
+
+/* petunjuk di bawah input */
+.gemini-chat-foot-hint {
+    font-size: 9.5px;
+    color: __MUTED__;
+}
+
+/* bubble di popup: model diberi latar supaya terbaca di jendela lebar */
+.gemini-chat .dyn-island-chat-bubble.model {
+    background: __SURFACE__;
+    padding: 7px 10px;
+    border-radius: 10px;
+}
+.gemini-chat .dyn-island-chat-bubble.user {
+    padding: 7px 10px;
+}
+.gemini-chat .dyn-island-chat-text {
+    font-size: 12.5px;
+}
+
+/* chip teks di dalam area pesan (mis. tombol Ulangi) */
+.gemini-chat-chip {
+    min-height: 24px;
+}

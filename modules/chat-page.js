@@ -105,7 +105,7 @@ export default () => {
 
     const askBtn = Widget.Button({
         className: 'dyn-island-pill',
-        tooltipText: 'Buka input rofi untuk bertanya ke Gemini',
+        tooltipText: 'Buka jendela chat Gemini',
         child: Widget.Box({
             className: 'dyn-island-pill-content',
             spacing: 6,
@@ -115,7 +115,12 @@ export default () => {
             ],
         }),
         onClicked: () => {
-            // chat sticky: jangan reset ke halaman base saat rofi/menunggu jawaban
+            const chatWin = globalThis.geminiChat;
+            if (chatWin?.open) {
+                chatWin.open();
+                return;
+            }
+            // fallback: alur rofi lama bila window chat belum terpasang
             pinPage('chat', { sticky: true });
             ask();
         },
