@@ -1307,3 +1307,26 @@ tooltip > box {
     font-size: 12px;
     color: __MUTED__;
 }
+
+/* ── Statistik sistem ─────────────────────────────────────────── */
+.dyn-island-stats {
+    padding: 0 2px;
+}
+
+.dyn-island-stats-label {
+    font-size: 9px;
+    font-weight: 600;
+    letter-spacing: 1px;
+    color: __MUTED__;
+}
+
+.dyn-island-stats-value {
+    font-size: 22px;
+    font-weight: 700;
+    color: __FG__;
+}
+
+.dyn-island-stats-foot {
+    font-size: 10px;
+    color: __MUTED__;
+}

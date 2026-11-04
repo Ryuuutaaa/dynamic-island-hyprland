@@ -57,6 +57,7 @@ export default {
     modules: {
         weather: true,
         timer: true,
+        stats: true,
         pomodoro: true,
         water: true,
         todo: true,

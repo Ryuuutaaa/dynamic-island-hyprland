@@ -1,5 +1,6 @@
 import GLib from 'gi://GLib';
 import Gio from 'gi://Gio';
+import Gdk from 'gi://Gdk?version=3.0';
 import Gtk from 'gi://Gtk?version=3.0';
 import Widget from 'resource:///com/github/Aylur/ags/widget.js';
 import * as Utils from 'resource:///com/github/Aylur/ags/utils.js';
@@ -8,8 +9,11 @@ import CONFIG from '../config.js';
 import { palette, hexToRgb } from '../theme.js';
 import { showTransient, page } from '../state.js';
 import { roundedRect } from '../draw.js';
+import { eventButton, eventX } from './pointer.js';
 
 const BAR_HEIGHT = 5;
+// Area klik/geser lebih tinggi dari bar: 5px terlalu tipis untuk ditunjuk.
+const BAR_HIT = 18;
 const BAR_WIDTH = 110;
 const TRACK_RGB = hexToRgb(palette.fg);
 const FILL_RGB = hexToRgb(palette.accent2);
@@ -21,21 +25,56 @@ const iconLabel = () => Widget.Label({ className: 'dyn-island-osd-icon' });
 // dengan fill=TRUE (valign/vpack diabaikan), jadi Gtk.ProgressBar selalu
 // diregangkan setinggi box dan trough-nya jatuh ke bawah. Dengan DrawingArea
 // kita selalu menggambar di tengah tinggi yang diberikan.
-const bar = () => {
+// `onSet` menerima fraksi 0..1 saat bar diklik/digeser. Area interaksi dibuat
+// 18px (bar tetap digambar 5px di tengah) supaya mudah ditunjuk; ada knob kecil
+// di ujung isi sebagai petunjuk bahwa bar bisa digeser.
+const bar = (onSet = null) => {
     let fraction = 0;
+    let dragging = false;
+
     return Widget.DrawingArea({
         className: 'dyn-island-bar',
         hexpand: true,
         setup: self => {
             // DrawingArea tidak punya natural size: tanpa ini lebarnya kolaps
             // (hexpand diabaikan karena AGS menambah child dengan expand=FALSE)
-            self.set_size_request(BAR_WIDTH, BAR_HEIGHT);
+            self.set_size_request(BAR_WIDTH, BAR_HIT);
             self.setFraction = (value) => {
                 const next = Math.max(0, Math.min(1, value || 0));
                 if (next === fraction) return;
                 fraction = next;
                 self.queue_draw();
             };
+
+            if (!onSet) return;
+
+            self.add_events(Gdk.EventMask.BUTTON_PRESS_MASK
+                | Gdk.EventMask.BUTTON1_MOTION_MASK
+                | Gdk.EventMask.BUTTON_RELEASE_MASK);
+
+            const apply = event => {
+                const area = self.get_allocation();
+                const ratio = Math.min(1, Math.max(0, eventX(event) / Math.max(1, area.width)));
+                self.setFraction(ratio);
+                onSet(ratio);
+            };
+
+            self.connect('button-press-event', (_widget, event) => {
+                if (eventButton(event) !== 1) return false;
+                dragging = true;
+                apply(event);
+                return true;
+            });
+            self.connect('motion-notify-event', (_widget, event) => {
+                if (!dragging) return false;
+                apply(event);
+                return true;
+            });
+            self.connect('button-release-event', () => {
+                if (!dragging) return false;
+                dragging = false;
+                return true;
+            });
         },
         drawFn: (self, cr, width, height) => {
             const y = (height - BAR_HEIGHT) / 2;
@@ -47,6 +86,12 @@ const bar = () => {
             if (filled <= 0) return;
             cr.setSourceRGBA(FILL_RGB[0], FILL_RGB[1], FILL_RGB[2], 1);
             roundedRect(cr, 0, y, Math.max(BAR_HEIGHT, filled), BAR_HEIGHT, BAR_HEIGHT / 2);
+            cr.fill();
+
+            // knob: titik terang di ujung isi, petunjuk bar bisa digeser
+            const knob = Math.min(width - 2, Math.max(2, filled));
+            cr.arc(knob, height / 2, 3.2, 0, Math.PI * 2);
+            cr.setSourceRGBA(TRACK_RGB[0], TRACK_RGB[1], TRACK_RGB[2], 0.95);
             cr.fill();
         },
     });
@@ -64,7 +109,12 @@ const volumeMark = () => {
 export function VolumeOsd() {
     const icon = iconLabel();
     const label = valueLabel();
-    const progress = bar();
+    const progress = bar(value => {
+        const speaker = Audio.speaker;
+        if (!speaker) return;
+        if (value > 0 && speaker.is_muted) speaker.is_muted = false;
+        speaker.volume = value;
+    });
 
     const refresh = () => {
         const speaker = Audio.speaker;
@@ -135,7 +185,20 @@ function backlightPath() {
 export function BrightnessOsd() {
     const icon = iconLabel();
     const label = valueLabel();
-    const progress = bar();
+    const path = backlightPath();
+    const max = path ? (readNumber(`${path}/max_brightness`) || 1) : 1;
+
+    // brightnessctl dipakai (bukan tulis sysfs langsung): file brightness milik
+    // root:video dan user ini tidak ada di grup video. brightnessctl setuid root
+    // dan sudah menjadi jalur resmi pengaturan backlight di mesin ini.
+    const progress = bar(value => {
+        if (!path) return;
+        const percent = Math.round(value * 100);
+        label.label = `${percent}%`;
+        progress.setFraction(percent / 100);
+        Utils.execAsync(['brightnessctl', 'set', `${percent}%`]).catch(error =>
+            console.log(`[dyn-island] brightnessctl gagal: ${error}`));
+    });
     icon.label = '\uf185';
 
     return Widget.Box({
@@ -145,12 +208,10 @@ export function BrightnessOsd() {
         halign: Gtk.Align.CENTER,
         children: [icon, progress, label],
         setup: self => {
-            const path = backlightPath();
             if (!path) {
                 label.label = '—';
                 return;
             }
-            const max = readNumber(`${path}/max_brightness`) || 1;
             let last = null;
             const update = () => {
                 const raw = readNumber(`${path}/brightness`);
