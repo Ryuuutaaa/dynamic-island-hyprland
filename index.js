@@ -336,6 +336,25 @@ function DynamicIsland() {
     // itu — jadi enter-notify-event di EventBox tidak pernah fire (terukur 0
     // saat kursor tepat di notch). Window layer-shell selalu menerima
     // enter/leave untuk seluruh surface, jadi dipakai sebagai sumber hover.
+    // Hover-intent: kursor yang hanya melintas di tepi atas tidak langsung
+    // membuka notch. Timer dibatalkan oleh leave atau saat kursor keluar.
+    let hoverIntent = 0;
+    const cancelHoverIntent = () => {
+        if (hoverIntent) {
+            GLib.source_remove(hoverIntent);
+            hoverIntent = 0;
+        }
+    };
+
+    const scheduleHover = () => {
+        if (hovered.value || hoverIntent) return;
+        hoverIntent = GLib.timeout_add(GLib.PRIORITY_DEFAULT, 120, () => {
+            hoverIntent = 0;
+            hovered.value = true;
+            return GLib.SOURCE_REMOVE;
+        });
+    };
+
     const onIslandEnter = (self, event) => {
         // Jangan langsung percaya enter: window layer-shell juga mencakup
         // area transparan (lebar dikunci selama animasi). Kalau pointer masuk
@@ -344,7 +363,7 @@ function DynamicIsland() {
         // (window-local, sinkron) terhadap badan visual island.
         const token = ++hoverToken;
         const apply = inside => {
-            if (token === hoverToken && inside) hovered.value = true;
+            if (token === hoverToken && inside) scheduleHover();
         };
 
         let coords = null;
@@ -367,6 +386,7 @@ function DynamicIsland() {
         return false;
     };
     const onIslandLeave = () => {
+        cancelHoverIntent();
         // Jangan langsung menutup: pastikan pointer benar-benar sudah keluar
         // dari badan island. Token mencegah hasil cek yang basi menutup notch
         // setelah pointer kembali masuk.
