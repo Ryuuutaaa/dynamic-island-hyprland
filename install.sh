@@ -375,42 +375,73 @@ HYPR_ENTRY_LUA="${HOME}/.config/hypr/hyprland.lua"
 HYPR_KEYS="${HOME}/.config/hypr/UserConfigs/UserKeybinds.conf"
 HYPR_KEYS_LUA="${HOME}/.config/hypr/UserConfigs/UserKeybinds.lua"
 
-if [[ -f "$HYPR_ENTRY_LUA" && -f "$HYPR_KEYS_LUA" ]]; then
-    if grep -Eq "define_submap\\(['\"]island['\"]" "$HYPR_KEYS_LUA"; then
-        echo "•  keybind panah sudah ada (UserKeybinds.lua)"
-    else
-        act cp "$HYPR_KEYS_LUA" "${HYPR_KEYS_LUA}.dyn-island.bak"
-        note "menambahkan submap island ke ${HYPR_KEYS_LUA}"
-        if (( ! DRY_RUN )); then
-            cat >> "$HYPR_KEYS_LUA" <<'KEYS_LUA'
+island_lua_block() {
+    cat <<'KEYS_LUA'
 
 -- dyn-island-kbd: begin — panah kiri/kanan untuk navigasi halaman island.
 -- Submap `island` hanya aktif saat island terbuka. Bind di dalam submap
 -- bersifat CONSUMING, jadi aplikasi fokus tidak ikut menerima panah.
--- `escape` = jalan keluar manual bila submap tertinggal.
+-- `escape` = reset submap + tutup island (melepas forcedOpen).
 hl.define_submap("island", function()
   hl.bind("left", hl.dsp.exec_cmd([[ags -r "globalThis.dynIsland.navKey(-1)"]]), { description = "island: prev" })
   hl.bind("right", hl.dsp.exec_cmd([[ags -r "globalThis.dynIsland.navKey(1)"]]), { description = "island: next" })
-  hl.bind("escape", hl.dsp.submap("reset"), { description = "island: close" })
+  hl.bind("escape", hl.dsp.exec_cmd([[sh -c 'hyprctl dispatch "hl.dsp.submap(\"reset\")"; ags -r "globalThis.dynIsland.closeIsland()"']]), { description = "island: close" })
 end)
 -- dyn-island-kbd: end
 KEYS_LUA
+}
+
+island_conf_block() {
+    cat <<'KEYS'
+
+# dyn-island-kbd: begin — panah kiri/kanan untuk navigasi halaman island.
+# Submap `island` hanya aktif saat island terbuka. Di dalamnya panah bersifat
+# CONSUMING (bind, bukan bindn), jadi aplikasi fokus -- mis. YouTube -- tidak
+# ikut menerima panah. `escape` = reset submap + tutup island.
+submap = island
+bind = , left, exec, ags -r "globalThis.dynIsland.navKey(-1)"
+bind = , right, exec, ags -r "globalThis.dynIsland.navKey(1)"
+bind = , escape, exec, sh -c 'hyprctl dispatch "hl.dsp.submap(\"reset\")"; ags -r "globalThis.dynIsland.closeIsland()"'
+submap = reset
+# dyn-island-kbd: end
+KEYS
+}
+
+if [[ -f "$HYPR_ENTRY_LUA" && -f "$HYPR_KEYS_LUA" ]]; then
+    if grep -Eq "define_submap\\(['\"]island['\"]" "$HYPR_KEYS_LUA"; then
+        if grep -q 'hl.bind("escape".*closeIsland' "$HYPR_KEYS_LUA"; then
+            echo "•  keybind panah sudah ada (UserKeybinds.lua)"
+        else
+            note "memperbarui escape submap island (tutup island + reset)"
+            act cp "$HYPR_KEYS_LUA" "${HYPR_KEYS_LUA}.dyn-island.bak"
+            if (( ! DRY_RUN )); then
+                sed -i '/^-- dyn-island-kbd: begin/,/^-- dyn-island-kbd: end/d' "$HYPR_KEYS_LUA"
+                island_lua_block >> "$HYPR_KEYS_LUA"
+                hyprctl reload >/dev/null 2>&1 || true
+                echo "+  escape submap diperbarui (hyprctl reload)"
+            fi
+        fi
+    else
+        act cp "$HYPR_KEYS_LUA" "${HYPR_KEYS_LUA}.dyn-island.bak"
+        note "menambahkan submap island ke ${HYPR_KEYS_LUA}"
+        if (( ! DRY_RUN )); then
+            island_lua_block >> "$HYPR_KEYS_LUA"
             hyprctl reload >/dev/null 2>&1 || true
             echo "+  keybind panah (submap island) ditambahkan (hyprctl reload)"
         fi
     fi
 elif [[ -f "$HYPR_KEYS" ]]; then
     if grep -q 'dyn-island-kbd: begin' "$HYPR_KEYS"; then
-        echo "•  keybind panah sudah ada"
-        # Blok lama memasang escape dengan sintaks hyprlang yang DIHAPUS di
-        # Hyprland 0.57 (`hyprctl dispatch submap reset`). Perbaiki di tempat
-        # supaya escape tetap berfungsi kalau .conf dipakai lagi.
-        if grep -q 'hyprctl dispatch submap reset' "$HYPR_KEYS"; then
-            note "memperbaiki escape submap (sintaks Lua 0.57)"
+        if grep -q 'escape.*closeIsland' "$HYPR_KEYS"; then
+            echo "•  keybind panah sudah ada"
+        else
+            note "memperbarui escape submap island (tutup island + reset)"
+            act cp "$HYPR_KEYS" "${HYPR_KEYS}.dyn-island.bak"
             if (( ! DRY_RUN )); then
-                sed -i "s|hyprctl dispatch submap reset|hyprctl dispatch 'hl.dsp.submap(\"reset\")'|" "$HYPR_KEYS"
+                sed -i '/^# dyn-island-kbd: begin/,/^# dyn-island-kbd: end/d' "$HYPR_KEYS"
+                island_conf_block >> "$HYPR_KEYS"
                 hyprctl reload >/dev/null 2>&1 || true
-                echo "+  escape submap diperbarui ke sintaks Lua"
+                echo "+  escape submap diperbarui (hyprctl reload)"
             fi
         fi
     else
@@ -424,19 +455,7 @@ elif [[ -f "$HYPR_KEYS" ]]; then
         fi
         note "menambahkan submap island (panah consuming) ke ${HYPR_KEYS}"
         if (( ! DRY_RUN )); then
-            cat >> "$HYPR_KEYS" <<'KEYS'
-
-# dyn-island-kbd: begin — panah kiri/kanan untuk navigasi halaman island.
-# Submap `island` hanya aktif saat island terbuka. Di dalamnya panah bersifat
-# CONSUMING (bind, bukan bindn), jadi aplikasi fokus -- mis. YouTube -- tidak
-# ikut menerima panah. `escape` = jalan keluar manual bila submap tertinggal.
-submap = island
-bind = , left, exec, ags -r "globalThis.dynIsland.navKey(-1)"
-bind = , right, exec, ags -r "globalThis.dynIsland.navKey(1)"
-bind = , escape, exec, hyprctl dispatch 'hl.dsp.submap("reset")'
-submap = reset
-# dyn-island-kbd: end
-KEYS
+            island_conf_block >> "$HYPR_KEYS"
             hyprctl reload >/dev/null 2>&1 || true
             echo "+  keybind panah (submap island) ditambahkan (hyprctl reload)"
         fi

@@ -847,7 +847,8 @@ Lua, `install.sh` menambahkan blok ke
 hl.define_submap("island", function()
   hl.bind("left", hl.dsp.exec_cmd([[ags -r "globalThis.dynIsland.navKey(-1)"]]), { description = "island: prev" })
   hl.bind("right", hl.dsp.exec_cmd([[ags -r "globalThis.dynIsland.navKey(1)"]]), { description = "island: next" })
-  hl.bind("escape", hl.dsp.submap("reset"), { description = "island: close" })
+  -- reset submap + tutup island (forcedOpen ikut dilepas)
+  hl.bind("escape", hl.dsp.exec_cmd([[sh -c 'hyprctl dispatch "hl.dsp.submap(\"reset\")"; ags -r "globalThis.dynIsland.closeIsland()"']]), { description = "island: close" })
 end)
 -- dyn-island-kbd: end
 ```
@@ -859,7 +860,7 @@ karena sintaks `hyprctl dispatch submap ...` sudah dihapus di 0.57:
 submap = island
 bind = , left, exec, ags -r "globalThis.dynIsland.navKey(-1)"
 bind = , right, exec, ags -r "globalThis.dynIsland.navKey(1)"
-bind = , escape, exec, hyprctl dispatch 'hl.dsp.submap("reset")'
+bind = , escape, exec, sh -c 'hyprctl dispatch "hl.dsp.submap(\"reset\")"; ags -r "globalThis.dynIsland.closeIsland()"'
 submap = reset
 ```
 
