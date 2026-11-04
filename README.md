@@ -725,13 +725,20 @@ Pembulatan penting: `1920 / 0.8333333 = 2304.00009`, sedangkan GDK melaporkan
 `2304` — tanpa pembulatan/toleransi, `gdkIndex()` gagal dan island tidak pindah
 monitor saat fokus berpindah ke layar fractional.
 
-Dua bug hover yang ditemukan lewat audit uinput:
+Tiga bug hover yang ditemukan lewat audit uinput:
 
 - **Notch bisa tertahan terbuka saat pointer keluar lewat padding.**
   `leave-notify` tidak selalu terkirim saat pointer keluar melewati child
   (isi halaman) menuju luar. Sekarang ada **watchdog 100ms selama hover** yang
   membaca `cursorpos` dan menutup kalau pointer sudah di luar; sakelar token
   tetap dipakai supaya hasil basi tidak menutup notch yang baru dimasuki.
+- **Hover-intent dibatalkan oleh leave dari child.** Setelah jeda 120ms
+  ditambahkan, masuk ke notch menghasilkan `enter` lalu `leave` ~14ms kemudian
+  karena pointer pindah ke child ber-GdkWindow (clip/DrawingArea); `leave` lama
+  langsung membatalkan timer sehingga notch sering tidak pernah terbuka.
+  Sekarang `leave` menunggu hasil `pointerOnIsland()` dan hanya membatalkan
+  timer/menutup kalau pointer benar-benar di luar badan island. Terukur: tiga
+  siklus masuk/keluar berturut-turut membuka ke 420px dan menutup ke 150px.
 - **Submap `island` tertinggal aktif setelah island tertutup.** `nav.visible`
   baru menjadi false di akhir tween (620ms), padahal nav sudah tidak terlihat
   sejak ~200ms — panah masih tertelan selama sisa animasi. Sekarang submap

@@ -397,13 +397,17 @@ function DynamicIsland() {
         return false;
     };
     const onIslandLeave = () => {
-        cancelHoverIntent();
-        // Jangan langsung menutup: pastikan pointer benar-benar sudah keluar
-        // dari badan island. Token mencegah hasil cek yang basi menutup notch
-        // setelah pointer kembali masuk.
+        // Jangan batalkan hover-intent hanya karena GTK mengirim leave saat
+        // pointer masuk ke child ber-GdkWindow (clip/DrawingArea): enter dan
+        // leave datang ~14ms berurutan, dan dulu leave langsung membatalkan
+        // timer 120ms sehingga notch tidak pernah terbuka. Cek posisi asli
+        // dulu; batalkan/closing hanya kalau pointer benar-benar di luar.
+        // Token mencegah hasil cek yang basi setelah pointer kembali masuk.
         const token = ++hoverToken;
         pointerOnIsland().then(inside => {
-            if (token === hoverToken && !inside && !forcedOpen) hovered.value = false;
+            if (token !== hoverToken || inside) return;
+            cancelHoverIntent();
+            if (!forcedOpen) hovered.value = false;
         });
         return false;
     };
