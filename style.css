@@ -203,6 +203,15 @@ tooltip > box {
 .dyn-island-prayer-info {
     min-width: 150px;
 }
+.dyn-island-prayer-clockrow {
+    padding-right: 2px;
+}
+
+.dyn-island-prayer-clock {
+    font-size: 9px;
+    color: __MUTED__;
+}
+
 .dyn-island-prayer-city {
     font-size: 9px;
     color: __MUTED__;

@@ -142,6 +142,8 @@ export default () => {
     });
     const nextName = Widget.Label({ className: 'dyn-island-prayer-next', xalign: 0 });
     const countdown = Widget.Label({ className: 'dyn-island-prayer-count', xalign: 0 });
+    // Jam berjalan sebagai pembanding hitungan mundur di sebelah kiri.
+    const clock = Widget.Label({ className: 'dyn-island-prayer-clock', xalign: 1 });
 
     const arc = SkyArc();
     // Label waktu = baris rata 5 kolom. Posisi waktu asli tidak dipakai di sini:
@@ -211,6 +213,10 @@ export default () => {
 
     const tick = self => {
         hookPage();
+
+        const now = new Date();
+        clock.label = `sekarang ${pad2(now.getHours())}:${pad2(now.getMinutes())}:${pad2(now.getSeconds())}`;
+
         const state = prayer.value;
         if (!state?.times?.length) return;
         if (state.date !== builtDate) {
@@ -236,11 +242,18 @@ export default () => {
         children: [city, nextName, countdown],
     });
 
+    const clockRow = Widget.Box({
+        className: 'dyn-island-prayer-clockrow',
+        hexpand: true,
+        halign: Gtk.Align.END,
+        children: [clock],
+    });
+
     const right = Widget.Box({
         className: 'dyn-island-prayer-right',
         vertical: true,
         spacing: 2,
-        children: [arc, timesBox],
+        children: [clockRow, arc, timesBox],
     });
 
     return Widget.Box({
