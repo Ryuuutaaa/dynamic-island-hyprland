@@ -934,3 +934,40 @@ tooltip > box {
 .gemini-chat-chip {
     min-height: 24px;
 }
+
+/* Pomodoro OSD (kanan atas) - pola sama dengan popup notifikasi */
+.dyn-island-pomo-osd-window {
+    background: transparent;
+}
+
+.dyn-island-pomo-osd {
+    background: __BG_SOLID__;
+    border: 1px solid __SURFACE_STRONG__;
+    border-radius: 16px;
+    padding: 10px 14px 11px 14px;
+    box-shadow: 0 8px 24px rgba(0, 0, 0, 0.45);
+    font-family: "Ubuntu", "Noto Sans", "DejaVu Sans", sans-serif;
+}
+
+.dyn-island-pomo-osd-title {
+    font-size: 10px;
+    font-weight: 600;
+    letter-spacing: 1.1px;
+    color: __MUTED__;
+}
+
+.dyn-island-pomo-osd-state {
+    font-size: 10px;
+    color: __ACCENT__;
+}
+
+.dyn-island-pomo-osd-time {
+    font-size: 26px;
+    font-weight: 700;
+    color: __FG__;
+}
+
+.dyn-island-pomo-osd-mode {
+    font-size: 11px;
+    color: __MUTED__;
+}

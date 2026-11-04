@@ -48,6 +48,7 @@ import { btPreview } from './modules/bluetooth.js';
 import { focusedRect, refresh as refreshMonitors, followFocused, applyFocused } from './modules/monitor.js';
 import { onResume } from './modules/timefmt.js';
 import NotificationPopup from './modules/notif-popup.js';
+import PomodoroOsd from './modules/pomodoro-osd.js';
 import GeminiChat from './modules/chat-window.js';
 
 const STYLE_PATH = `${App.configDir}/dynamic-iland/style.css`;
@@ -933,6 +934,11 @@ dyn.notifPopup = notifPopup;
 const geminiChat = GeminiChat();
 App.addWindow(geminiChat);
 dyn.chatWindow = geminiChat;
+
+// Kartu pomodoro di kanan atas (terpisah dari island, lihat pomodoro-osd.js).
+const pomodoroCard = PomodoroOsd();
+App.addWindow(pomodoroCard);
+dyn.pomodoroCard = pomodoroCard;
 // Catatan: DND TIDAK dipaksa lagi. Dulu island menjalankan `swaync-client -dn`
 // tiap 3 detik supaya popup swaync tidak dobel, akibatnya toggle DND user
 // selalu kembali nyala (indikator DND tidak bisa dimatikan). Penggantinya:
