@@ -54,7 +54,7 @@ import StandupPage from './modules/standup-page.js';
 import WeatherPage from './modules/weather-page.js';
 import { watchWeather, weather as weatherState, refreshWeather } from './modules/weather.js';
 import TimerPage from './modules/timer-page.js';
-import { watchWellness, toggleWellness, wellness as wellnessState, reminderNow as wellnessReminder } from './modules/wellness.js';
+import { watchWellness, toggleWellness, wellness as wellnessState, reminderNow as wellnessReminder, onWellnessAction } from './modules/wellness.js';
 import { timer as timerState, restoreTimer, applyPreset as timerPreset, toggleRunning as timerToggle, resetTimer as timerReset, setMode as timerSetMode } from './modules/timer.js';
 import StandupWindow from './modules/standup-window.js';
 import { scheduleStandupReminder, titleForDay as standupTitle, addItem as standupAdd, removeItem as standupRemove, saveStandup as standupSave, loadStandup as standupLoad, remindNow as standupRemind, standup as standupStore } from './modules/standup.js';
@@ -980,6 +980,7 @@ const standupWin = StandupWindow();
 App.addWindow(standupWin);
 // API { open, close, toggle, win } dibuat oleh modul; widget-nya disimpan terpisah
 dyn.standupWindow = globalThis.standupWindow;
+registerLocalAction('Wellness', onWellnessAction);
 dyn.standupWinWidget = standupWin;
 registerLocalAction('Standup', () => globalThis.standupWindow?.toggle?.());
 scheduleStandupReminder();

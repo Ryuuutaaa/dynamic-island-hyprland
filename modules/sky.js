@@ -149,11 +149,13 @@ export const drawSky = (cr, width, height, radius, state, accent = null) => {
 
     if (accent && accent.length === 3) {
         const [ar, ag, ab] = accent;
+        // Bloom dari tepi bawah: pusat sedikit DI BAWAH kartu supaya warna
+        // hanya merembes ke bagian bawah dan teks tetap bersih.
         const glow = new Cairo.RadialGradient(
-            width / 2, height, 0,
-            width / 2, height, Math.max(width, height) * 0.9);
-        glow.addColorStopRGBA(0, ar, ag, ab, 0.26);
-        glow.addColorStopRGBA(0.55, ar, ag, ab, 0.09);
+            width / 2, height * 1.08, 0,
+            width / 2, height * 1.08, width * 0.62);
+        glow.addColorStopRGBA(0, ar, ag, ab, 0.30);
+        glow.addColorStopRGBA(0.5, ar, ag, ab, 0.10);
         glow.addColorStopRGBA(1, ar, ag, ab, 0);
         cr.setSource(glow);
         cr.paint();

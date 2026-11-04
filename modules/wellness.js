@@ -43,17 +43,46 @@ const notify = (summary, body) => {
     Utils.execAsync(['notify-send', '-a', 'Notch', summary, body]).catch(() => { });
 };
 
-const fireEye = () => {
+// Notifikasi dengan aksi "Tunda 5 menit": chip-nya dirender popup island dan
+// klik-nya ditangani registry aksi lokal (registerLocalAction('Wellness')).
+const notifyEye = () => {
     const { lookSeconds } = cfg();
+    Utils.execAsync([
+        'gdbus', 'call', '--session',
+        '--dest', 'org.freedesktop.Notifications',
+        '--object-path', '/org/freedesktop/Notifications',
+        '--method', 'org.freedesktop.Notifications.Notify',
+        'Wellness', '0', '',
+        'Jeda mata 20-20-20',
+        `Lihat objek ~6 meter selama ${lookSeconds} detik.`,
+        "['snooze', 'Tunda 5 menit']", '{}', '15000',
+    ]).catch(() => { });
+};
+
+const fireEye = () => {
     wellness.value = {
         ...wellness.value,
         eyeLastAt: Date.now(),
         nextEyeAt: Date.now() + cfg().everyMinutes * 60 * 1000,
     };
-    notify('Jeda mata 20-20-20',
-        `Lihat objek sejauh ~6 meter selama ${lookSeconds} detik.`);
+    notifyEye();
     chime();
 };
+
+// Tunda sekaligus: jadwal eye break berikutnya digeser N menit tanpa
+// mengubah interval tetap untuk setelahnya.
+export function snoozeEye(minutes = 5) {
+    if (eyeTimer) GLib.source_remove(eyeTimer);
+    eyeTimer = 0;
+    eyeTimer = GLib.timeout_add(GLib.PRIORITY_DEFAULT,
+        Math.max(1, minutes) * 60 * 1000, () => {
+            eyeTimer = 0;
+            if (wellness.value.enabled && inHours()) fireEye();
+            arm();
+            return GLib.SOURCE_REMOVE;
+        });
+    wellness.value = { ...wellness.value, nextEyeAt: Date.now() + minutes * 60 * 1000 };
+}
 
 const fireMove = () => {
     wellness.value = { ...wellness.value, moveLastAt: Date.now() };
@@ -104,4 +133,9 @@ export function toggleWellness() {
 
 export function reminderNow() {
     fireEye();
+}
+
+export function onWellnessAction(key) {
+    if (key === 'snooze') snoozeEye(5);
+    if (key === 'default') reminderNow();
 }

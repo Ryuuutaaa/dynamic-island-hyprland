@@ -1160,11 +1160,67 @@ tooltip > box {
     color: __MUTED__;
 }
 
+/* ── Cuaca v2 ─────────────────────────────────────────────────── */
+.dyn-island-weather {
+    padding: 0 2px;
+}
 
-/* ── Timer bebas & stopwatch ───────────────────────────────────── */
-.dyn-island-timer-time {
+.dyn-island-weather-glyph {
+    font-family: "JetBrainsMono Nerd Font", "Ubuntu", sans-serif;
+    font-size: 34px;
+    color: __ACCENT__;
+}
+
+.dyn-island-weather-temp {
     font-size: 34px;
     font-weight: 700;
+    color: __FG__;
+}
+
+.dyn-island-weather-condition {
+    font-size: 11px;
+    color: __MUTED__;
+}
+
+.dyn-island-weather-meta {
+    font-size: 10px;
+    color: __MUTED__;
+}
+
+.dyn-island-weather-place {
+    font-size: 10px;
+    letter-spacing: 0.6px;
+    color: __MUTED__;
+}
+
+.dyn-island-weather-tile {
+    background: __SURFACE__;
+    border-radius: 10px;
+    padding: 5px 9px 6px 9px;
+}
+
+.dyn-island-weather-tile-day {
+    font-size: 9px;
+    letter-spacing: 0.4px;
+    color: __MUTED__;
+}
+
+.dyn-island-weather-tile-glyph {
+    font-family: "JetBrainsMono Nerd Font", "Ubuntu", sans-serif;
+    font-size: 13px;
+    color: __ACCENT__;
+}
+
+.dyn-island-weather-tile-temp {
+    font-size: 11px;
+    color: __FG__;
+}
+
+/* ── Timer v2 ─────────────────────────────────────────────────── */
+.dyn-island-timer-time {
+    font-size: 38px;
+    font-weight: 700;
+    letter-spacing: -0.5px;
     color: __FG__;
 }
 
@@ -1173,8 +1229,33 @@ tooltip > box {
     color: __MUTED__;
 }
 
+.dyn-island-timer-mode {
+    padding: 2px 10px;
+    border-radius: 8px;
+    background: transparent;
+}
+
+.dyn-island-timer-mode:hover {
+    background: __SURFACE_HOVER__;
+}
+
+.dyn-island-timer-mode label {
+    font-size: 11px;
+    color: __MUTED__;
+}
+
+.dyn-island-timer-mode.is-active {
+    background: __SURFACE__;
+}
+
+.dyn-island-timer-mode.is-active label {
+    font-weight: 600;
+    color: __FG__;
+}
+
 .dyn-island-timer-preset {
-    padding: 1px 7px;
+    min-width: 36px;
+    padding: 2px 0;
     border-radius: 7px;
     background: __SURFACE__;
 }
@@ -1188,26 +1269,41 @@ tooltip > box {
     color: __MUTED__;
 }
 
-.dyn-island-timer-btn {
-    padding: 2px 10px;
+.dyn-island-timer-play {
+    padding: 3px 14px;
+    border-radius: 9px;
+    background: __ACCENT__;
+}
+
+.dyn-island-timer-play:hover {
+    background: __ACCENT_SOFT__;
+}
+
+.dyn-island-timer-play label {
+    font-size: 11px;
+    font-weight: 600;
+    color: #14161a;
+}
+
+.dyn-island-timer-play.is-running {
+    background: __SURFACE__;
+}
+
+.dyn-island-timer-play.is-running label {
+    color: __FG__;
+}
+
+.dyn-island-timer-reset {
+    padding: 3px 11px;
     border-radius: 9px;
     background: __SURFACE__;
 }
 
-.dyn-island-timer-btn:hover {
+.dyn-island-timer-reset:hover {
     background: __SURFACE_HOVER__;
 }
 
-.dyn-island-timer-btn label {
+.dyn-island-timer-reset label {
     font-size: 12px;
-    color: __FG__;
-}
-
-.dyn-island-pill.is-active {
-    background: __ACCENT__;
-}
-
-.dyn-island-pill.is-active label {
-    color: #14161a;
-    font-weight: 600;
+    color: __MUTED__;
 }

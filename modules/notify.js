@@ -341,11 +341,13 @@ export function registerLocalAction(app, handler) {
 
 export function invokeAction(id, key) {
     if (!id || !key) return;
-    if (key === 'default') {
+    // Aplikasi kita sendiri bisa punya beberapa aksi (mis. 'default' untuk
+    // membuka, 'snooze' untuk menunda). Semua key diteruskan ke handler.
+    {
         const app = latest?.value?.app;
         const handler = app ? localActions.get(app) : null;
         if (handler) {
-            try { handler(); } catch (error) { console.error('[dyn-island] aksi lokal gagal:', error); }
+            try { handler(key); } catch (error) { console.error('[dyn-island] aksi lokal gagal:', error); }
             return;
         }
     }
