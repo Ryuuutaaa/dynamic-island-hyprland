@@ -8,6 +8,7 @@ import { isPlaying } from '../state.js';
 import { palette, hexToRgb } from '../theme.js';
 import { roundedRect } from '../draw.js';
 import { formatClock, formatDateShort, onMinute } from './timefmt.js';
+import { pomodoro } from './pomodoro.js';
 
 const RING = 15;
 const RING_THICK = 2;
@@ -114,7 +115,28 @@ export default () => {
         label: formatDateShort(),
         visible: false,
     });
+    // Sisa waktu pomodoro: menggantikan tanggal saat sesi fokus/istirahat
+    // aktif (musik tetap prioritas tertinggi lewat equalizer).
+    const pomo = Widget.Label({
+        className: 'dyn-island-closed-pomo',
+        visible: false,
+        setup: self => self.set_no_show_all(true),
+    });
     const eq = Equalizer();
+
+    const mmss = seconds => {
+        const total = Math.max(0, Math.floor(Number(seconds) || 0));
+        return `${String(Math.floor(total / 60)).padStart(2, '0')}:${String(total % 60).padStart(2, '0')}`;
+    };
+
+    const sessionActive = () => {
+        const state = pomodoro.value;
+        return state.running || state.remaining < state.total;
+    };
+
+    const syncPomo = () => {
+        pomo.label = mmss(pomodoro.value.remaining);
+    };
 
     const syncClock = () => {
         time.label = formatClock();
@@ -123,8 +145,11 @@ export default () => {
 
     const syncMode = () => {
         const playing = isPlaying();
+        const active = sessionActive();
         eq.visible = playing;
-        date.visible = !playing;
+        pomo.visible = !playing && active;
+        date.visible = !playing && !active;
+        if (active) syncPomo();
     };
 
     return Widget.Box({
@@ -132,11 +157,13 @@ export default () => {
         spacing: 8,
         halign: Gtk.Align.CENTER,
         valign: Gtk.Align.CENTER,
-        children: [BatteryRing(), time, date, eq],
+        children: [BatteryRing(), time, date, pomo, eq],
         setup: self => {
             syncMode();
             self.hook(Mpris, syncMode, 'changed');
             self.hook(Mpris, syncMode, 'player-changed');
+            // remaining dipublikasikan tiap detik oleh modul pomodoro
+            self.hook(pomodoro, () => { syncMode(); syncPomo(); });
             onMinute(syncClock, self);
         },
     });
