@@ -69,6 +69,7 @@ frame 2,98–3,02 sepanjang 420×140 → 150×50.
 | `weather` | cuaca Open-Meteo: kondisi sekarang (glyph, suhu, terasa, angin, kelembapan) + 3 hari ke depan |
 | `pomodoro` | ring merah 88px menyusut + countdown 32px + pill (mode berikutnya, play, reset); umpan balik aksi muncul sebagai **kartu OSD kanan atas**, bukan mengembangkan notch |
 | `timer` | timer bebas (preset 1–60 menit) + stopwatch: waktu besar, mode, preset, play/pause, reset |
+| `stats` | CPU / RAM / suhu dengan bar, plus footer memori, swap, load, uptime, dan disk `/` + `/home` |
 | `water` | volume harian, progress, switch pengingat, grafik ml per jam |
 | `todo` | checkmark hijau + strikethrough, counter `X/Y`, pill Tambah/Ubah |
 | `standup` | ringkasan daily standup (`Tersimpan · kemarin 2 · hari ini 1 · blocker 1`) + pill **Isi/Lihat** yang membuka popup tiga daftar |
@@ -76,11 +77,11 @@ frame 2,98–3,02 sepanjang 420×140 → 150×50.
 | `bluetooth` | info device tersambung (ikon, nama, tipe, alamat, baterai) + slider volume + tombol bisu |
 | `prayer` | jadwal sholat: busur **terbit→terbenam** dengan matahari beranimasi + label 5 waktu rata (siang) atau Magrib·Isya·Subuh + bulan (malam) + countdown; background langit mengikuti fase |
 | `chat` | riwayat chat Gemini + tombol **Tanya Gemini** (input rofi) + Hapus/Ulangi; halaman sticky saat dipilih |
-| `volume` / `brightness` | ikon + bar (Cairo) + persen |
+| `volume` / `brightness` | ikon + bar (Cairo) + persen, **bar bisa diklik/digeser** untuk mengatur nilainya |
 | `notify` | ikon + `Judul · isi` |
 
 **Modul on/off:** `config.js` → `modules` (weather, timer, pomodoro, water, todo, standup, shelf, bluetooth, prayer, chat). Halaman yang dimatikan (mis.
-`pomodoro: false`) tidak masuk `PAGE_ORDER`, jadi jumlah dot dan jangkauan
+`pomodoro: false`) — berlaku juga untuk `stats` tidak masuk `PAGE_ORDER`, jadi jumlah dot dan jangkauan
 panah ikut berkurang; halamannya tetap terdaftar di Stack sehingga
 `showTransient(name, ms)` (OSD/notifikasi) tetap bisa memakainya. `idle` dan
 `media` selalu aktif karena menjadi base page.
@@ -579,6 +580,39 @@ Halaman `timer` (terpisah dari pomodoro yang bersiklus):
 - Pengingat dijadwalkan ulang setelah menyala, jadi laptop yang baru bangun
   tidak menumpuk notifikasi.
 
+## Statistik Sistem
+
+Halaman `stats` membaca satu JSON dari **`hypr-status stats`** (Rust, tanpa
+fork):
+
+| Data | Sumber |
+|---|---|
+| CPU % | dua sampel `/proc/stat` berjarak 150 ms → realtime, bukan rata-rata boot |
+| RAM & swap | `/proc/meminfo` (used = total − available) |
+| Suhu | `hwmon` (`k10temp`, `zenpower`, `coretemp`, `amdgpu`), nilai tertinggi |
+| Load & uptime | `/proc/loadavg`, `/proc/uptime` |
+| Disk `/` dan `/home` | `statvfs` (libc), bukan `df` |
+
+- Tampilan: tiga kolom (CPU / RAM / SUHU) dengan bar tipis — aksen normal,
+  warna bahaya di atas 80% — dan dua baris footer redup untuk detail.
+- `modules/sysstats.js` **hanya polling 2 detik saat halaman terbuka**; pindah
+  halaman langsung menghentikan timer, jadi tidak ada proses yang jalan di
+  latar belakang.
+- Terukur: satu panggilan 0,15 s, binary 400 KB.
+
+## HUD yang bisa digeser
+
+Bar volume & brightness di OSD bukan lagi indikator pasif:
+
+- Klik di titik mana pun atau **geser** untuk mengatur nilai; area interaksi
+  18px (bar tetap digambar 5px) dan ada knob kecil di ujung isi sebagai
+  petunjuk.
+- Volume memakai service `Audio` AGS dan otomatis melepas mute saat digeser di
+  atas nol.
+- Brightness memakai **`brightnessctl`** karena file sysfs-nya `root:video` dan
+  user ini tidak ada di grup `video`.
+- Timer OSD tetap berlaku: notch menutup ~1,6 detik setelah drag dilepas.
+
 ## Shelf
 
 Halaman `shelf` (kartu 420×140): judul `Shelf` + jumlah item + chip
@@ -993,6 +1027,8 @@ modules/weather.js     cuaca Open-Meteo + cache JSON + refresh 15 menit
 modules/weather-page.js halaman cuaca (sekarang + 3 hari)
 modules/timer.js       timer bebas & stopwatch, deadline + persistensi
 modules/timer-page.js  halaman timer (preset, play/pause, reset)
+modules/sysstats.js    polling `hypr-status stats` hanya saat halaman stats terbuka
+modules/stats-page.js  halaman statistik sistem (CPU/RAM/suhu + footer)
 modules/wellness.js    jeda mata 20-20-20 + pengingat gerak
 modules/cover-color.js warna dominan album art untuk glow notch
 modules/pomodoro-osd.js kartu OSD kanan atas pomodoro (lebar, aksi, menetap, animasi selesai)
@@ -1193,6 +1229,8 @@ ags -r "globalThis.dynIsland.standupApi.remind()"            # pengingat + lonce
 ags -r "globalThis.dynIsland.standupApi.titleFor(1)"         # judul versi Senin (Friday)
 ags -r "JSON.stringify(globalThis.dynIsland.standupApi.state.value)"  # isi standup
 ags -r "String(globalThis.dynIsland.pomodoroCard.visible)"   # kartu OSD pomodoro
+ags -r "JSON.stringify(globalThis.dynIsland.stats.value)"    # statistik terakhir
+ags -r "hypr-status stats"                                    # cek backend tanpa AGS
 ags -r "globalThis.dynIsland.refreshWeather()"                # paksa ambil cuaca
 ags -r "JSON.stringify(globalThis.dynIsland.weather.value)"   # data cuaca terakhir
 ags -r "globalThis.dynIsland.timerPreset(0.05)"               # timer 3 detik (uji)
