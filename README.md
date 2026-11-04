@@ -48,16 +48,17 @@ frame 2,98–3,02 sepanjang 420×140 → 150×50.
 
 | Page | Isi |
 |---|---|
-| `closed` | ring baterai (Cairo) + jam + **tanggal** (`19 Okt`) saat tidak ada musik, atau equalizer saat playing |
+| `closed` | ring baterai (Cairo) + jam + **tanggal** (`19 Okt`) saat tidak ada musik, atau equalizer saat playing; kalau ada sesi pomodoro, notch menampilkan `HH:MM · MM:SS` (jam + sisa waktu) |
 | `idle` | **jam besar + tanggal** + kolom ringkas: baterai, `X/Y tugas`, `ml / goal L`, dan bar Bluetooth (hanya saat ada device terhubung; **klik untuk buka halaman bluetooth**) |
 | `media` | album art 72px + judul + artis + progress bar (bisa diklik untuk seek) + prev/play/next + tombol lirik |
 | `media` → lirik | **sub-tampilan** (bukan halaman nav): kiri album art + judul + progress + kontrol, kanan daftar lirik sinkron |
-| `pomodoro` | ring merah 88px menyusut + countdown 32px + pill (mode berikutnya, play, reset) |
+| `pomodoro` | ring merah 88px menyusut + countdown 32px + pill (mode berikutnya, play, reset); umpan balik aksi muncul sebagai **kartu OSD kanan atas**, bukan mengembangkan notch |
 | `water` | volume harian, progress, switch pengingat, grafik ml per jam |
 | `todo` | checkmark hijau + strikethrough, counter `X/Y`, pill Tambah/Ubah |
+| `standup` | ringkasan daily standup (`Tersimpan · kemarin 2 · hari ini 1 · blocker 1`) + pill **Isi/Lihat** yang membuka popup tiga daftar |
 | `shelf` | drop zone putus-putus + kartu file (thumbnail, nama, ukuran) |
 | `bluetooth` | info device tersambung (ikon, nama, tipe, alamat, baterai) + slider volume + tombol bisu |
-| `prayer` | jadwal sholat: busur matahari Subuh→Magrib + 5 waktu + countdown sholat berikutnya; background langit mengikuti fase |
+| `prayer` | jadwal sholat: busur **terbit→terbenam** dengan matahari beranimasi + label 5 waktu rata (siang) atau Magrib·Isya·Subuh + bulan (malam) + countdown; background langit mengikuti fase |
 | `chat` | riwayat chat Gemini + tombol **Tanya Gemini** (input rofi) + Hapus/Ulangi; halaman sticky saat dipilih |
 | `volume` / `brightness` | ikon + bar (Cairo) + persen |
 | `notify` | ikon + `Judul · isi` |
@@ -138,6 +139,26 @@ waktu, countdown `MM:SS` besar, label mode, dan tiga pill:
 - Halaman ini sticky selama dipilih; timer tidak terpengaruh durasi pin.
   Kalau timer sudah habis (`00:00`), menekan play langsung **reset + mulai** —
   bukan reset dalam keadaan paused seperti sebelumnya.
+- **Persistensi** (`~/.local/share/dynamic-iland/pomodoro.json`): mode,
+  `running`, sisa waktu, dan `endsAtEpoch`. Tick memakai **deadline monoton**
+  (`endsAtEpoch`), bukan `remaining - 1`, sehingga timer tidak melenceng setelah
+  laptop sleep atau AGS di-restart; saat dipulihkan sisa waktu dihitung ulang
+  dari jam dinding. Penulisan di-debounce 300ms.
+- **Notch tertutup** menampilkan `HH:MM  MM:SS` (jam + sisa pomodoro) selama ada
+  sesi, menggantikan tanggal.
+- **Kartu OSD kanan atas** (`modules/pomodoro-osd.js`, 320×141): mode, sisa
+  waktu, bar progres, dan tiga aksi (play/pause, mode berikutnya, reset).
+  Kartu **menetap** selama sesi berjalan atau dijeda, dan tetap ada setelah sesi
+  selesai (menunggu ▶ atau ↻); baru hilang 4 detik setelah reset. Saat waktu
+  habis kartu memudar ke warna aksen (transisi CSS 260ms, bukan kedip) lalu
+  kembali normal. Diletakkan 110px dari atas supaya tidak menimpa popup
+  notifikasi (368×90 pada margin 12), dan dipasang sekali ke monitor yang fokus
+  saat start — bukan `followFocused`, jadi tidak melompat saat kursor pindah
+  layar.
+- Catatan: `add_style_class_name` **tidak ada** pada objek Widget AGS (bukan
+  `Gtk.Widget`); kegagalan itu dulu membuat flag animasi menggantung dan kartu
+  tidak pernah hilang. Sekarang kelas animasi di-set lewat properti
+  `className`.
 
 ## Bluetooth
 
@@ -212,11 +233,16 @@ prayer: {
 - **Validasi** terhadap Aladhan (Denpasar, 28-10-2026, method 20/Kemenag):
   referensi `04:31 12:03 15:15 18:15 19:27`; hasil lokal
   `04:32 12:03 15:15 18:15 19:27` (selisih maks 1 menit, Fajr +1 ihtiyat).
-- **Tampilan** (`modules/prayer-page.js`): busur langit Subuh→Magrib, penanda
-  tiap waktu, dan Isya di bawah ujung kanan (setelah terbenam). Matahari
-  bergerak di busur setiap detik mengikuti jam; bagian busur yang sudah dilalui
-  diberi aksen. Kiri: `kota · metode`, nama sholat berikutnya, dan countdown
-  `HH:MM:SS`; kanan: busur + strip 5 waktu (yang berikutnya di-highlight).
+- **Tampilan** (`modules/prayer-page.js`): busur **terbit→terbenam** dengan
+  puncak di Dzuhur. Matahari hanya digambar di antara sunrise dan sunset, dan
+  melakukan **sweep 1,8 detik** (ease-in-out; 60 fps hanya selama animasi) saat
+  halaman dibuka, lalu bergerak mengikuti jam tiap detik. Label waktu disusun
+  **rata 5 kolom** — bukan mengikuti posisi jam — karena dulu Subuh→Dzuhur
+  mendapat 50% lebar sementara Ashar→Magrib hanya 24% sehingga Magrib/Isya
+  saling menempel. Saat malam, baris label berganti ke **Magrib · Isya ·
+  Subuh** dan penanda **bulan sabit** (crescent, even-odd fill + glow) berjalan
+  di sumbu malam Magrib→Subuh. Kiri: `kota · metode`, nama sholat berikutnya,
+  countdown `HH:MM:SS`, dan jam berjalan `sekarang HH:MM:SS` sebagai pembanding.
 - **Pengingat:** saat masuk waktu, `notify-send -a Notch "Waktunya <nama>"
   "<jam> · <kota>"`; `modules/notify.js` menampilkan popup kanan atas + halaman
   transient di island. `catchUpMinutes` menangani AGS yang baru hidup beberapa
@@ -322,6 +348,12 @@ ikon 26 → jarak 10px → teks, gap judul–isi 2px, jarak ke action 10px, jara
 bar 10px, bar 310×3 (selebar isi kartu), sisa bawah 11px. Lebar kartu dipatok
 340px dan inset kiri/kanan simetris; area klik 290px selebar baris (X terpisah).
 
+- **Durasi** mengikuti `expire_timeout` dari aplikasi: `-1` (default server) →
+  5s, `0` → 12s, nilai lain di-clamp **3–15s**. Sebelumnya semua notifikasi
+  dipaksa 5s sehingga notifikasi penting (mis. error build) hilang terlalu cepat.
+- **Watchdog hover 15s**: kalau `leave-notify-event` tidak pernah sampai
+  (kursor pindah monitor tepat saat popup muncul), hitungan 5 detik tidak lagi
+  tertahan selamanya — popup tetap menutup sendiri.
 - Notifikasi yang datang **saat popup sedang slide keluar** ditarik kembali
   (flag `hiding`); sebelumnya exit tetap menyelesaikan unmap sehingga
   notifikasi baru hilang (terukur `visible=false`). Sekarang `visible=true`
@@ -455,6 +487,36 @@ ada).
   `notify-send "Tugas jatuh tempo" <teks>` (sekali saja).
   Terukur: task `@23:01` → `notified: true` + notifikasi masuk.
 
+## Daily Standup
+
+Halaman `standup` di island + popup (`modules/standup-window.js`, 560px) berisi
+tiga **daftar** yang diisi tiap hari kerja:
+
+| Bagian | Judul |
+|---|---|
+| kemarin | `What did you do yesterday?` — khusus **Senin**: `What did you do on Friday?` |
+| hari ini | `What will you do today?` |
+| blocker | `Any blockers?` |
+
+- Item ditambah lewat **Enter** atau tombol `+`, dihapus dengan `×`. Bagian
+  berupa daftar (bisa banyak poin), bukan satu kotak teks.
+- Halaman island menampilkan `Tersimpan · kemarin 2 · hari ini 1 · blocker 1`
+  dan pill **Isi/Lihat** untuk membuka popup.
+- Bagian "kemarin" **terisi otomatis** dari daftar "hari ini" pada hari kerja
+  sebelumnya (`titleForDay()` menentukan judul Senin vs hari lain), jadi popup
+  selalu dibuka dengan riwayat.
+- **Pengingat Senin–Jumat 10:00**: lonceng (`canberra-gtk-play -i bell`) +
+  notifikasi berikon lonceng `Hey Rafi, it's time for daily standup`. **Klik
+  notifikasi → popup terbuka.** Dilewati kalau hari itu sudah disimpan;
+  tanggal terakhir yang diingatkan disimpan di `standup-reminded` supaya
+  restart AGS tidak mengulang. Kalau AGS baru hidup setelah 10:00 dan belum
+  diisi, pengingat muncul sekali (catch-up).
+- Klik ditangani **registry aksi lokal** di `modules/notify.js`
+  (`registerLocalAction`): notifikasi yang dikirim island sendiri tidak punya
+  pemilik aksi di DBus, jadi round-trip `ActionInvoked` tidak bisa dipakai.
+- **Data**: `~/.local/share/dynamic-iland/standup.json` (60 hari terakhir),
+  hanya lokal — tidak dikirim ke mana pun.
+
 ## Shelf
 
 Halaman `shelf` (kartu 420×140): judul `Shelf` + jumlah item + chip
@@ -507,7 +569,7 @@ Catatan penting:
 
 Saat **expanded** (dan di state lirik), muncul baris navigasi `‹ ● ●●●●● ›`
 di bawah-tengah kartu (latar **transparan** — hanya titik & panah yang terlihat;
-**8 titik** = `PAGE_ORDER`; lirik bukan halaman, jadi
+**10 titik** = `PAGE_ORDER` (idle, media, pomodoro, water, todo, standup, shelf, bluetooth, prayer, chat); lirik bukan halaman, jadi
 tidak punya dot). Titik aktif memanjang & terang — saat tampilan lirik terbuka,
 titik yang aktif tetap **media**.
 Panah memanggil `stepPage(±1)` lalu halaman itu **di-pin** selama `pinTimeout`
@@ -849,7 +911,7 @@ modules/media.js   kartu MPRIS (art, judul, artis, progress, kontrol)
 modules/cover.js   album art Cairo: pixbuf dimuat sendiri, sudut membulat, fallback aman
 modules/osd.js     volume (Audio service) + brightness (sysfs)
 modules/notify.js  penyadap dbus Notify (+ actions & id untuk popup)
-modules/notif-popup.js  popup kanan atas: slide, loading bar 5s, X, klik, chips
+modules/notif-popup.js  popup kanan atas: slide, loading bar, durasi dari expire_timeout, watchdog hover, X, klik, chips
 modules/nav.js     page dots (Cairo) + panah
 modules/lyrics.js      fetch LRCLIB + parse LRC + cache
 modules/lyrics-page.js tampilan lirik (sub-bagian media: meta kiri + daftar sinkron kanan)
@@ -859,7 +921,11 @@ modules/chat.js        state chat + Gemini API (curl, key file 0600) + input rof
 modules/chat-page.js   halaman chat: bubble riwayat, indikator mengetik, Hapus/Ulangi
 .env.example          template API key (salin ke ~/.config/dynamic-iland/.env)
 gemini.example.json   template fallback format JSON
-modules/pomodoro.js    timer fokus / istirahat singkat / istirahat panjang + chime & notifikasi
+modules/pomodoro.js    timer fokus / istirahat / panjang, persistensi deadline + chime & notifikasi
+modules/pomodoro-osd.js kartu OSD kanan atas pomodoro (lebar, aksi, menetap, animasi selesai)
+modules/standup.js      state standup + persistensi + pengingat Senin-Jumat 10:00
+modules/standup-page.js halaman ringkas standup di island
+modules/standup-window.js popup standup: tiga daftar, tambah/hapus, simpan
 modules/pomodoro-page.js halaman pomodoro (ring + countdown + pill)
 modules/water.js       state air + persistensi JSON + pengingat tiap jam
 modules/water-page.js  halaman water (volume, progress, switch, grafik)
@@ -1048,6 +1114,11 @@ ags -r "globalThis.dynIsland.stepPage(1)"            # pindah + pin halaman
 ags -r "globalThis.dynIsland.retryLyrics()"          # ambil ulang lirik lagu ini
 ags -r "JSON.stringify(globalThis.dynIsland.prayer.value)"  # jadwal sholat + next
 ags -r "globalThis.dynIsland.prayerNotify('maghrib')"       # notifikasi sholat uji
+ags -r "globalThis.dynIsland.standupWindow.open()"           # buka popup daily standup
+ags -r "globalThis.dynIsland.standupApi.remind()"            # pengingat + lonceng
+ags -r "globalThis.dynIsland.standupApi.titleFor(1)"         # judul versi Senin (Friday)
+ags -r "JSON.stringify(globalThis.dynIsland.standupApi.state.value)"  # isi standup
+ags -r "String(globalThis.dynIsland.pomodoroCard.visible)"   # kartu OSD pomodoro
 ```
 
 `tools/test-nav.sh` menggerakkan pointer dan mengklik lewat `/dev/uinput`
@@ -1065,7 +1136,8 @@ dan sebagai **badan fungsi async** (jadi `return` valid) kalau ada `await`.
 `pomodoroSetMode`, `pomodoroToggle`, `pomodoroReset`, `water`, `waterDrink`,
 `waterSetGoal`, `waterToggleReminder`, `todo`, `todoAdd`, `todoToggle`,
 `todoRemove`, `shelf`, `shelfAdd`, `shelfRemove`, `shelfClear`,
-`shelfDragOver`, `stepPage`, `pinPage`, `PAGE_ORDER`, `isPinned`.
+`shelfDragOver`, `stepPage`, `pinPage`, `PAGE_ORDER`, `isPinned`, `pomodoroCard`,
+`standupWindow`, `standupApi`, `notifInvoke`.
 
 Catatan: untuk memaksa halaman non-media saat musik playing, pakai
 `showTransient(name, ms)`; `page.value` saja akan ditimpa `refreshBase()`.
