@@ -17,7 +17,7 @@ const countdown = ms => {
 };
 
 export default () => {
-    const title = Widget.Label({ className: 'dyn-island-cal-title', xalign: 0 });
+    const title = Widget.Label({ className: 'dyn-island-cal-title', xalign: 0, maxWidthChars: 34 });
     const when = Widget.Label({ className: 'dyn-island-cal-when', xalign: 0 });
     const hint = Widget.Label({ className: 'dyn-island-cal-hint', xalign: 0, wrap: true, maxWidthChars: 46 });
     const list = Widget.Box({ className: 'dyn-island-cal-list', vertical: true, spacing: 3 });
@@ -36,7 +36,10 @@ export default () => {
             return;
         }
 
-        title.label = next.title;
+        // judul panjang tidak boleh melebarkan notch melebihi geometri 420
+        title.label = String(next.title ?? '').length > 34
+            ? `${String(next.title).slice(0, 33)}…`
+            : String(next.title ?? '');
         when.label = next.allDay
             ? 'sepanjang hari'
             : `${hhmm(next.start)} – ${hhmm(next.end)}  ·  ${countdown(next.start - Date.now())}`;
