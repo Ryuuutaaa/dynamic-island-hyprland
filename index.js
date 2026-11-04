@@ -145,10 +145,32 @@ function Ear(side) {
 // tetap terbuka walau kursor di tempat lain, jadi flag ini membuat watchdog
 // hover dan leave-notify tidak menutupnya sampai hotkey ditekan lagi.
 let forcedOpen = false;
+let forcedTimer = 0;
+
+// Batas waktu buka-paksa: kalau tidak ada interaksi, notch kembali menutup
+// sendiri. Tanpa ini island bisa tertahan terbuka setelah SUPER+N (bug yang
+// membuat "tidak bisa balik ke default").
+const FORCED_TIMEOUT = CONFIG.pinTimeout ?? 10000;
 
 function toggleOpen(force) {
     forcedOpen = typeof force === 'boolean' ? force : !forcedOpen;
+    if (forcedTimer) {
+        GLib.source_remove(forcedTimer);
+        forcedTimer = 0;
+    }
+    if (forcedOpen) {
+        forcedTimer = GLib.timeout_add(GLib.PRIORITY_DEFAULT, FORCED_TIMEOUT, () => {
+            forcedTimer = 0;
+            forcedOpen = false;
+            hovered.value = false;
+            try { refreshBase(); } catch (_) { }
+            return GLib.SOURCE_REMOVE;
+        });
+    }
     hovered.value = forcedOpen;
+    // kembali ke halaman default (idle/media) saat ditutup, jangan tinggalkan
+    // halaman statistik/kalender menempel di base page
+    if (!forcedOpen) { try { refreshBase(); } catch (_) { } }
     return forcedOpen;
 }
 
