@@ -56,6 +56,7 @@ export default {
     // 'idle' dan 'media' selalu aktif karena menjadi base page.
     modules: {
         weather: true,
+        timer: true,
         pomodoro: true,
         water: true,
         todo: true,

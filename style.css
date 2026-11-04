@@ -1159,3 +1159,55 @@ tooltip > box {
     font-size: 11px;
     color: __MUTED__;
 }
+
+
+/* ── Timer bebas & stopwatch ───────────────────────────────────── */
+.dyn-island-timer-time {
+    font-size: 34px;
+    font-weight: 700;
+    color: __FG__;
+}
+
+.dyn-island-timer-sub {
+    font-size: 11px;
+    color: __MUTED__;
+}
+
+.dyn-island-timer-preset {
+    padding: 1px 7px;
+    border-radius: 7px;
+    background: __SURFACE__;
+}
+
+.dyn-island-timer-preset:hover {
+    background: __SURFACE_HOVER__;
+}
+
+.dyn-island-timer-preset label {
+    font-size: 10px;
+    color: __MUTED__;
+}
+
+.dyn-island-timer-btn {
+    padding: 2px 10px;
+    border-radius: 9px;
+    background: __SURFACE__;
+}
+
+.dyn-island-timer-btn:hover {
+    background: __SURFACE_HOVER__;
+}
+
+.dyn-island-timer-btn label {
+    font-size: 12px;
+    color: __FG__;
+}
+
+.dyn-island-pill.is-active {
+    background: __ACCENT__;
+}
+
+.dyn-island-pill.is-active label {
+    color: #14161a;
+    font-weight: 600;
+}

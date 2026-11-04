@@ -52,6 +52,8 @@ import PomodoroOsd from './modules/pomodoro-osd.js';
 import StandupPage from './modules/standup-page.js';
 import WeatherPage from './modules/weather-page.js';
 import { watchWeather, weather as weatherState, refreshWeather } from './modules/weather.js';
+import TimerPage from './modules/timer-page.js';
+import { timer as timerState, restoreTimer, applyPreset as timerPreset, toggleRunning as timerToggle, resetTimer as timerReset, setMode as timerSetMode } from './modules/timer.js';
 import StandupWindow from './modules/standup-window.js';
 import { scheduleStandupReminder, titleForDay as standupTitle, addItem as standupAdd, removeItem as standupRemove, saveStandup as standupSave, loadStandup as standupLoad, remindNow as standupRemind, standup as standupStore } from './modules/standup.js';
 import GeminiChat from './modules/chat-window.js';
@@ -175,6 +177,7 @@ function DynamicIsland() {
             weather: WeatherPage(),
             lyrics: LyricsPage(),
             pomodoro: PomodoroPage(),
+            timer: TimerPage(),
             water: WaterPage(),
             todo: TodoPage(),
             standup: StandupPage(),
@@ -850,6 +853,7 @@ const dyn = {
     shelf, shelfAdd, shelfRemove, shelfClear, shelfDragOver, shelfUndo, shelfUndoLast,
     toggleOpen, closeIsland,
     weather: weatherState, refreshWeather,
+    timer: timerState, timerPreset, timerToggle, timerReset, timerSetMode,
 };
 globalThis.dynIsland = dyn;
 
@@ -974,6 +978,7 @@ registerLocalAction('Standup', () => globalThis.standupWindow?.toggle?.());
 scheduleStandupReminder();
 // Cuaca hanya di-poll kalau modulnya aktif (prinsip: tanpa request diam-diam).
 if (CONFIG.modules?.weather !== false) watchWeather();
+restoreTimer();
 dyn.notifInvoke = notifInvoke;
 dyn.standupApi = {
     add: standupAdd, remove: standupRemove, save: standupSave,
