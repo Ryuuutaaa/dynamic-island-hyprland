@@ -1,22 +1,62 @@
 import GLib from 'gi://GLib';
 import Gtk from 'gi://Gtk?version=3.0';
 import Widget from 'resource:///com/github/Aylur/ags/widget.js';
-import { page, stepPage, PAGE_ORDER } from '../state.js';
+import { page, stepPage, pinPage, mediaView, PAGE_ORDER } from '../state.js';
 import { palette, hexToRgb } from '../theme.js';
 import { roundedRect } from '../draw.js';
 
-const DOT = 4;
-const DOT_ACTIVE = 12;
-const DOT_GAP = 5;
-const DOTS_HEIGHT = 10;
-const DOTS_WIDTH =
-    DOT * (PAGE_ORDER.length - 1) + DOT_ACTIVE + DOT_GAP * (PAGE_ORDER.length - 1);
+// Navigasi gaya Poni: tab strip ikon 7 slot yang bergeser mengikuti halaman
+// aktif, panah untuk langkah satuan, dan titik halaman kecil di bawahnya saat
+// jumlah halaman lebih dari 7. Tujuh slot menjaga lebar pill tetap ±230px di
+// kartu 420 tanpa mengubah tinggi nav (24 ikon + 1 + 3 titik = 28px).
+const SLOTS = 7;
+const DOT = 2;
+const DOT_ACTIVE = 7;
+const DOT_GAP = 2;
+const DOTS_HEIGHT = 3;
 
 const DOT_RGB = hexToRgb(palette.fg);
 
-// 5 titik, yang aktif lebih panjang & lebih terang (gaya Nusa).
-// Digambar Cairo dan selalu di tengah tinggi yang diberikan, karena AGS
-// menambahkan child ke Box dengan fill=TRUE.
+const ICONS = {
+    idle: '\uf017',
+    media: '\uf001',
+    weather: '\uf0c2',
+    calendar: '\uf073',
+    pomodoro: '\uf252',
+    timer: '\uf2f2',
+    stats: '\uf080',
+    water: '\uf043',
+    todo: '\uf0ae',
+    standup: '\uf0c0',
+    shelf: '\uf07b',
+    bluetooth: '\uf293',
+    prayer: '\uf02d',
+    chat: '\uf075',
+};
+
+const LABELS = {
+    idle: 'Ringkasan',
+    media: 'Media',
+    weather: 'Cuaca',
+    calendar: 'Kalender',
+    pomodoro: 'Pomodoro',
+    timer: 'Timer',
+    stats: 'Statistik',
+    water: 'Air',
+    todo: 'Tugas',
+    standup: 'Standup',
+    shelf: 'Shelf',
+    bluetooth: 'Bluetooth',
+    prayer: 'Sholat',
+    chat: 'Chat',
+};
+
+const DOTS_WIDTH = DOT * (PAGE_ORDER.length - 1)
+    + DOT_ACTIVE + DOT_GAP * (PAGE_ORDER.length - 1);
+
+// Titik halaman: hanya ditampilkan kalau halaman lebih banyak dari slot
+// (audit: dot tetap untuk >7 halaman). Digambar Cairo supaya bentuk aktif
+// (kapsul) dan non-aktif (bulat) konsisten dengan badan notch.
 const Dots = () => {
     let active = Math.max(0, PAGE_ORDER.indexOf(page.value));
 
@@ -37,7 +77,7 @@ const Dots = () => {
             const y = (height - DOT) / 2;
 
             widths.forEach((w, i) => {
-                cr.setSourceRGBA(DOT_RGB[0], DOT_RGB[1], DOT_RGB[2], i === active ? 0.95 : 0.38);
+                cr.setSourceRGBA(DOT_RGB[0], DOT_RGB[1], DOT_RGB[2], i === active ? 0.9 : 0.35);
                 roundedRect(cr, x, y, w, DOT, DOT / 2);
                 cr.fill();
                 x += w + DOT_GAP;
@@ -46,22 +86,21 @@ const Dots = () => {
     });
 };
 
-// Panah aktif saat PRESS, bukan release.
-//
-// Pill nav di-anchor ke dasar notch, jadi selama notch membuka/menutup pill-nya
-// ikut bergerak; kalau aksi menunggu release, tombol sudah pindah dan release
-// jatuh di luar tombol -> klik dibatalkan (ini penyebab "next kadang tidak
-// bekerja"). Dengan aksi di press, yang diklik adalah posisi yang terlihat saat
-// itu juga. return true menelan event supaya GtkButton tidak ikut memproses dan
-// memicu aksi kedua saat release.
-//
-// Dedupe: untuk klik kedua dalam satu double-click, GDK mengirim BUTTON_PRESS
-// *dan* 2BUTTON_PRESS, dan GTK3 memancarkan button-press-event untuk keduanya
-// (terukur: 2 klik fisik -> 3 emission, dua di antaranya pada ms yang sama).
-// Tanpa dedupe, dua klik cepat = tiga langkah halaman. Field `event.type`
-// tidak terbaca di GJS ini, jadi dipakai jarak waktu: emission ganda datang
-// ~0ms, sedangkan klik manusia >= 80ms.
+// Aksi di PRESS, bukan release, karena pill nav ikut bergerak selama notch
+// membuka/menutup: menunggu release membuat tombol sudah pindah dan klik
+// dibatalkan. Dedupe 40ms menahan emission ganda untuk double-click.
 const PRESS_DEDUPE_MS = 40;
+
+const bindPress = (button, action) => {
+    let lastPress = 0;
+    button.connect('button-press-event', () => {
+        const now = GLib.get_monotonic_time() / 1000;
+        if (now - lastPress < PRESS_DEDUPE_MS) return true;
+        lastPress = now;
+        action();
+        return true;
+    });
+};
 
 const Arrow = (glyph, delta, tooltip) => {
     const button = Widget.Button({
@@ -69,35 +108,104 @@ const Arrow = (glyph, delta, tooltip) => {
         tooltipText: tooltip,
         child: Widget.Label({ className: 'dyn-island-nav-arrow', label: glyph }),
     });
-    let lastPress = 0;
-    button.connect('button-press-event', () => {
-        const now = GLib.get_monotonic_time() / 1000;
-        if (now - lastPress < PRESS_DEDUPE_MS) return true;
-        lastPress = now;
-        stepPage(delta);
-        return true;
-    });
+    bindPress(button, () => stepPage(delta));
     return button;
+};
+
+const navigate = name => {
+    if (name !== 'media') mediaView.value = 'main';
+    // chat bertahan sampai user pindah halaman; halaman lain kembali ke base
+    // setelah pinTimeout supaya notifikasi/OSD tidak tertahan.
+    pinPage(name, { sticky: name === 'chat' });
+};
+
+// Satu slot bisa berganti halaman saat jendela 7 ikon bergeser; widget-nya
+// tidak dibuat ulang supaya tidak ada alokasi/reparent per pindah halaman.
+const TabSlot = () => {
+    let name = null;
+    const icon = Widget.Label({ className: 'dyn-island-nav-icon' });
+    const button = Widget.Button({
+        className: 'dyn-island-nav-tab',
+        child: icon,
+        visible: false,
+    });
+    bindPress(button, () => { if (name) navigate(name); });
+
+    return {
+        button,
+        setName: next => {
+            name = next;
+            icon.label = ICONS[next] ?? '·';
+            button.tooltipText = LABELS[next] ?? next;
+            button.visible = true;
+            button.show();
+        },
+        hide: () => {
+            name = null;
+            button.visible = false;
+        },
+        setActive: active => {
+            button.className = active
+                ? 'dyn-island-nav-tab is-active'
+                : 'dyn-island-nav-tab';
+        },
+    };
 };
 
 export default () => {
     const dots = Dots();
+    const slots = Array.from({ length: SLOTS }, () => TabSlot());
+    const tabs = Widget.Box({
+        className: 'dyn-island-nav-tabs',
+        spacing: 2,
+        children: slots.map(slot => slot.button),
+    });
+
+    const row = Widget.Box({
+        className: 'dyn-island-nav-row',
+        spacing: 6,
+        halign: Gtk.Align.CENTER,
+        children: [
+            Arrow('\uf053', -1, 'Halaman sebelumnya'),
+            tabs,
+            Arrow('\uf054', 1, 'Halaman berikutnya'),
+        ],
+    });
 
     const nav = Widget.Box({
         className: 'dyn-island-nav',
-        // overlay GtkOverlay dialokasikan penuh area -> minta ukuran natural
-        // dan taruh di tengah-bawah kartu (gaya Nusa: dots di bawah).
-        // Pakai enum Gtk.Align (string 'center' tidak dikonversi gjs).
+        vertical: true,
+        spacing: 1,
         halign: Gtk.Align.CENTER,
         valign: Gtk.Align.END,
-        spacing: 8,
-        children: [Arrow('\uf053', -1, 'Halaman sebelumnya'), dots, Arrow('\uf054', 1, 'Halaman berikutnya')],
-        setup: self => self.hook(page, () => {
-            if (typeof dots.setActive === 'function')
-                dots.setActive(PAGE_ORDER.indexOf(page.value));
-        }),
+        children: [row, dots],
     });
 
-    nav.visible = false;
+    const sync = () => {
+        const count = PAGE_ORDER.length;
+        const active = Math.max(0, PAGE_ORDER.indexOf(page.value));
+        const visible = Math.min(SLOTS, count);
+        const start = count <= SLOTS
+            ? 0
+            : Math.max(0, Math.min(active - Math.floor(visible / 2), count - visible));
+
+        slots.forEach((slot, index) => {
+            if (index >= visible) {
+                slot.hide();
+                return;
+            }
+            const name = PAGE_ORDER[start + index];
+            slot.setName(name);
+            slot.setActive(name === PAGE_ORDER[active]);
+        });
+
+        // titik hanya untuk >7 halaman (fallback sesuai audit)
+        dots.visible = count > SLOTS;
+        dots.setActive(active);
+    };
+
+    sync();
+    nav.hook(page, sync);
+    nav.set_no_show_all(true);
     return nav;
 };

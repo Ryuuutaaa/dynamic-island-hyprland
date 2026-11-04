@@ -192,7 +192,7 @@ memang berisi device (`Redmi Buds 6`, baterai 65%, sink
 idle tidak pernah ter-map (terukur `visible=true`, `mapped=false`). Selain itu
 barisnya hanya satu teks tanpa info device maupun pengaturan volume.
 
-Sekarang ada **halaman `bluetooth`** (dot nav ke-7) yang menampilkan:
+Sekarang ada **halaman `bluetooth`** (tab nav ke-12) yang menampilkan:
 
 - ikon device, nama, tipe (Headset/Speaker/...), alamat, dan baterai;
 - slider volume Cairo (klik + drag) beserta persentase;
@@ -661,22 +661,30 @@ Catatan penting:
   sehingga yang diverifikasi adalah: registrasi drop target (0 error),
   jalur data (`addPaths`), UI, dan persistensi.
 
-## Navigasi (page dots + panah)
+## Navigasi (tab strip ikon + panah)
 
-Saat **expanded** (dan di state lirik), muncul baris navigasi `‹ ● ●●●●● ›`
-di bawah-tengah kartu (latar **transparan** — hanya titik & panah yang terlihat;
-**10 titik** = `PAGE_ORDER` (idle, media, pomodoro, water, todo, standup, shelf, bluetooth, prayer, chat); lirik bukan halaman, jadi
-tidak punya dot). Titik aktif memanjang & terang — saat tampilan lirik terbuka,
-titik yang aktif tetap **media**.
-Panah memanggil `stepPage(±1)` lalu halaman itu **di-pin** selama `pinTimeout`
-(10s), setelah itu kembali ke `basePage()`. Transient tetap menimpa pin dan
-kembali ke halaman yang di-pin (`restingPage = pinned ?? basePage()`). Di
-tampilan lirik, panah **kiri** mengembalikan ke kartu musik (bukan ke halaman
-sebelumnya) dan panah kanan tetap lanjut ke halaman berikutnya; pindah halaman
-selalu menutup sub-tampilan lirik.
+Saat **expanded** (dan di state lirik), muncul baris navigasi `‹ [7 ikon] ›`
+di bawah-tengah kartu (latar **transparan** — hanya ikon, titik, dan panah yang
+terlihat). Tujuh slot menampilkan jendela `PAGE_ORDER` di sekitar halaman aktif:
+halaman aktif selalu terlihat, slot lain bergeser saat halaman berubah. Ikon
+aktif memakai kapsul aksen; saat tampilan lirik terbuka, tab **media** tetap
+aktif (lirik bukan halaman nav).
+
+Kalau `PAGE_ORDER` lebih dari 7 halaman, baris titik 3px di bawah ikon menjadi
+indikator posisi (titik aktif memanjang & terang). Dengan modul bawaan, urutannya
+idle, media, weather, calendar, pomodoro, timer, stats, water, todo, standup,
+shelf, bluetooth, prayer, chat.
+
+Klik ikon memanggil `pinPage()`; `chat` bertahan sampai user pindah halaman,
+halaman lain di-pin selama `pinTimeout` (10s) lalu kembali ke `basePage()`.
+Panah memanggil `stepPage(±1)` dengan aturan pin yang sama. Transient tetap
+menimpa pin dan kembali ke halaman yang di-pin
+(`restingPage = pinned ?? basePage()`). Di tampilan lirik, panah **kiri**
+mengembalikan ke kartu musik (bukan ke halaman sebelumnya) dan panah kanan tetap
+lanjut ke halaman berikutnya; pindah halaman selalu menutup sub-tampilan lirik.
 Nav adalah `Gtk.Overlay` sehingga **tidak menambah ukuran** notch, tapi ruangnya
 dipotong dari tinggi isi konten (`stack.margin_bottom = NAV_SPACE = 34`) — lihat
-bagian Motion. Target klik panah 18px (dulu 14px) dan keduanya punya tooltip.
+bagian Motion. Target klik ikon dan panah 24px dan semuanya punya tooltip.
 
 **Panah aktif saat press, bukan release.** Nav di-anchor ke dasar notch,
 jadi selama notch membuka/menutup posisinya ikut bergerak (terukur: posisi nav
