@@ -2,13 +2,12 @@ import Gtk from 'gi://Gtk?version=3.0';
 import Widget from 'resource:///com/github/Aylur/ags/widget.js';
 import { weather, glyphFor, labelFor } from './weather.js';
 
-// Halaman cuaca v2: satu blok fokus (ikon + suhu) di kiri, tiga kartu hari di
-// kanan. Semua teks memakai skala yang sama dengan halaman lain (suhu 34px,
-// label 10px), jadi tidak terasa seperti tabel kecil yang berdesakan.
+// Cuaca v3: hero di kiri (ikon + suhu sebaris, kondisi di bawahnya) dan tiga
+// kartu hari di kanan. Suhu maks/min dibedakan bobot & warna, bukan ditulis
+// "31°/24°" yang sulit dipindai.
 
 const DAYS = ['Min', 'Sen', 'Sel', 'Rab', 'Kam', 'Jum', 'Sab'];
 const dayName = (iso, index) => {
-    if (index === 0) return 'Hari ini';
     if (index === 1) return 'Besok';
     const [year, month, day] = String(iso).split('-').map(Number);
     const date = new Date(year, (month ?? 1) - 1, day ?? 1);
@@ -21,12 +20,30 @@ const clockOf = epoch => {
     return `${String(date.getHours()).padStart(2, '0')}:${String(date.getMinutes()).padStart(2, '0')}`;
 };
 
+const dayTile = value => Widget.Box({
+    className: 'dyn-island-weather-tile',
+    vertical: true,
+    spacing: 2,
+    children: [
+        Widget.Label({ className: 'dyn-island-weather-tile-day', label: value.day }),
+        Widget.Label({ className: 'dyn-island-weather-tile-glyph', label: value.glyph }),
+        Widget.Box({
+            className: 'dyn-island-weather-tile-temps',
+            spacing: 3,
+            halign: Gtk.Align.CENTER,
+            children: [
+                Widget.Label({ className: 'dyn-island-weather-tile-max', label: `${value.max}°` }),
+                Widget.Label({ className: 'dyn-island-weather-tile-min', label: `${value.min}°` }),
+            ],
+        }),
+    ],
+});
+
 export default () => {
     const glyph = Widget.Label({ className: 'dyn-island-weather-glyph' });
     const temp = Widget.Label({ className: 'dyn-island-weather-temp' });
     const condition = Widget.Label({ className: 'dyn-island-weather-condition', xalign: 0 });
-    const meta = Widget.Label({ className: 'dyn-island-weather-meta', xalign: 0 });
-    const place = Widget.Label({ className: 'dyn-island-weather-place', xalign: 1 });
+    const place = Widget.Label({ className: 'dyn-island-weather-place', xalign: 0 });
     const days = Widget.Box({ className: 'dyn-island-weather-days', spacing: 6 });
 
     const sync = () => {
@@ -35,60 +52,41 @@ export default () => {
         glyph.label = has ? glyphFor(value.code, value.isDay) : '·';
         temp.label = has ? `${value.temp}°` : '—';
         condition.label = has
-            ? labelFor(value.code)
+            ? `${labelFor(value.code)} · terasa ${value.feels}°`
             : (value.error ? 'Tidak ada data' : 'Memuat…');
-        meta.label = has ? `terasa ${value.feels}°` : '';
-        meta.visible = has;
-        place.label = [value.city, clockOf(value.updatedAt)].filter(Boolean).join(' · ');
+        place.label = [value.city, clockOf(value.updatedAt)].filter(Boolean).join('  ·  ');
 
-        days.children = (value.daily || []).slice(1, 4).map((day, index) => Widget.Box({
-            className: 'dyn-island-weather-tile',
-            vertical: true,
-            spacing: 1,
-            children: [
-                Widget.Label({
-                    className: 'dyn-island-weather-tile-day',
-                    label: dayName(day.date, index + 1),
-                    xalign: 0.5,
-                }),
-                Widget.Label({ className: 'dyn-island-weather-tile-glyph', label: glyphFor(day.code) }),
-                Widget.Label({
-                    className: 'dyn-island-weather-tile-temp',
-                    label: `${day.max}° / ${day.min}°`,
-                }),
-            ],
+        days.children = (value.daily || []).slice(1, 4).map(day => dayTile({
+            day: dayName(day.date, value.daily.indexOf(day)),
+            glyph: glyphFor(day.code),
+            max: day.max,
+            min: day.min,
         }));
     };
 
     return Widget.Box({
         className: 'dyn-island-weather',
-        spacing: 16,
+        spacing: 14,
         valign: Gtk.Align.CENTER,
         children: [
             Widget.Box({
                 className: 'dyn-island-weather-now',
-                spacing: 8,
+                vertical: true,
+                spacing: 2,
                 valign: Gtk.Align.CENTER,
-                widthRequest: 148,
+                widthRequest: 168,
                 children: [
-                    glyph,
                     Widget.Box({
-                        className: 'dyn-island-weather-readout',
-                        vertical: true,
-                        spacing: 0,
-                        valign: Gtk.Align.CENTER,
-                        children: [temp, condition, meta],
+                        className: 'dyn-island-weather-hero',
+                        spacing: 6,
+                        children: [glyph, temp],
                     }),
+                    condition,
+                    place,
                 ],
             }),
-            Widget.Box({
-                className: 'dyn-island-weather-right',
-                vertical: true,
-                spacing: 4,
-                valign: Gtk.Align.CENTER,
-                hexpand: true,
-                children: [place, days],
-            }),
+            Widget.Box({ className: 'dyn-island-weather-spacer', hexpand: true }),
+            days,
         ],
         setup: self => {
             sync();

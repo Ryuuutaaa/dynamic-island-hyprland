@@ -8,9 +8,11 @@ import {
 // (mode -> preset 2 baris -> aksi utama). Tidak ada lagi delapan pill kecil
 // berjejer yang saling menempel.
 
+// Label memakai tanda menit (′) supaya terbaca sebagai durasi, dan tombol
+// yang sedang aktif diberi kelas is-active (setara dengan total saat ini).
 const presetButton = minutes => Widget.Button({
     className: 'dyn-island-timer-preset',
-    child: Widget.Label({ label: `${minutes}m` }),
+    child: Widget.Label({ label: `${minutes}′` }),
     onClicked: () => applyPreset(minutes),
 });
 
@@ -29,12 +31,13 @@ export default () => {
         onClicked: () => setMode('stopwatch'),
     });
 
+    const buttons = PRESETS.map(minutes => ({ minutes, button: presetButton(minutes) }));
     const rows = [];
-    for (let index = 0; index < PRESETS.length; index += 4) {
+    for (let index = 0; index < buttons.length; index += 4) {
         rows.push(Widget.Box({
             className: 'dyn-island-timer-preset-row',
             spacing: 4,
-            children: PRESETS.slice(index, index + 4).map(presetButton),
+            children: buttons.slice(index, index + 4).map(item => item.button),
         }));
     }
 
@@ -63,7 +66,14 @@ export default () => {
         sub.label = isTimer
             ? `${Math.round(value.total / 60)} menit${value.running ? '' : ' · jeda'}`
             : `Stopwatch${value.running ? ' · jalan' : ' · jeda'}`;
-        play.child.label = value.running ? 'Jeda' : 'Mulai';
+        play.child.label = value.running ? '⏸  Jeda' : '▶  Mulai';
+        const totalMinutes = Math.round(value.total / 60);
+        for (const item of buttons) {
+            const active = isTimer && !value.running && item.minutes === totalMinutes;
+            item.button.className = active
+                ? 'dyn-island-timer-preset is-active'
+                : 'dyn-island-timer-preset';
+        }
         play.className = value.running ? 'dyn-island-timer-play is-running' : 'dyn-island-timer-play';
         modeTimer.className = isTimer ? 'dyn-island-timer-mode is-active' : 'dyn-island-timer-mode';
         modeStopwatch.className = isTimer ? 'dyn-island-timer-mode' : 'dyn-island-timer-mode is-active';
@@ -78,23 +88,27 @@ export default () => {
             Widget.Box({
                 className: 'dyn-island-timer-main',
                 vertical: true,
-                spacing: 1,
+                spacing: 0,
                 valign: Gtk.Align.CENTER,
-                widthRequest: 132,
-                children: [time, sub],
+                widthRequest: 128,
+                children: [
+                    time,
+                    sub,
+                    Widget.Box({
+                        className: 'dyn-island-timer-modes',
+                        spacing: 4,
+                        margin_top: 2,
+                        children: [modeTimer, modeStopwatch],
+                    }),
+                ],
             }),
             Widget.Box({
                 className: 'dyn-island-timer-controls',
                 vertical: true,
-                spacing: 6,
+                spacing: 5,
                 valign: Gtk.Align.CENTER,
                 hexpand: true,
                 children: [
-                    Widget.Box({
-                        className: 'dyn-island-timer-modes',
-                        spacing: 4,
-                        children: [modeTimer, modeStopwatch],
-                    }),
                     presets,
                     Widget.Box({
                         className: 'dyn-island-timer-actions',

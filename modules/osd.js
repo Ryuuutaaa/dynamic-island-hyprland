@@ -11,7 +11,7 @@ import { showTransient, page } from '../state.js';
 import { roundedRect } from '../draw.js';
 import { eventButton, eventX } from './pointer.js';
 
-const BAR_HEIGHT = 5;
+const BAR_HEIGHT = 6;
 // Area klik/geser lebih tinggi dari bar: 5px terlalu tipis untuk ditunjuk.
 const BAR_HIT = 18;
 const BAR_WIDTH = 110;
@@ -90,7 +90,7 @@ const bar = (onSet = null) => {
 
             // knob: titik terang di ujung isi, petunjuk bar bisa digeser
             const knob = Math.min(width - 2, Math.max(2, filled));
-            cr.arc(knob, height / 2, 3.2, 0, Math.PI * 2);
+            cr.arc(knob, height / 2, 4.2, 0, Math.PI * 2);
             cr.setSourceRGBA(TRACK_RGB[0], TRACK_RGB[1], TRACK_RGB[2], 0.95);
             cr.fill();
         },

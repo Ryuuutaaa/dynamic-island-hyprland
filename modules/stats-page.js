@@ -4,23 +4,23 @@ import { palette, hexToRgb } from '../theme.js';
 import { roundedRect } from '../draw.js';
 import { stats } from './sysstats.js';
 
-// Halaman statistik: tiga metrik utama (CPU / RAM / suhu) dengan bar tipis,
-// lalu dua baris ringkas untuk swap, load, uptime, dan disk. Semua angka
-// berasal dari satu panggilan Rust (`hypr-status stats`).
+// Halaman statistik v2: tiga kartu permukaan (bukan teks mengambang) dengan
+// label kecil, angka besar, bar, dan satu baris detail per kartu. Semua info
+// penting ada di dalam kartunya, jadi tidak ada lagi dua baris footer panjang.
 
 const FG = hexToRgb(palette.fg);
 const ACCENT = hexToRgb(palette.accent2);
 const DANGER = hexToRgb(palette.danger ?? palette.accent);
-const WARN_AT = 0.8;
+const WARN_AT = 80;
 
-const gauge = (width = 104) => {
+const gauge = width => {
     let fraction = 0;
     let warn = false;
 
     return Widget.DrawingArea({
         className: 'dyn-island-stats-bar',
         setup: self => {
-            self.set_size_request(width, 5);
+            self.set_size_request(width, 6);
             self.setValue = (value, isWarn) => {
                 const next = Math.max(0, Math.min(1, Number(value) || 0));
                 if (next === fraction && isWarn === warn) return;
@@ -30,9 +30,9 @@ const gauge = (width = 104) => {
             };
         },
         drawFn: (self, cr, w, height) => {
-            const barH = 5;
+            const barH = 6;
             const y = (height - barH) / 2;
-            cr.setSourceRGBA(FG[0], FG[1], FG[2], 0.16);
+            cr.setSourceRGBA(FG[0], FG[1], FG[2], 0.14);
             roundedRect(cr, 0, y, w, barH, barH / 2);
             cr.fill();
             if (fraction <= 0) return;
@@ -44,86 +44,75 @@ const gauge = (width = 104) => {
     });
 };
 
-const metric = (title, width = 104) => {
+const card = (title, width) => {
     const value = Widget.Label({ className: 'dyn-island-stats-value', xalign: 0 });
+    const detail = Widget.Label({ className: 'dyn-island-stats-detail', xalign: 0 });
     const bar = gauge(width);
+
     const widget = Widget.Box({
-        className: 'dyn-island-stats-metric',
+        className: 'dyn-island-stats-card',
         vertical: true,
-        spacing: 2,
+        spacing: 3,
         hexpand: true,
         children: [
             Widget.Label({ className: 'dyn-island-stats-label', label: title, xalign: 0 }),
             value,
             bar,
+            detail,
         ],
     });
-    return { widget, value, bar };
+
+    return { widget, value, detail, bar };
 };
 
-export default () => {
-    const cpu = metric('CPU');
-    const ram = metric('RAM');
-    const temp = metric('SUHU');
+const gb = mb => (Number(mb) || 0) / 1024;
 
-    const footA = Widget.Label({ className: 'dyn-island-stats-foot', xalign: 0 });
-    const footB = Widget.Label({ className: 'dyn-island-stats-foot', xalign: 0 });
+export default () => {
+    const cpu = card('CPU', 100);
+    const ram = card('RAM', 100);
+    const temp = card('SUHU', 100);
 
     const sync = () => {
         const value = stats.value;
         if (!value) {
-            cpu.value.label = '—';
-            ram.value.label = '—';
-            temp.value.label = '—';
-            footA.label = 'Memuat statistik…';
-            footB.label = '';
+            for (const item of [cpu, ram, temp]) {
+                item.value.label = '—';
+                item.detail.label = '';
+            }
             return;
         }
 
-        const cpuPct = Number(value.cpu) || 0;
+        const cpuPercent = Number(value.cpu) || 0;
         const mem = value.mem ?? {};
         const swap = value.swap ?? {};
-        const disk = value.disk ?? {};
-
-        cpu.value.label = `${cpuPct.toFixed(cpuPct < 10 ? 1 : 0)}%`;
-        cpu.bar.setValue(cpuPct / 100, cpuPct >= WARN_AT * 100);
-
-        ram.value.label = `${mem.pct ?? 0}%`;
-        ram.bar.setValue((mem.pct ?? 0) / 100, (mem.pct ?? 0) >= WARN_AT * 100);
-
         const degrees = Number(value.temp);
+        const load = Number(value.load?.[0]) || 0;
+
+        cpu.value.label = `${cpuPercent.toFixed(cpuPercent < 10 ? 1 : 0)}%`;
+        cpu.bar.setValue(cpuPercent / 100, cpuPercent >= WARN_AT);
+        cpu.detail.label = `load ${load.toFixed(2)}`;
+
+        const memPercent = Number(mem.pct) || 0;
+        ram.value.label = `${memPercent}%`;
+        ram.bar.setValue(memPercent / 100, memPercent >= WARN_AT);
+        ram.detail.label = `${gb(mem.used).toFixed(1)} / ${gb(mem.total).toFixed(1)} GB`;
+        if (Number(swap.used) > 0)
+            ram.detail.label += ` · swap ${gb(swap.used).toFixed(1)}`;
+
         temp.value.label = Number.isFinite(degrees) ? `${Math.round(degrees)}°` : '—';
         temp.bar.setValue(Number.isFinite(degrees) ? Math.min(1, degrees / 100) : 0, degrees >= 85);
-
-        footA.label = [
-            `${(mem.used / 1024).toFixed(1)} / ${(mem.total / 1024).toFixed(1)} GB`,
-            `swap ${(swap.used / 1024).toFixed(1)} / ${(swap.total / 1024).toFixed(1)} GB`,
-            `load ${(value.load?.[0] ?? 0).toFixed(2)}`,
-        ].join('  ·  ');
-
-        const minutes = Math.floor((value.uptime ?? 0) / 60);
-        const uptime = minutes >= 60 ? `${Math.floor(minutes / 60)}j ${minutes % 60}m` : `${minutes}m`;
-        footB.label = [
-            `up ${uptime}`,
-            `disk / ${disk.root?.pct ?? 0}%`,
-            `/home ${disk.home?.pct ?? 0}%`,
-        ].join('  ·  ');
+        const disk = value.disk ?? {};
+        // detail kartu suhu harus berbicara soal suhu dulu; disk ikut sebagai
+        // info sekunder supaya label kartu tidak menipu.
+        const state = !Number.isFinite(degrees) ? '' : degrees >= 85 ? 'panas' : degrees >= 70 ? 'hangat' : 'normal';
+        temp.detail.label = [state, `disk / ${disk.root?.pct ?? 0}%`].filter(Boolean).join(' · ');
     };
 
     return Widget.Box({
         className: 'dyn-island-stats',
-        vertical: true,
-        spacing: 5,
+        spacing: 8,
         valign: Gtk.Align.CENTER,
-        children: [
-            Widget.Box({
-                className: 'dyn-island-stats-row',
-                spacing: 14,
-                children: [cpu.widget, ram.widget, temp.widget],
-            }),
-            footA,
-            footB,
-        ],
+        children: [cpu.widget, ram.widget, temp.widget],
         setup: self => {
             sync();
             self.hook(stats, sync);
