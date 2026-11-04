@@ -55,6 +55,7 @@ const describe = () => {
 };
 
 let seq = 0;
+let pendingExpire = -1;
 
 // Provider dikenal lewat app_name + hints.desktop-entry. Glyph Nerd Font
 // (brand): WhatsApp, Telegram, Discord. Selain ini popup memakai lonceng.
@@ -182,6 +183,8 @@ const flush = () => {
     if (!capturing) return;
     capturing = false;
     const captured = fields;
+    const expire = pendingExpire;
+    pendingExpire = -1;
     const acts = actions;
     fields = [];
     actions = [];
@@ -218,7 +221,7 @@ const flush = () => {
     const shownActions = isBrowser ? dropBrowserSettings(acts) : acts;
     current.value = { app, summary, body: text, provider };
     showTransient('notify', CONFIG.notifyTimeout);
-    latest.value = { app, icon, iconLocal, summary, body: text, actions: shownActions, provider, id: 0, seq: ++seq };
+    latest.value = { app, icon, iconLocal, summary, body: text, actions: shownActions, provider, expire, id: 0, seq: ++seq };
 };
 
 const parseLine = (line) => {
@@ -298,6 +301,10 @@ const parseLine = (line) => {
     // expire_time menutup argumen Notify; jaring pengaman kalau array actions
     // tidak terbaca (mis. format monitor berubah).
     if (/^int32 -?\d+$/.test(line)) {
+        // Int32 terakhir sebelum flush = expire_time (ms): -1 default server,
+        // 0 berarti tidak pernah kedaluwarsa.
+        pendingExpire = Number.parseInt(line.slice(6), 10);
+        if (!Number.isFinite(pendingExpire)) pendingExpire = -1;
         flush();
         return;
     }

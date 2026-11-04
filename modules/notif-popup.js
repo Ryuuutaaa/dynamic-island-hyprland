@@ -27,6 +27,20 @@ const INSET = 12;         // jarak kartu dari tepi atas/kanan layar
 const FULL = W + 2 * PAD;      // window = kartu + padding 10 kiri/kanan
 const CONTENT = W - 2 * PAD - 2; // isi kartu (dikurangi border 1px)
 const DURATION = 5000;    // loading bar = sisa waktu tampil (ms)
+const DURATION_MIN = 3000;
+const DURATION_MAX = 15000;
+const NEVER_EXPIRE_MS = 12000;
+
+// expire_time dari pengirim: -1 = default server, 0 = tidak pernah
+// kedaluwarsa, >0 = durasi yang diminta. Dibatasi supaya popup tidak
+// menetap terlalu lama atau hilang terlalu cepat.
+const durationFor = item => {
+    const expire = Number(item?.expire);
+    if (!Number.isFinite(expire)) return DURATION;
+    if (expire === 0) return NEVER_EXPIRE_MS;
+    if (expire < 0) return DURATION;
+    return Math.max(DURATION_MIN, Math.min(DURATION_MAX, expire));
+};
 const HOVER_MAX = 15000;  // batas hover: leave-notify bisa tidak terkirim
 const SLIDE = 240;        // durasi animasi masuk/keluar (ms)
 
@@ -93,6 +107,7 @@ export default () => {
 
     let timer = 0;
     let left = DURATION;
+    let duration = DURATION;
     let last = 0;
     let hovered = false;
     let hoveredAt = 0;
@@ -151,7 +166,7 @@ export default () => {
         if (hovered && hoveredAt && now - hoveredAt > HOVER_MAX) hovered = false;
         if (!hovered && last) left -= now - last;
         last = now;
-        bar.setFraction(left / DURATION);
+        bar.setFraction(duration > 0 ? left / duration : 0);
         if (left <= 0) {
             timer = 0;
             hide();
@@ -160,9 +175,10 @@ export default () => {
         return GLib.SOURCE_CONTINUE;
     };
 
-    const startTimer = () => {
+    const startTimer = (ms = DURATION) => {
         stopTimer();
-        left = DURATION;
+        duration = ms;
+        left = ms;
         hovered = false;
         bar.setFraction(1);
         timer = GLib.timeout_add(GLib.PRIORITY_DEFAULT, 50, tick);
@@ -404,7 +420,7 @@ export default () => {
                 return GLib.SOURCE_REMOVE;
             });
         }
-        startTimer();
+        startTimer(durationFor(item));
     };
 
     latest.connect('changed', () => {
