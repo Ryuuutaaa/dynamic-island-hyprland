@@ -130,6 +130,20 @@ function Ear(side) {
     return { widget: column, setSize: size => area.setEarSize(size) };
 }
 
+// ── buka paksa lewat hotkey (gaya Alt+N di Poni) ───────────────────
+// Hover hanya membuka selama pointer di atas notch. Hotkey global butuh notch
+// tetap terbuka walau kursor di tempat lain, jadi flag ini membuat watchdog
+// hover dan leave-notify tidak menutupnya sampai hotkey ditekan lagi.
+let forcedOpen = false;
+
+function toggleOpen(force) {
+    forcedOpen = typeof force === 'boolean' ? force : !forcedOpen;
+    hovered.value = forcedOpen;
+    return forcedOpen;
+}
+
+const closeIsland = () => toggleOpen(false);
+
 function DynamicIsland() {
     const GEO = CONFIG.geometry;
     // Ukuran berjalan (dianimasikan). Dideklarasikan di awal karena dipakai
@@ -251,7 +265,7 @@ function DynamicIsland() {
             const token = hoverToken;
             const inside = await pointerOnIsland();
             if (token !== hoverToken) return;
-            if (!inside) hovered.value = false;
+            if (!inside && !forcedOpen) hovered.value = false;
         });
     };
     const stopHoverWatch = () => {
@@ -319,7 +333,7 @@ function DynamicIsland() {
         // setelah pointer kembali masuk.
         const token = ++hoverToken;
         pointerOnIsland().then(inside => {
-            if (token === hoverToken && !inside) hovered.value = false;
+            if (token === hoverToken && !inside && !forcedOpen) hovered.value = false;
         });
         return false;
     };
@@ -831,6 +845,7 @@ const dyn = {
     water, waterDrink, waterSetGoal, waterToggleReminder,
     todo, todoAdd, todoToggle, todoRemove,
     shelf, shelfAdd, shelfRemove, shelfClear, shelfDragOver, shelfUndo, shelfUndoLast,
+    toggleOpen, closeIsland,
 };
 globalThis.dynIsland = dyn;
 

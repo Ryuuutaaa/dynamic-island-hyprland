@@ -16,6 +16,14 @@ hover**: sudut atas rata menempel layar, hanya sudut bawah melengkung, plus
 Prioritas: `peek` (transient) menang atas `expanded`, `expanded` menang atas
 `closed`. Semua angka itu ada di `config.js` → `geometry`.
 
+**Notch tertutup tenang:** di samping jam dan ring baterai hanya tampil **satu**
+indikator kontekstual. Urutannya di `config.js` → `closedIndicators`
+(default `['music', 'pomodoro', 'todo', 'date']`): indikator pertama yang aktif
+yang dipakai, sisanya disembunyikan. Pilihan: `music` (equalizer), `pomodoro`
+(sisa waktu), `todo` (hanya tugas yang punya jam — "hampir jatuh tempo"),
+`water` (progres air), dan `date` sebagai fallback. Prinsipnya "kaya tapi
+tenang": menambah modul tidak menumpuk isi notch.
+
 **Rasio seragam 3:1** untuk `closed` (150×50), `peek` (240×80), dan `expanded`
 (420×140). Sebelumnya `closed` 150×30 = 5:1, sehingga saat menutup lebar dan
 tinggi menyusut dengan persentase berbeda (w −64%, h −78%) dan kartu terlihat
@@ -62,6 +70,12 @@ frame 2,98–3,02 sepanjang 420×140 → 150×50.
 | `chat` | riwayat chat Gemini + tombol **Tanya Gemini** (input rofi) + Hapus/Ulangi; halaman sticky saat dipilih |
 | `volume` / `brightness` | ikon + bar (Cairo) + persen |
 | `notify` | ikon + `Judul · isi` |
+
+**Modul on/off:** `config.js` → `modules`. Halaman yang dimatikan (mis.
+`pomodoro: false`) tidak masuk `PAGE_ORDER`, jadi jumlah dot dan jangkauan
+panah ikut berkurang; halamannya tetap terdaftar di Stack sehingga
+`showTransient(name, ms)` (OSD/notifikasi) tetap bisa memakainya. `idle` dan
+`media` selalu aktif karena menjadi base page.
 
 `volume`, `brightness`, dan `notify` adalah halaman **transient**: muncul sendiri
 saat OSD/notifikasi dan tidak ikut dalam `PAGE_ORDER`, jadi tidak bisa di-pin
@@ -714,6 +728,11 @@ selama durasi peek.
 
 ### Keyboard (panah kiri/kanan)
 
+- **`SUPER+N`** membuka/menutup island **tanpa hover** (gaya `Alt+N` di Poni).
+  Flag `forcedOpen` menahan watchdog hover dan `leave-notify`, jadi notch tetap
+  terbuka walau kursor pindah; hotkey yang sama menutupnya lagi, dan `Escape`
+  di submap `island` juga memanggil `closeIsland()`.
+
 Window island memakai `keymode: 'none'` — ia **tidak pernah** mengambil fokus
 keyboard, jadi tombol panah tidak bisa ditangkap langsung oleh GTK. Navigasi
 dipasang lewat **submap Hyprland** (`island`). Pada Hyprland 0.57 dengan config
@@ -1109,6 +1128,7 @@ modules/shelf-page.js  halaman shelf (drop zone, kartu file, drag out)
 ags -r "globalThis.dynIsland.hovered.value = true"   # paksa expanded
 ags -r "globalThis.dynIsland.window.close()"         # simulasi layer surface ditutup compositor
 ags -r "globalThis.dynIsland.window.destroy()"       # uji watchdog rebuild (layer harus kembali)
+ags -r "globalThis.dynIsland.toggleOpen()"            # buka/tutup island tanpa hover
 ags -r "globalThis.dynIsland.showTransient('volume', 20000)"  # paksa peek/OSD
 ags -r "globalThis.dynIsland.stepPage(1)"            # pindah + pin halaman
 ags -r "globalThis.dynIsland.retryLyrics()"          # ambil ulang lirik lagu ini

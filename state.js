@@ -7,7 +7,14 @@ import CONFIG from './config.js';
 // Urutan halaman untuk navigasi manual (page dots + panah).
 // Hanya halaman "nyata": volume/brightness/notify adalah transient (muncul
 // sendiri saat OSD/notifikasi) dan dulu ikut bisa di-pin lewat panah.
-export const PAGE_ORDER = ['idle', 'media', 'pomodoro', 'water', 'todo', 'standup', 'shelf', 'bluetooth', 'prayer', 'chat'];
+// Urutan kanonik seluruh halaman. Halaman yang dimatikan lewat
+// CONFIG.modules tidak masuk PAGE_ORDER sehingga dot/panah tidak bertambah;
+// halaman tetap ada di Stack (bisa dipanggil showTransient(name, ms)).
+const ALL_PAGES = ['idle', 'media', 'pomodoro', 'water', 'todo', 'standup', 'shelf', 'bluetooth', 'prayer', 'chat'];
+const ALWAYS_ON = ['idle', 'media'];
+
+export const PAGE_ORDER = ALL_PAGES.filter(name =>
+    ALWAYS_ON.includes(name) || CONFIG.modules?.[name] !== false);
 
 export const page = Variable('idle');
 

@@ -49,6 +49,29 @@ export default {
     contentDelay: 200,
     contentFade: 320,
 
+    // ── modul & notch tertutup (prinsip Poni) ──────────────────────
+    // Halaman yang ikut navigasi (dot + panah). Yang dimatikan tetap ada di
+    // Stack dan tetap bisa muncul lewat showTransient() (OSD/notifikasi),
+    // hanya tidak menambah dot dan tidak bisa dicapai panah.
+    // 'idle' dan 'media' selalu aktif karena menjadi base page.
+    modules: {
+        pomodoro: true,
+        water: true,
+        todo: true,
+        standup: true,
+        shelf: true,
+        bluetooth: true,
+        prayer: true,
+        chat: true,
+    },
+
+    // Isi tambahan di notch tertutup. Notch hanya menampilkan SATU indikator
+    // kontekstual (di samping jam + ring baterai): dipilih yang pertama aktif
+    // sesuai urutan, jadi "kaya tapi tenang" bukan menumpuk semua.
+    // Pilihan: 'music' (equalizer), 'pomodoro' (sisa waktu), 'todo' (tugas
+    // belum selesai), 'water' (progres air), 'date' (tanggal, fallback).
+    closedIndicators: ['music', 'pomodoro', 'todo', 'date'],
+
     // batas karakter sebelum teks dipotong (kartu 420 lebar, peek 310)
     mediaMaxChars: 22,
     notifyMaxChars: 34,

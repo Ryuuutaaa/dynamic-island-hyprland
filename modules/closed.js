@@ -4,11 +4,14 @@ import Widget from 'resource:///com/github/Aylur/ags/widget.js';
 import * as Utils from 'resource:///com/github/Aylur/ags/utils.js';
 import Battery from 'resource:///com/github/Aylur/ags/service/battery.js';
 import Mpris from 'resource:///com/github/Aylur/ags/service/mpris.js';
+import CONFIG from '../config.js';
 import { isPlaying } from '../state.js';
 import { palette, hexToRgb } from '../theme.js';
 import { roundedRect } from '../draw.js';
 import { formatClock, formatDateShort, onMinute } from './timefmt.js';
 import { pomodoro } from './pomodoro.js';
+import { todo } from './todo.js';
+import { water, total, liters } from './water.js';
 
 const RING = 15;
 const RING_THICK = 2;
@@ -117,6 +120,8 @@ export default () => {
     });
     // Sisa waktu pomodoro: menggantikan tanggal saat sesi fokus/istirahat
     // aktif (musik tetap prioritas tertinggi lewat equalizer).
+    const todoLabel = Widget.Label({ className: 'dyn-island-closed-pomo', visible: false });
+    const waterLabel = Widget.Label({ className: 'dyn-island-closed-pomo', visible: false });
     const pomo = Widget.Label({
         className: 'dyn-island-closed-pomo',
         visible: false,
@@ -134,6 +139,15 @@ export default () => {
         return state.running || state.remaining < state.total;
     };
 
+    // Hanya tugas yang punya jam (due) — itu yang "hampir jatuh tempo" ala Poni.
+    // Daftar tugas tanpa jam tidak boleh merebut slot notch tertutup.
+    const dueTasks = () => (todo.value.tasks || []).filter(task => !task.done && task.due).length;
+    const waterText = () => `${liters(total(water.value))}/${liters(water.value.goal)}L`;
+
+    // Urutan prioritas dari config; 'date' jadi fallback bila tidak ada yang aktif.
+    const INDICATORS = (CONFIG.closedIndicators ?? ['music', 'pomodoro', 'todo', 'date'])
+        .filter(name => ['music', 'pomodoro', 'todo', 'water', 'date'].includes(name));
+
     const syncPomo = () => {
         pomo.label = mmss(pomodoro.value.remaining);
     };
@@ -143,13 +157,28 @@ export default () => {
         date.label = formatDateShort();
     };
 
+    // Hanya SATU indikator kontekstual yang tampil (plus jam & ring baterai)
+    // supaya notch tertutup tetap tenang walau banyak modul aktif.
     const syncMode = () => {
-        const playing = isPlaying();
-        const active = sessionActive();
-        eq.visible = playing;
-        pomo.visible = !playing && active;
-        date.visible = !playing && !active;
-        if (active) syncPomo();
+        const values = {
+            music: isPlaying() ? 'eq' : '',
+            pomodoro: sessionActive() ? mmss(pomodoro.value.remaining) : '',
+            todo: dueTasks() ? `${dueTasks()} tugas` : '',
+            water: total(water.value) > 0 ? waterText() : '',
+            date: formatDateShort(),
+        };
+        let chosen = 'date';
+        for (const name of INDICATORS) {
+            if (values[name]) { chosen = name; break; }
+        }
+        eq.visible = chosen === 'music';
+        pomo.visible = chosen === 'pomodoro';
+        todoLabel.visible = chosen === 'todo';
+        waterLabel.visible = chosen === 'water';
+        date.visible = chosen === 'date';
+        if (chosen === 'pomodoro') syncPomo();
+        if (chosen === 'todo') todoLabel.label = values.todo;
+        if (chosen === 'water') waterLabel.label = values.water;
     };
 
     return Widget.Box({
@@ -157,13 +186,15 @@ export default () => {
         spacing: 8,
         halign: Gtk.Align.CENTER,
         valign: Gtk.Align.CENTER,
-        children: [BatteryRing(), time, date, pomo, eq],
+        children: [BatteryRing(), time, date, pomo, todoLabel, waterLabel, eq],
         setup: self => {
             syncMode();
             self.hook(Mpris, syncMode, 'changed');
             self.hook(Mpris, syncMode, 'player-changed');
             // remaining dipublikasikan tiap detik oleh modul pomodoro
             self.hook(pomodoro, () => { syncMode(); syncPomo(); });
+            self.hook(todo, syncMode);
+            self.hook(water, syncMode);
             onMinute(syncClock, self);
         },
     });
