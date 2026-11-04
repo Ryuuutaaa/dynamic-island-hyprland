@@ -1,3 +1,4 @@
+import GLib from 'gi://GLib';
 import Gtk from 'gi://Gtk?version=3.0';
 import Widget from 'resource:///com/github/Aylur/ags/widget.js';
 import * as Utils from 'resource:///com/github/Aylur/ags/utils.js';
@@ -10,6 +11,14 @@ const ACCENT = hexToRgb(palette.accent2);
 
 const ARC_W = 360;
 const ARC_H = 56;
+// Matahari asli bergerak ~0,008 px/detik (360 px per 12 jam) sehingga tidak
+// terlihat. Saat halaman dibuka, matahari "meluncur" dari titik terbit ke
+// posisi sekarang supaya rotasinya terlihat; setelah itu mengikuti waktu asli.
+const SWEEP_MS = 1800;
+const sweep = { active: false, start: 0, from: 0 };
+// ease-in-out: matahari melaju rata di tengah, tidak "menyentak" di awal
+const easeOut = p => (p < 0.5 ? 4 * p * p * p : 1 - Math.pow(-2 * p + 2, 3) / 2);
+const nowMs = () => GLib.get_monotonic_time() / 1000;
 
 const pad2 = n => String(n).padStart(2, '0');
 
@@ -46,7 +55,17 @@ const SkyArc = () => Widget.DrawingArea({
         // data lama bisa tanpa sunrise: perkirakan 80 menit setelah Subuh
         const sunrise = Number.isFinite(state.sunrise) ? state.sunrise : fajr + 80;
         const span = Math.max(1, maghrib - sunrise);
-        const t = (minutesNow() - sunrise) / span;
+        const realT = (minutesNow() - sunrise) / span;
+        let t = realT;
+        if (sweep.active) {
+            const p = Math.min(1, (nowMs() - sweep.start) / SWEEP_MS);
+            if (p >= 1) {
+                sweep.active = false;
+            } else {
+                const target = Math.max(0, Math.min(1, realT));
+                t = sweep.from + (target - sweep.from) * easeOut(p);
+            }
+        }
 
         const base = height - 5;
         const peak = 7;
@@ -137,7 +156,35 @@ export default () => {
         city.label = `${state.city} · ${state.method}`;
     };
 
+    const startSweep = () => {
+        sweep.from = 0;
+        sweep.start = nowMs();
+        sweep.active = true;
+    };
+
+    const sweepFrame = () => {
+        if (!sweep.active) return GLib.SOURCE_REMOVE;
+        arc.queue_draw();
+        return GLib.SOURCE_CONTINUE;
+    };
+
+    // Picu animasi tepat saat halaman prayer aktif. `globalThis.dynIsland`
+    // belum ada saat modul ini dievaluasi, jadi hook dipasang dari tick()
+    // (idempoten) begitu variabelnya tersedia.
+    let hookedPage = null;
+    const hookPage = () => {
+        const page = globalThis.dynIsland?.page;
+        if (!page || page === hookedPage) return;
+        hookedPage = page;
+        page.connect('changed', () => {
+            if (page.value !== 'prayer') return;
+            startSweep();
+            GLib.timeout_add(GLib.PRIORITY_DEFAULT, 16, sweepFrame);
+        });
+    };
+
     const tick = self => {
+        hookPage();
         const state = prayer.value;
         if (!state?.times?.length) return;
         if (state.date !== builtDate) {
