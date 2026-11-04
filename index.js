@@ -31,6 +31,7 @@ import {
 } from './modules/chat.js';
 import { watchPrayer, prayer as prayerState, notifyPrayer } from './modules/prayer.js';
 import { sky, watchSky, drawSky, refreshSky } from './modules/sky.js';
+import { coverColor } from './modules/cover-color.js';
 import {
     shelf, shelfDragOver, shelfUndo, undoLast as shelfUndoLast,
     addPaths as shelfAdd, removeItem as shelfRemove, clearShelf as shelfClear,
@@ -53,6 +54,7 @@ import StandupPage from './modules/standup-page.js';
 import WeatherPage from './modules/weather-page.js';
 import { watchWeather, weather as weatherState, refreshWeather } from './modules/weather.js';
 import TimerPage from './modules/timer-page.js';
+import { watchWellness, toggleWellness, wellness as wellnessState, reminderNow as wellnessReminder } from './modules/wellness.js';
 import { timer as timerState, restoreTimer, applyPreset as timerPreset, toggleRunning as timerToggle, resetTimer as timerReset, setMode as timerSetMode } from './modules/timer.js';
 import StandupWindow from './modules/standup-window.js';
 import { scheduleStandupReminder, titleForDay as standupTitle, addItem as standupAdd, removeItem as standupRemove, saveStandup as standupSave, loadStandup as standupLoad, remindNow as standupRemind, standup as standupStore } from './modules/standup.js';
@@ -165,9 +167,12 @@ function DynamicIsland() {
             self.get_allocated_height(),
             self.skyRadius,
             sky.value,
+            coverColor.value,
         );
         return false;
     });
+
+    notch.hook(coverColor, () => notch.queue_draw());
 
     const stack = Widget.Stack({
         children: {
@@ -854,6 +859,8 @@ const dyn = {
     toggleOpen, closeIsland,
     weather: weatherState, refreshWeather,
     timer: timerState, timerPreset, timerToggle, timerReset, timerSetMode,
+    wellness: wellnessState, wellnessToggle: toggleWellness, wellnessReminder,
+    coverColor,
 };
 globalThis.dynIsland = dyn;
 
@@ -979,6 +986,7 @@ scheduleStandupReminder();
 // Cuaca hanya di-poll kalau modulnya aktif (prinsip: tanpa request diam-diam).
 if (CONFIG.modules?.weather !== false) watchWeather();
 restoreTimer();
+watchWellness();
 dyn.notifInvoke = notifInvoke;
 dyn.standupApi = {
     add: standupAdd, remove: standupRemove, save: standupSave,

@@ -78,6 +78,19 @@ export default {
     mediaMaxChars: 22,
     notifyMaxChars: 34,
 
+    // KESEHATAN RINGAN — jeda mata 20-20-20 dan pengingat gerak tiap jam.
+    // Hanya notifikasi lokal (tidak ada data disimpan, tidak ada jaringan).
+    // Timer otomatis diam di luar startHour-endHour.
+    wellness: {
+        enabled: true,
+        everyMinutes: 20,      // jeda mata
+        lookSeconds: 20,
+        moveEnabled: true,
+        moveEveryMinutes: 60,  // pengingat gerak
+        startHour: 8,
+        endHour: 22,
+    },
+
     // CUACA — Open-Meteo (gratis, tanpa API key/akun). Koordinat & kota
     // mengikuti blok `prayer` di bawah kecuali diisi sendiri di sini.
     // refreshMinutes: 15 menit; hanya berjalan kalau modules.weather != false.
