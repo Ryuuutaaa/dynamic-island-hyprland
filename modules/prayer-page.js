@@ -4,7 +4,7 @@ import Gtk from 'gi://Gtk?version=3.0';
 import Widget from 'resource:///com/github/Aylur/ags/widget.js';
 import * as Utils from 'resource:///com/github/Aylur/ags/utils.js';
 import { prayer } from './prayer.js';
-import { nextPrayer } from './prayer-calc.js';
+import { computeTimes, formatMinutes, nextPrayer } from './prayer-calc.js';
 import { palette, hexToRgb } from '../theme.js';
 
 const MUTED = hexToRgb(palette.muted);
@@ -39,6 +39,26 @@ const minutesNow = () => {
     return now.getHours() * 60 + now.getMinutes() + now.getSeconds() / 60;
 };
 
+// Malam = sebelum terbit atau sesudah Magrib.
+const isNightNow = state => {
+    if (!state?.times?.length) return false;
+    const now = minutesNow();
+    const sunrise = Number.isFinite(state.sunrise) ? state.sunrise : state.times[0].minutes + 80;
+    return now < sunrise || now >= state.times[3].minutes;
+};
+
+// Subuh yang akan datang setelah Magrib adalah Subuh besok.
+const fajrTomorrow = state => {
+    try {
+        const day = new Date();
+        day.setDate(day.getDate() + 1);
+        const next = computeTimes(day, state.location ?? {});
+        return next.times?.[0]?.minutes ?? state.times[0].minutes + 1;
+    } catch (_) {
+        return state.times[0].minutes + 1;
+    }
+};
+
 // Busur langit: matahari bergerak dari TERBIT sampai TERBENAM sehingga
 // puncaknya jatuh tepat di Dzuhur (tengah antara sunrise dan maghrib).
 // Busur sengaja tanpa titik per-waktu: label waktu di bawahnya rata 5 kolom,
@@ -58,11 +78,13 @@ const SkyArc = () => Widget.DrawingArea({
         const span = Math.max(1, maghrib - sunrise);
         const nowM = minutesNow();
         const dayT = (nowM - sunrise) / span;
-        // Malam: Magrib -> terbit besok. Jam setelah tengah malam digeser +24 jam
-        // supaya rentangnya tetap kontinu.
-        const nightSpan = Math.max(1, (sunrise + 1440) - maghrib);
-        const nightClock = nowM < sunrise ? nowM + 1440 : nowM;
-        const nightT = (nightClock - maghrib) / nightSpan;
+        // Malam: Magrib -> Subuh besok, supaya ujung busur sama dengan label
+        // terakhir di baris malam. Sebelum Subuh, rentangnya mulai dari Magrib
+        // kemarin malam (digeser -24 jam).
+        const evening = nowM >= maghrib;
+        const nightStart = evening ? maghrib : maghrib - 1440;
+        const nightEnd = evening ? fajrTomorrow(state) + 1440 : fajr;
+        const nightT = (nowM - nightStart) / Math.max(1, nightEnd - nightStart);
         const isNight = dayT < 0 || dayT > 1;
         const realT = isNight ? nightT : dayT;
         let t = realT;
@@ -157,11 +179,25 @@ export default () => {
     });
     timesBox.set_size_request(ARC_W, -1);
     const columns = new Map();
-    let builtDate = '';
+    let builtMode = '';
 
-    const buildTimes = state => {
+    const buildTimes = (state, night) => {
         columns.clear();
-        timesBox.children = state.times.map(time => {
+
+        let items = state.times;
+        if (night) {
+            // Baris malam hanya memuat waktu yang relevan: Magrib, Isya, Subuh
+            // (Subuh besok bila sekarang sudah lewat Magrib).
+            const nowM = minutesNow();
+            const fajr = nowM >= state.times[3].minutes ? fajrTomorrow(state) : state.times[0].minutes;
+            items = [
+                state.times[3],
+                state.times[4],
+                { key: 'fajr', name: 'Subuh', minutes: fajr, label: formatMinutes(fajr) },
+            ];
+        }
+
+        timesBox.children = items.map(time => {
             const box = Widget.Box({
                 className: 'dyn-island-prayer-time',
                 vertical: true,
@@ -219,9 +255,11 @@ export default () => {
 
         const state = prayer.value;
         if (!state?.times?.length) return;
-        if (state.date !== builtDate) {
-            builtDate = state.date;
-            buildTimes(state);
+        const night = isNightNow(state);
+        const mode = `${state.date}:${night ? 'night' : 'day'}`;
+        if (mode !== builtMode) {
+            builtMode = mode;
+            buildTimes(state, night);
         }
 
         const next = nextPrayer(state) ?? state.next;
