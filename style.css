@@ -1014,3 +1014,148 @@ tooltip > box {
 .dyn-island-pomo-osd-btn:hover {
     background: __SURFACE_HOVER__;
 }
+
+
+/* ── Daily Standup ─────────────────────────────────────────────── */
+.standup-window {
+    background: transparent;
+}
+
+.standup-card {
+    background: __BG_SOLID__;
+    border: 1px solid __SURFACE_STRONG__;
+    border-radius: 18px;
+    padding: 15px 18px 13px 18px;
+    box-shadow: 0 18px 48px rgba(0, 0, 0, 0.55);
+    font-family: "Ubuntu", "Noto Sans", "DejaVu Sans", sans-serif;
+}
+
+.standup-title {
+    font-size: 15px;
+    font-weight: 700;
+    color: __FG__;
+}
+
+.standup-day {
+    font-size: 11px;
+    color: __MUTED__;
+}
+
+.standup-icon-btn {
+    background: transparent;
+    border-radius: 8px;
+    padding: 1px 6px;
+}
+
+.standup-icon-btn:hover {
+    background: __SURFACE_HOVER__;
+}
+
+.standup-icon-btn label {
+    font-size: 13px;
+    color: __MUTED__;
+}
+
+.standup-section-title {
+    font-size: 10px;
+    font-weight: 600;
+    letter-spacing: 1.1px;
+    color: __MUTED__;
+}
+
+.standup-bullet {
+    font-size: 12px;
+    color: __ACCENT__;
+}
+
+.standup-item-text {
+    font-size: 12px;
+    color: __FG__;
+}
+
+.standup-remove {
+    background: transparent;
+    border-radius: 6px;
+    padding: 0 5px;
+}
+
+.standup-remove:hover {
+    background: __DANGER_SOFT__;
+}
+
+.standup-remove label {
+    font-size: 12px;
+    color: __MUTED__;
+}
+
+.standup-entry {
+    background: __SURFACE__;
+    border-radius: 9px;
+    padding: 5px 9px;
+    font-size: 12px;
+    color: __FG__;
+    caret-color: __ACCENT__;
+}
+
+.standup-add {
+    background: __SURFACE__;
+    border-radius: 9px;
+    padding: 2px 11px;
+}
+
+.standup-add:hover {
+    background: __SURFACE_HOVER__;
+}
+
+.standup-add label {
+    font-size: 14px;
+    color: __FG__;
+}
+
+.standup-save {
+    background: __ACCENT__;
+    border-radius: 9px;
+    padding: 5px 14px;
+}
+
+.standup-save label {
+    font-size: 12px;
+    font-weight: 600;
+    color: #14161a;
+}
+
+.standup-dismiss {
+    background: __SURFACE__;
+    border-radius: 9px;
+    padding: 5px 12px;
+}
+
+.standup-dismiss:hover {
+    background: __SURFACE_HOVER__;
+}
+
+.standup-dismiss label {
+    font-size: 12px;
+    color: __FG__;
+}
+
+.standup-status {
+    font-size: 11px;
+    color: __ACCENT__;
+}
+
+.standup-page-bell {
+    font-size: 20px;
+    color: __ACCENT__;
+}
+
+.standup-page-title {
+    font-size: 13px;
+    font-weight: 600;
+    color: __FG__;
+}
+
+.standup-page-sub {
+    font-size: 11px;
+    color: __MUTED__;
+}

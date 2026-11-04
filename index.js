@@ -15,7 +15,7 @@ import Idle from './modules/idle.js';
 import Media from './modules/media.js';
 import Closed from './modules/closed.js';
 import { VolumeOsd, BrightnessOsd } from './modules/osd.js';
-import Notify, { watchNotifications, current as notifCurrent, latest as notifLatest } from './modules/notify.js';
+import Notify, { watchNotifications, current as notifCurrent, latest as notifLatest, registerLocalAction, invokeAction as notifInvoke } from './modules/notify.js';
 import Nav from './modules/nav.js';
 import LyricsPage from './modules/lyrics-page.js';
 import PomodoroPage from './modules/pomodoro-page.js';
@@ -49,6 +49,9 @@ import { focusedRect, refresh as refreshMonitors, followFocused, applyFocused } 
 import { onResume } from './modules/timefmt.js';
 import NotificationPopup from './modules/notif-popup.js';
 import PomodoroOsd from './modules/pomodoro-osd.js';
+import StandupPage from './modules/standup-page.js';
+import StandupWindow from './modules/standup-window.js';
+import { scheduleStandupReminder, titleForDay as standupTitle, addItem as standupAdd, removeItem as standupRemove, saveStandup as standupSave, loadStandup as standupLoad, remindNow as standupRemind, standup as standupStore } from './modules/standup.js';
 import GeminiChat from './modules/chat-window.js';
 
 const STYLE_PATH = `${App.configDir}/dynamic-iland/style.css`;
@@ -157,6 +160,7 @@ function DynamicIsland() {
             pomodoro: PomodoroPage(),
             water: WaterPage(),
             todo: TodoPage(),
+            standup: StandupPage(),
             shelf: ShelfPage(),
             bluetooth: BluetoothPage(),
             prayer: PrayerPage(),
@@ -939,6 +943,21 @@ dyn.chatWindow = geminiChat;
 const pomodoroCard = PomodoroOsd();
 App.addWindow(pomodoroCard);
 dyn.pomodoroCard = pomodoroCard;
+
+// Daily standup: popup + pengingat Senin-Jumat 10:00. Klik notifikasi
+// "Standup" membuka popup ini (aksi lokal, bukan ActionInvoked DBus).
+const standupWin = StandupWindow();
+App.addWindow(standupWin);
+// API { open, close, toggle, win } dibuat oleh modul; widget-nya disimpan terpisah
+dyn.standupWindow = globalThis.standupWindow;
+dyn.standupWinWidget = standupWin;
+registerLocalAction('Standup', () => globalThis.standupWindow?.toggle?.());
+scheduleStandupReminder();
+dyn.notifInvoke = notifInvoke;
+dyn.standupApi = {
+    add: standupAdd, remove: standupRemove, save: standupSave,
+    load: standupLoad, remind: standupRemind, state: standupStore, titleFor: standupTitle,
+};
 // Catatan: DND TIDAK dipaksa lagi. Dulu island menjalankan `swaync-client -dn`
 // tiap 3 detik supaya popup swaync tidak dobel, akibatnya toggle DND user
 // selalu kembali nyala (indikator DND tidak bisa dimatikan). Penggantinya:

@@ -331,8 +331,24 @@ const parseLine = (line) => {
 // ActionInvoked adalah sinyal dari server; aplikasi mendengarkannya, jadi
 // mengirim sinyal ini membuat aplikasi melakukan aksinya (WhatsApp membuka
 // chat, dsb) tanpa perlu menyentuh daemon.
+// Aksi lokal: notifikasi dari aplikasi kita sendiri (mis. Standup) yang
+// handler-nya tidak mungkin dieksekusi lewat ActionInvoked DBus.
+const localActions = new Map();
+
+export function registerLocalAction(app, handler) {
+    if (app && handler) localActions.set(app, handler);
+}
+
 export function invokeAction(id, key) {
     if (!id || !key) return;
+    if (key === 'default') {
+        const app = latest?.value?.app;
+        const handler = app ? localActions.get(app) : null;
+        if (handler) {
+            try { handler(); } catch (error) { console.error('[dyn-island] aksi lokal gagal:', error); }
+            return;
+        }
+    }
     Utils.execAsync([
         'gdbus', 'emit', '--session',
         '--object-path', '/org/freedesktop/Notifications',
