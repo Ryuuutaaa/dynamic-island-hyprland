@@ -1,6 +1,8 @@
 import GLib from 'gi://GLib';
 import Variable from 'resource:///com/github/Aylur/ags/variable.js';
 import * as Utils from 'resource:///com/github/Aylur/ags/utils.js';
+import CONFIG from '../config.js';
+import { showTransient } from '../state.js';
 
 // Durasi bisa diubah saat runtime (dipakai juga untuk menguji completion).
 // Tiga mode: fokus, istirahat singkat, istirahat panjang (siklus klasik).
@@ -53,6 +55,15 @@ export const pomodoro = Variable(initial ?? {
 });
 
 const CHIME = '/usr/share/sounds/freedesktop/stereo/alarm-clock-elapsed.oga';
+
+// Tampilan mengambang (OSD) singkat saat sesi dimulai/dihentikan atau mode
+// berganti — sama seperti OSD volume/brightness, supaya aksi dari keybind
+// tetap terlihat walau island sedang tertutup.
+const showOsd = () => {
+    try {
+        showTransient('pomodoro', CONFIG.osdTimeout);
+    } catch (_) { }
+};
 
 let timer = 0;
 let endsAtEpoch = 0;
@@ -153,6 +164,7 @@ export function setMode(mode) {
         total: MODES[mode].seconds,
     };
     persist();
+    showOsd();
 }
 
 export function toggleRunning() {
@@ -163,10 +175,12 @@ export function toggleRunning() {
         setMode(current.mode);
         publish({ running: true });
         startTick();
+        showOsd();
         return;
     }
     const running = !current.running;
     publish({ running });
+    showOsd();
     if (running) startTick();
     else {
         stopTick();
