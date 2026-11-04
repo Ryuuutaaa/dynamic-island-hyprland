@@ -29,24 +29,29 @@ const stopTick = () => {
     timer = 0;
 };
 
+// Batas waktu absolut (monotonic ms). Menghitung `remaining - 1` per tick
+// membuat hitungan melenceng setelah suspend atau main loop tertahan: tick
+// berhenti, lalu sisa waktu tidak pernah dikoreksi. Dengan batas absolut,
+// sisa waktu selalu dihitung dari jam monotonic sehingga tetap akurat.
+let endsAt = 0;
+
 const startTick = () => {
     if (timer) return;
-    // GLib.timeout_add (bukan Utils.interval) supaya callback tidak
-    // dipanggil langsung saat start -> hitungan pertama tetap 1 detik.
-    timer = GLib.timeout_add(GLib.PRIORITY_DEFAULT, 1000, () => {
+    endsAt = GLib.get_monotonic_time() / 1000 + pomodoro.value.remaining * 1000;
+    timer = GLib.timeout_add(GLib.PRIORITY_DEFAULT, 250, () => {
         const current = pomodoro.value;
         if (!current.running) {
             timer = 0;
             return GLib.SOURCE_REMOVE;
         }
-        const remaining = current.remaining - 1;
-        if (remaining <= 0) {
+        const left = Math.max(0, Math.ceil((endsAt - GLib.get_monotonic_time() / 1000) / 1000));
+        if (left <= 0) {
             timer = 0;
             publish({ remaining: 0, running: false });
             complete(current.mode);
             return GLib.SOURCE_REMOVE;
         }
-        publish({ remaining });
+        if (left !== current.remaining) publish({ remaining: left });
         return GLib.SOURCE_CONTINUE;
     });
 };
