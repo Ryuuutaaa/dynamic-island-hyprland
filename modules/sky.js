@@ -107,7 +107,10 @@ export function watchSky() {
     Utils.interval(30000, refresh);
 }
 
-export const drawSky = (cr, width, height, radius, state) => {
+// `accent` = warna dominan album art ([r,g,b] 0..1) atau null. Glow ini
+// digambar setelah glow langit, jadi saat musik diputar notch ikut "bernapas"
+// mengikuti cover dan hilang sendiri ketika tidak ada lagu.
+export const drawSky = (cr, width, height, radius, state, accent = null) => {
     if (width <= 0 || height <= 0) return;
 
     const r = Math.max(0, Math.min(Number(radius) || 0, width / 2, height / 2));
@@ -141,6 +144,18 @@ export const drawSky = (cr, width, height, radius, state) => {
         grad.addColorStopRGBA(0.45, gr / 255, gg / 255, gb / 255, state.alpha * 0.30);
         grad.addColorStopRGBA(1, gr / 255, gg / 255, gb / 255, state.alpha);
         cr.setSource(grad);
+        cr.paint();
+    }
+
+    if (accent && accent.length === 3) {
+        const [ar, ag, ab] = accent;
+        const glow = new Cairo.RadialGradient(
+            width / 2, height, 0,
+            width / 2, height, Math.max(width, height) * 0.9);
+        glow.addColorStopRGBA(0, ar, ag, ab, 0.26);
+        glow.addColorStopRGBA(0.55, ar, ag, ab, 0.09);
+        glow.addColorStopRGBA(1, ar, ag, ab, 0);
+        cr.setSource(glow);
         cr.paint();
     }
 

@@ -5,6 +5,7 @@ import CONFIG from '../config.js';
 import { mediaView } from '../state.js';
 import Progress, { activePlayer } from './progress.js';
 import Cover from './cover.js';
+import { updateCoverColor } from './cover-color.js';
 
 export default () => {
     const cover = Cover({ size: 72, radius: 10 });
@@ -26,6 +27,7 @@ export default () => {
     const refresh = () => {
         const player = activePlayer();
         cover.setPath(player?.cover_path ?? '');
+    updateCoverColor(player?.cover_path ?? '');
         title.label = player ? (player.track_title || 'Judul tidak diketahui') : 'Tidak ada yang diputar';
         artist.label = player ? (player.track_artists || []).join(', ') : '';
         playGlyph.label = player?.play_back_status === 'Playing' ? '\uf04c' : '\uf04b';
