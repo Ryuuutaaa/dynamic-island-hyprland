@@ -8,6 +8,7 @@ import { roundedRect } from '../draw.js';
 import {
     water, total, percent, liters, lastHours, drink, setGoal, toggleReminder,
 } from './water.js';
+import { tabular } from './type.js';
 
 const FG = hexToRgb(palette.fg);
 const ACCENT = hexToRgb(palette.accent2);
@@ -147,10 +148,10 @@ const pill = (label, onClicked, tooltip = null) => Widget.Button({
 });
 
 export default () => {
-    const volume = Widget.Label({ className: 'dyn-island-water-volume' });
-    const goal = Widget.Label({ className: 'dyn-island-water-goal' });
+    const volume = tabular(Widget.Label({ className: 'dyn-island-water-volume' }));
+    const goal = tabular(Widget.Label({ className: 'dyn-island-water-goal' }));
     // status ringkas di kanan baris volume: "50% · 750 ml lagi"
-    const status = Widget.Label({ className: 'dyn-island-water-status', xalign: 1 });
+    const status = tabular(Widget.Label({ className: 'dyn-island-water-status', xalign: 1 }));
 
     const refresh = () => {
         const state = water.value;

@@ -53,6 +53,34 @@
     color: __FG__;
 }
 
+/* ── target klik minimum 24px ──────────────────────────────────
+   Kontrol kecil (pill, chip, tombol ikon, baris tugas) tetap terlihat sama,
+   tapi area yang bisa ditunjuk tidak pernah lebih kecil dari 24px. */
+.dyn-island-nav-btn,
+.dyn-island-ctl,
+.dyn-island-pill,
+.dyn-island-chip,
+.dyn-island-bt-row,
+.dyn-island-lyrics-retry,
+.dyn-island-todo-row,
+.dyn-island-todo-remove,
+.dyn-island-timer-mode,
+.dyn-island-timer-preset,
+.dyn-island-timer-play,
+.dyn-island-timer-reset,
+.dyn-island-switch,
+.dyn-island-popup-action,
+.dyn-island-popup-close {
+    min-height: 24px;
+}
+
+.dyn-island-nav-btn,
+.dyn-island-ctl,
+.dyn-island-todo-remove,
+.dyn-island-popup-close {
+    min-width: 24px;
+}
+
 /* Tooltip: kotak bawaan tema terang & besar sehingga menutupi notch saat
    pointer berhenti di kartu/tombol. Disamakan dengan badan notch. */
 tooltip {
@@ -95,13 +123,14 @@ tooltip > box {
     box-shadow: none;
     border-radius: 999px;
     padding: 2px 8px;
-    margin-bottom: 8px;
+    /* 24px tombol + 4px padding + 6px jarak = 34px (NAV_SPACE) */
+    margin-bottom: 6px;
 }
 .dyn-island-nav-btn {
-    /* target klik yang layak (>=18px) — dulu 14px+3px padding */
-    min-width: 18px;
-    min-height: 18px;
-    padding: 0px 4px;
+    /* target klik minimum 24px (Poni/HIG) */
+    min-width: 24px;
+    min-height: 24px;
+    padding: 0px;
     border-radius: 8px;
     background-color: transparent;
     background-image: none;
@@ -274,7 +303,11 @@ tooltip > box {
     color: __MUTED__;
 }
 .dyn-island-ctl {
-    padding: 2px 8px;
+    /* 24x24 = target klik, tanpa padding tambahan supaya baris media
+       (cover + teks + 4 tombol) tetap muat di kartu 420 */
+    padding: 0px;
+    min-width: 24px;
+    min-height: 24px;
     border-radius: 12px;
     /* tombol kontrol tanpa background bawaan tema (GTK3 tetap menggambar
        background/box-shadow button walau kelas tidak mendeklarasikannya) */
@@ -634,8 +667,8 @@ tooltip > box {
 .dyn-island-popup-close {
     background: transparent;
     padding: 1px 4px;
-    min-width: 0;
-    min-height: 0;
+    min-width: 24px;
+    min-height: 24px;
     color: __MUTED__;
 }
 

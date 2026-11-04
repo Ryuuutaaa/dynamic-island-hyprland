@@ -3,6 +3,7 @@ import Widget from 'resource:///com/github/Aylur/ags/widget.js';
 import { palette, hexToRgb } from '../theme.js';
 import { roundedRect } from '../draw.js';
 import { stats } from './sysstats.js';
+import { tabular } from './type.js';
 
 // Halaman statistik v2: tiga kartu permukaan (bukan teks mengambang) dengan
 // label kecil, angka besar, bar, dan satu baris detail per kartu. Semua info
@@ -45,7 +46,7 @@ const gauge = width => {
 };
 
 const card = (title, width) => {
-    const value = Widget.Label({ className: 'dyn-island-stats-value', xalign: 0 });
+    const value = tabular(Widget.Label({ className: 'dyn-island-stats-value', xalign: 0 }));
     const detail = Widget.Label({ className: 'dyn-island-stats-detail', xalign: 0 });
     const bar = gauge(width);
 

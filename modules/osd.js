@@ -10,15 +10,16 @@ import { palette, hexToRgb } from '../theme.js';
 import { showTransient, page } from '../state.js';
 import { roundedRect } from '../draw.js';
 import { eventButton, eventX } from './pointer.js';
+import { tabular } from './type.js';
 
 const BAR_HEIGHT = 6;
 // Area klik/geser lebih tinggi dari bar: 5px terlalu tipis untuk ditunjuk.
-const BAR_HIT = 18;
+const BAR_HIT = 24;
 const BAR_WIDTH = 110;
 const TRACK_RGB = hexToRgb(palette.fg);
 const FILL_RGB = hexToRgb(palette.accent2);
 
-const valueLabel = () => Widget.Label({ className: 'dyn-island-osd-value' });
+const valueLabel = () => tabular(Widget.Label({ className: 'dyn-island-osd-value' }));
 const iconLabel = () => Widget.Label({ className: 'dyn-island-osd-icon' });
 
 // Bar digambar manual, bukan Gtk.ProgressBar: AGS menambahkan child ke Box

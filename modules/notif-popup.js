@@ -267,8 +267,8 @@ export default () => {
         tooltipText: 'Tutup',
         valign: Gtk.Align.START,
         // target klik 17x15 terukur terlalu kecil untuk sudut kartu
-        widthRequest: 20,
-        heightRequest: 20,
+        widthRequest: 24,
+        heightRequest: 24,
         child: Widget.Label({ className: 'dyn-island-popup-close-icon', label: '\uf00d' }),
         onClicked: () => {
             closeNotification(currentId);

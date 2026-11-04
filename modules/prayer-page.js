@@ -6,6 +6,7 @@ import * as Utils from 'resource:///com/github/Aylur/ags/utils.js';
 import { prayer } from './prayer.js';
 import { computeTimes, formatMinutes, nextPrayer } from './prayer-calc.js';
 import { palette, hexToRgb } from '../theme.js';
+import { tabular } from './type.js';
 
 const MUTED = hexToRgb(palette.muted);
 const ACCENT = hexToRgb(palette.accent2);
@@ -163,9 +164,9 @@ export default () => {
         maxWidthChars: 24,
     });
     const nextName = Widget.Label({ className: 'dyn-island-prayer-next', xalign: 0 });
-    const countdown = Widget.Label({ className: 'dyn-island-prayer-count', xalign: 0 });
+    const countdown = tabular(Widget.Label({ className: 'dyn-island-prayer-count', xalign: 0 }));
     // Jam berjalan sebagai pembanding hitungan mundur di sebelah kiri.
-    const clock = Widget.Label({ className: 'dyn-island-prayer-clock', xalign: 1 });
+    const clock = tabular(Widget.Label({ className: 'dyn-island-prayer-clock', xalign: 1 }));
 
     const arc = SkyArc();
     // Label waktu = baris rata 5 kolom. Posisi waktu asli tidak dipakai di sini:
@@ -207,11 +208,11 @@ export default () => {
                         label: time.name,
                         xalign: 0.5,
                     }),
-                    Widget.Label({
+                    tabular(Widget.Label({
                         className: 'dyn-island-prayer-time-value',
                         label: time.label,
                         xalign: 0.5,
-                    }),
+                    })),
                 ],
             });
             columns.set(time.key, box);

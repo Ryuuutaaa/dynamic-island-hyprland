@@ -5,14 +5,15 @@ import { todo, doneCount, totalCount } from './todo.js';
 import { water, total, liters } from './water.js';
 import { formatClock, formatDate, onMinute } from './timefmt.js';
 import BluetoothBar from './bluetooth.js';
+import { tabular } from './type.js';
 
 // Halaman idle dulu hanya jam + baterai (106 dari 394 px terpakai). Sekarang
 // diisi ringkasan yang berguna: jam besar, tanggal, lalu baterai + progres
 // tugas + air (semua dari state yang sudah ada, bukan fitur baru).
-const statLabel = () => Widget.Label({
+const statLabel = () => tabular(Widget.Label({
     className: 'dyn-island-idle-stat',
     xalign: 0,
-});
+}));
 
 const glyphIcon = glyph => Widget.Label({
     className: 'dyn-island-idle-stat-icon',
@@ -26,7 +27,7 @@ const statRow = (icon, label) => Widget.Box({
 });
 
 export default () => {
-    const time = Widget.Label({ className: 'dyn-island-idle-time', xalign: 0 });
+    const time = tabular(Widget.Label({ className: 'dyn-island-idle-time', xalign: 0 }));
     const date = Widget.Label({ className: 'dyn-island-idle-date', xalign: 0 });
     const battIcon = Widget.Icon({ className: 'dyn-island-idle-stat-icon', size: 13 });
     const batt = statLabel();

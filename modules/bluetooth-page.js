@@ -7,6 +7,7 @@ import { glyphFor, primaryDevice } from './bluetooth.js';
 import { eventButton, eventX } from './pointer.js';
 import { palette, hexToRgb } from '../theme.js';
 import { roundedRect } from '../draw.js';
+import { tabular } from './type.js';
 
 const FG = hexToRgb(palette.fg);
 const ACCENT = hexToRgb(palette.accent2);
@@ -51,7 +52,7 @@ const VolumeSlider = (width, onChange) => {
     const area = Widget.DrawingArea({
         className: 'dyn-island-bt-slider',
         setup: self => {
-            self.set_size_request(width, 18);
+            self.set_size_request(width, 24);
             self.add_events(Gdk.EventMask.BUTTON_PRESS_MASK
                 | Gdk.EventMask.BUTTON_RELEASE_MASK
                 | Gdk.EventMask.POINTER_MOTION_MASK);
@@ -130,8 +131,8 @@ export default () => {
         maxWidthChars: 34,
     });
     const battIcon = Widget.Label({ className: 'dyn-island-bt-batt-icon' });
-    const battText = Widget.Label({ className: 'dyn-island-bt-batt' });
-    const volText = Widget.Label({ className: 'dyn-island-bt-vol-text' });
+    const battText = tabular(Widget.Label({ className: 'dyn-island-bt-batt' }));
+    const volText = tabular(Widget.Label({ className: 'dyn-island-bt-vol-text' }));
 
     let sink = null;
 

@@ -3,6 +3,7 @@ import Widget from 'resource:///com/github/Aylur/ags/widget.js';
 import {
     applyPreset, mmss, PRESETS, resetTimer, setMode, timer, toggleRunning,
 } from './timer.js';
+import { tabular } from './type.js';
 
 // Halaman timer v2: satu angka fokus di kiri, kontrol bertingkat di kanan
 // (mode -> preset 2 baris -> aksi utama). Tidak ada lagi delapan pill kecil
@@ -17,8 +18,8 @@ const presetButton = minutes => Widget.Button({
 });
 
 export default () => {
-    const time = Widget.Label({ className: 'dyn-island-timer-time', xalign: 0 });
-    const sub = Widget.Label({ className: 'dyn-island-timer-sub', xalign: 0 });
+    const time = tabular(Widget.Label({ className: 'dyn-island-timer-time', xalign: 0 }));
+    const sub = tabular(Widget.Label({ className: 'dyn-island-timer-sub', xalign: 0 }));
 
     const modeTimer = Widget.Button({
         className: 'dyn-island-timer-mode',

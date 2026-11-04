@@ -3,6 +3,7 @@ import Widget from 'resource:///com/github/Aylur/ags/widget.js';
 import * as Utils from 'resource:///com/github/Aylur/ags/utils.js';
 import { palette, hexToRgb } from '../theme.js';
 import { todo, addTask, toggleTask, removeTask, doneCount, totalCount } from './todo.js';
+import { tabular } from './type.js';
 
 const FG = hexToRgb(palette.fg);
 // hijau dari palet (bisa di-override wallust via `@define-color ok ...`)
@@ -100,7 +101,7 @@ const pill = (label, onClicked, tooltip = null) => Widget.Button({
 export default () => {
     let editMode = false;
 
-    const count = Widget.Label({ className: 'dyn-island-todo-count' });
+    const count = tabular(Widget.Label({ className: 'dyn-island-todo-count' }));
     const editLabel = Widget.Label({ className: 'dyn-island-pill-label', label: 'Ubah' });
 
     // Panel tugas: ScrolledWindow nested (vscroll external supaya minimum

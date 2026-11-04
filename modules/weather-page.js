@@ -1,6 +1,7 @@
 import Gtk from 'gi://Gtk?version=3.0';
 import Widget from 'resource:///com/github/Aylur/ags/widget.js';
 import { weather, glyphFor, labelFor } from './weather.js';
+import { tabular } from './type.js';
 
 // Cuaca v3: hero di kiri (ikon + suhu sebaris, kondisi di bawahnya) dan tiga
 // kartu hari di kanan. Suhu maks/min dibedakan bobot & warna, bukan ditulis
@@ -32,8 +33,8 @@ const dayTile = value => Widget.Box({
             spacing: 3,
             halign: Gtk.Align.CENTER,
             children: [
-                Widget.Label({ className: 'dyn-island-weather-tile-max', label: `${value.max}°` }),
-                Widget.Label({ className: 'dyn-island-weather-tile-min', label: `${value.min}°` }),
+                tabular(Widget.Label({ className: 'dyn-island-weather-tile-max', label: `${value.max}°` })),
+                tabular(Widget.Label({ className: 'dyn-island-weather-tile-min', label: `${value.min}°` })),
             ],
         }),
     ],
@@ -41,7 +42,7 @@ const dayTile = value => Widget.Box({
 
 export default () => {
     const glyph = Widget.Label({ className: 'dyn-island-weather-glyph' });
-    const temp = Widget.Label({ className: 'dyn-island-weather-temp' });
+    const temp = tabular(Widget.Label({ className: 'dyn-island-weather-temp' }));
     const condition = Widget.Label({ className: 'dyn-island-weather-condition', xalign: 0 });
     const place = Widget.Label({ className: 'dyn-island-weather-place', xalign: 0 });
     const days = Widget.Box({ className: 'dyn-island-weather-days', spacing: 6 });

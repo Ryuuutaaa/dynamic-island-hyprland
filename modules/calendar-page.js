@@ -1,5 +1,6 @@
 import Widget from 'resource:///com/github/Aylur/ags/widget.js';
 import { calendar } from './calendar.js';
+import { tabular } from './type.js';
 
 // Halaman kalender: acara berikutnya (judul, jam, hitung mundur) + maksimal dua
 // acara sesudahnya. Kalau feed belum diisi, tampil petunjuk singkat.
@@ -50,7 +51,7 @@ export default () => {
             className: 'dyn-island-cal-row',
             spacing: 8,
             children: [
-                Widget.Label({ className: 'dyn-island-cal-row-time', label: hhmm(event.start) }),
+                tabular(Widget.Label({ className: 'dyn-island-cal-row-time', label: hhmm(event.start) })),
                 Widget.Label({ className: 'dyn-island-cal-row-title', label: event.title, xalign: 0, hexpand: true }),
             ],
         }));

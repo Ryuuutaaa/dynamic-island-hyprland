@@ -2,6 +2,7 @@ import Gtk from 'gi://Gtk?version=3.0';
 import Widget from 'resource:///com/github/Aylur/ags/widget.js';
 import { palette, hexToRgb } from '../theme.js';
 import { pomodoro, MODES, setMode, toggleRunning, reset } from './pomodoro.js';
+import { tabular } from './type.js';
 
 const RING = 88;
 const THICK = 7;
@@ -60,7 +61,7 @@ const NEXT_MODE = { focus: 'break', break: 'longBreak', longBreak: 'focus' };
 const NEXT_LABEL = { focus: 'Istirahat', break: 'Istirahat panjang', longBreak: 'Fokus' };
 
 export default () => {
-    const time = Widget.Label({ className: 'dyn-island-pomo-time' });
+    const time = tabular(Widget.Label({ className: 'dyn-island-pomo-time' }));
     const modeText = Widget.Label({ className: 'dyn-island-pomo-mode' });
     const playLabel = pillLabel('\uf04b');
     const modePillLabel = pillLabel('Istirahat');

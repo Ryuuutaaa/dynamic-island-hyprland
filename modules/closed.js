@@ -9,6 +9,7 @@ import { isPlaying } from '../state.js';
 import { palette, hexToRgb } from '../theme.js';
 import { roundedRect } from '../draw.js';
 import { formatClock, formatDateShort, onMinute } from './timefmt.js';
+import { tabular } from './type.js';
 import { pomodoro } from './pomodoro.js';
 import { todo } from './todo.js';
 import { water, total, liters } from './water.js';
@@ -108,10 +109,10 @@ const Equalizer = () => {
 };
 
 export default () => {
-    const time = Widget.Label({
+    const time = tabular(Widget.Label({
         className: 'dyn-island-closed-time',
         label: formatClock(),
-    });
+    }));
     // Saat tidak ada musik, equalizer cuma stub redup (tidak informatif), jadi
     // ruangnya dipakai untuk tanggal — satu-satunya tempat tanggal tampil
     // (modul clock waybar sudah dihapus untuk memberi ruang ke notch).
@@ -122,13 +123,13 @@ export default () => {
     });
     // Sisa waktu pomodoro: menggantikan tanggal saat sesi fokus/istirahat
     // aktif (musik tetap prioritas tertinggi lewat equalizer).
-    const todoLabel = Widget.Label({ className: 'dyn-island-closed-pomo', visible: false });
-    const waterLabel = Widget.Label({ className: 'dyn-island-closed-pomo', visible: false });
-    const pomo = Widget.Label({
+    const todoLabel = tabular(Widget.Label({ className: 'dyn-island-closed-pomo', visible: false }));
+    const waterLabel = tabular(Widget.Label({ className: 'dyn-island-closed-pomo', visible: false }));
+    const pomo = tabular(Widget.Label({
         className: 'dyn-island-closed-pomo',
         visible: false,
         setup: self => self.set_no_show_all(true),
-    });
+    }));
     const eq = Equalizer();
 
     const mmss = seconds => {
