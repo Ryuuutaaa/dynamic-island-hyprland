@@ -31,8 +31,9 @@ const minutesNow = () => {
     return now.getHours() * 60 + now.getMinutes() + now.getSeconds() / 60;
 };
 
-// Busur langit: Subuh di kiri, Magrib di kanan, matahari bergerak mengikuti
-// waktu sekarang. Isya ditandai di bawah ujung kanan (setelah terbenam).
+// Busur langit: matahari bergerak dari TERBIT sampai TERBENAM sehingga
+// puncaknya jatuh tepat di Dzuhur (tengah antara sunrise dan maghrib).
+// Subuh/Isya adalah fase malam, jadi ditandai di bawah ujung busur.
 const SkyArc = () => Widget.DrawingArea({
     className: 'dyn-island-prayer-arc',
     setup: self => self.set_size_request(ARC_W, ARC_H),
@@ -43,9 +44,10 @@ const SkyArc = () => Widget.DrawingArea({
         const times = state.times;
         const fajr = times[0].minutes;
         const maghrib = times[3].minutes;
-        const span = Math.max(1, maghrib - fajr);
-        const now = minutesNow();
-        const t = (now - fajr) / span;
+        // data lama bisa tanpa sunrise: perkirakan 80 menit setelah Subuh
+        const sunrise = Number.isFinite(state.sunrise) ? state.sunrise : fajr + 80;
+        const span = Math.max(1, maghrib - sunrise);
+        const t = (minutesNow() - sunrise) / span;
         const next = nextPrayer(state);
         const nextKey = next?.key ?? '';
 
@@ -63,25 +65,7 @@ const SkyArc = () => Widget.DrawingArea({
             for (let i = 1; i <= steps; i++)
                 cr.lineTo(...point(from + (to - from) * (i / steps)));
         };
-
-        cr.setLineWidth(1.2);
-        cr.setSourceRGBA(MUTED[0], MUTED[1], MUTED[2], 0.22);
-        strokeArc(0, 1);
-        cr.stroke();
-
-        if (t > 0) {
-            cr.setLineWidth(1.6);
-            cr.setSourceRGBA(ACCENT[0], ACCENT[1], ACCENT[2], 0.62);
-            strokeArc(0, Math.min(1, t));
-            cr.stroke();
-        }
-
-        // marker Subuh/Dzuhur/Ashar/Magrib di busur
-        for (let i = 0; i < 4; i++) {
-            const key = times[i].key;
-            const [x, y] = point((times[i].minutes - fajr) / span);
-            const active = nextKey === key;
-
+        const dot = (x, y, active) => {
             if (active) {
                 cr.setSourceRGBA(ACCENT[0], ACCENT[1], ACCENT[2], 0.28);
                 cr.arc(x, y, 6, 0, Math.PI * 2);
@@ -95,32 +79,41 @@ const SkyArc = () => Widget.DrawingArea({
             );
             cr.arc(x, y, active ? 2.6 : 2, 0, Math.PI * 2);
             cr.fill();
+        };
+
+        cr.setLineWidth(1.2);
+        cr.setSourceRGBA(MUTED[0], MUTED[1], MUTED[2], 0.22);
+        strokeArc(0, 1);
+        cr.stroke();
+
+        const progress = Math.max(0, Math.min(1, t));
+        if (progress > 0) {
+            cr.setLineWidth(1.6);
+            cr.setSourceRGBA(ACCENT[0], ACCENT[1], ACCENT[2], 0.62);
+            strokeArc(0, progress);
+            cr.stroke();
         }
 
-        // Isya: setelah Magrib, jadi ditandai di bawah ujung kanan busur
-        const ishaActive = nextKey === 'isha';
-        const ishaX = width - 1;
-        const ishaY = base + 10;
+        // marker siang di busur: Dzuhur, Ashar, Magrib
+        for (const index of [1, 2, 3]) {
+            const time = times[index];
+            const [x, y] = point((time.minutes - sunrise) / span);
+            dot(x, y, nextKey === time.key);
+        }
+
+        // penanda malam di bawah ujung busur: Subuh (kiri), Isya (kanan)
         cr.setLineWidth(1);
         cr.setSourceRGBA(MUTED[0], MUTED[1], MUTED[2], 0.22);
-        cr.moveTo(width, base);
-        cr.lineTo(ishaX, ishaY - 3);
+        cr.moveTo(0, base);
+        cr.lineTo(1, base + 7);
         cr.stroke();
-        if (ishaActive) {
-            cr.setSourceRGBA(ACCENT[0], ACCENT[1], ACCENT[2], 0.28);
-            cr.arc(ishaX, ishaY, 6, 0, Math.PI * 2);
-            cr.fill();
-        }
-        cr.setSourceRGBA(
-            ishaActive ? FG[0] : MUTED[0],
-            ishaActive ? FG[1] : MUTED[1],
-            ishaActive ? FG[2] : MUTED[2],
-            ishaActive ? 0.95 : 0.55,
-        );
-        cr.arc(ishaX, ishaY, ishaActive ? 2.6 : 2, 0, Math.PI * 2);
-        cr.fill();
+        cr.moveTo(width, base);
+        cr.lineTo(width - 1, base + 7);
+        cr.stroke();
+        dot(1, base + 10, nextKey === 'fajr');
+        dot(width - 1, base + 10, nextKey === 'isha');
 
-        // matahari hanya terlihat saat sudah terbit dan belum terbenam
+        // matahari: hanya saat sudah terbit dan belum terbenam
         if (t >= 0 && t <= 1) {
             const [x, y] = point(t);
             cr.setSourceRGBA(ACCENT[0], ACCENT[1], ACCENT[2], 0.14);
@@ -144,13 +137,30 @@ export default () => {
     const countdown = Widget.Label({ className: 'dyn-island-prayer-count', xalign: 0 });
 
     const arc = SkyArc();
-    const timesBox = Widget.Box({ className: 'dyn-island-prayer-times', spacing: 0 });
+    // Label waktu diposisikan di bawah marker busur (bukan kolom rata): dengan
+    // kolom rata, kursor matahari di Ashar tampak "mendekati Isya" karena
+    // label Ashar bergeser ~9% dari posisi sebenarnya.
+    const timesBox = new Gtk.Fixed();
+    timesBox.set_size_request(ARC_W, 42);
     const columns = new Map();
     let builtDate = '';
 
     const buildTimes = state => {
         columns.clear();
-        timesBox.children = state.times.map(time => {
+        for (const child of timesBox.get_children()) timesBox.remove(child);
+
+        const times = state.times;
+        const fajr = times[0].minutes;
+        const maghrib = times[3].minutes;
+        const sunrise = Number.isFinite(state.sunrise) ? state.sunrise : fajr + 80;
+        const span = Math.max(1, maghrib - sunrise);
+        const clamp = (v, lo, hi) => Math.max(lo, Math.min(hi, v));
+        const leftFor = minutes => {
+            const q = clamp((minutes - sunrise) / span, 0, 1);
+            return clamp(Math.round(q * ARC_W - COL_W / 2), 0, ARC_W - COL_W);
+        };
+
+        const place = (time, left, top) => {
             const box = Widget.Box({
                 className: 'dyn-island-prayer-time',
                 vertical: true,
@@ -169,8 +179,18 @@ export default () => {
                 ],
             });
             columns.set(time.key, box);
-            return box;
-        });
+            timesBox.put(box, left, top);
+        };
+
+        // Subuh menempel kiri; Dzuhur & Ashar tepat di bawah markernya;
+        // Magrib menempel kanan; Isya di baris kedua supaya tidak bertumpuk
+        // dengan Magrib (keduanya berbagi ujung kanan busur).
+        place(times[0], 0, 0);
+        place(times[1], leftFor(times[1].minutes), 0);
+        place(times[2], leftFor(times[2].minutes), 0);
+        place(times[3], ARC_W - COL_W, 0);
+        place(times[4], ARC_W - COL_W, 21);
+
         city.label = `${state.city} · ${state.method}`;
     };
 

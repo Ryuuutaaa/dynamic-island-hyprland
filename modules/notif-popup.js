@@ -27,6 +27,7 @@ const INSET = 12;         // jarak kartu dari tepi atas/kanan layar
 const FULL = W + 2 * PAD;      // window = kartu + padding 10 kiri/kanan
 const CONTENT = W - 2 * PAD - 2; // isi kartu (dikurangi border 1px)
 const DURATION = 5000;    // loading bar = sisa waktu tampil (ms)
+const HOVER_MAX = 15000;  // batas hover: leave-notify bisa tidak terkirim
 const SLIDE = 240;        // durasi animasi masuk/keluar (ms)
 
 const ACCENT = hexToRgb(palette.accent2);
@@ -94,6 +95,7 @@ export default () => {
     let left = DURATION;
     let last = 0;
     let hovered = false;
+    let hoveredAt = 0;
 
     const stopTimer = () => {
         if (timer) {
@@ -142,6 +144,11 @@ export default () => {
 
     const tick = () => {
         const now = GLib.get_monotonic_time() / 1000;
+        // Kartu digeser di dalam ScrolledWindow dan surface bisa di-unmap saat
+        // animasi; pada kondisi itu leave-notify tidak selalu terkirim sehingga
+        // `hovered` tertahan true dan hitungan mundur berhenti selamanya
+        // (gejala: notifikasi menetap sampai diklik). Batas ini jaring pengaman.
+        if (hovered && hoveredAt && now - hoveredAt > HOVER_MAX) hovered = false;
         if (!hovered && last) left -= now - last;
         last = now;
         bar.setFraction(left / DURATION);
@@ -290,7 +297,11 @@ export default () => {
         className: 'dyn-island-popup-hover',
         child: pad,
         setup: self => {
-            self.connect('enter-notify-event', () => { hovered = true; return false; });
+            self.connect('enter-notify-event', () => {
+                hovered = true;
+                hoveredAt = GLib.get_monotonic_time() / 1000;
+                return false;
+            });
             self.connect('leave-notify-event', () => { hovered = false; return false; });
         },
     });
