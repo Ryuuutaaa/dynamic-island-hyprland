@@ -55,6 +55,7 @@ export default {
     // hanya tidak menambah dot dan tidak bisa dicapai panah.
     // 'idle' dan 'media' selalu aktif karena menjadi base page.
     modules: {
+        weather: true,
         pomodoro: true,
         water: true,
         todo: true,
@@ -75,6 +76,17 @@ export default {
     // batas karakter sebelum teks dipotong (kartu 420 lebar, peek 310)
     mediaMaxChars: 22,
     notifyMaxChars: 34,
+
+    // CUACA — Open-Meteo (gratis, tanpa API key/akun). Koordinat & kota
+    // mengikuti blok `prayer` di bawah kecuali diisi sendiri di sini.
+    // refreshMinutes: 15 menit; hanya berjalan kalau modules.weather != false.
+    weather: {
+        latitude: null,
+        longitude: null,
+        city: null,
+        units: 'celsius',      // celsius | fahrenheit
+        refreshMinutes: 15,
+    },
 
     // JADWAL SHOLAT — dihitung lokal (tanpa jaringan) dari koordinat.
     // Ganti latitude/longitude/city kalau pindah daerah.

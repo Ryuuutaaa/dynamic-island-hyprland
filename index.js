@@ -50,6 +50,8 @@ import { onResume } from './modules/timefmt.js';
 import NotificationPopup from './modules/notif-popup.js';
 import PomodoroOsd from './modules/pomodoro-osd.js';
 import StandupPage from './modules/standup-page.js';
+import WeatherPage from './modules/weather-page.js';
+import { watchWeather, weather as weatherState, refreshWeather } from './modules/weather.js';
 import StandupWindow from './modules/standup-window.js';
 import { scheduleStandupReminder, titleForDay as standupTitle, addItem as standupAdd, removeItem as standupRemove, saveStandup as standupSave, loadStandup as standupLoad, remindNow as standupRemind, standup as standupStore } from './modules/standup.js';
 import GeminiChat from './modules/chat-window.js';
@@ -170,6 +172,7 @@ function DynamicIsland() {
             closed: Closed(),
             idle: Idle(),
             media: Media(),
+            weather: WeatherPage(),
             lyrics: LyricsPage(),
             pomodoro: PomodoroPage(),
             water: WaterPage(),
@@ -846,6 +849,7 @@ const dyn = {
     todo, todoAdd, todoToggle, todoRemove,
     shelf, shelfAdd, shelfRemove, shelfClear, shelfDragOver, shelfUndo, shelfUndoLast,
     toggleOpen, closeIsland,
+    weather: weatherState, refreshWeather,
 };
 globalThis.dynIsland = dyn;
 
@@ -968,6 +972,8 @@ dyn.standupWindow = globalThis.standupWindow;
 dyn.standupWinWidget = standupWin;
 registerLocalAction('Standup', () => globalThis.standupWindow?.toggle?.());
 scheduleStandupReminder();
+// Cuaca hanya di-poll kalau modulnya aktif (prinsip: tanpa request diam-diam).
+if (CONFIG.modules?.weather !== false) watchWeather();
 dyn.notifInvoke = notifInvoke;
 dyn.standupApi = {
     add: standupAdd, remove: standupRemove, save: standupSave,

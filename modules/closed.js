@@ -12,6 +12,7 @@ import { formatClock, formatDateShort, onMinute } from './timefmt.js';
 import { pomodoro } from './pomodoro.js';
 import { todo } from './todo.js';
 import { water, total, liters } from './water.js';
+import { weather } from './weather.js';
 
 const RING = 15;
 const RING_THICK = 2;
@@ -146,7 +147,7 @@ export default () => {
 
     // Urutan prioritas dari config; 'date' jadi fallback bila tidak ada yang aktif.
     const INDICATORS = (CONFIG.closedIndicators ?? ['music', 'pomodoro', 'todo', 'date'])
-        .filter(name => ['music', 'pomodoro', 'todo', 'water', 'date'].includes(name));
+        .filter(name => ['music', 'pomodoro', 'todo', 'water', 'weather', 'date'].includes(name));
 
     const syncPomo = () => {
         pomo.label = mmss(pomodoro.value.remaining);
@@ -165,6 +166,7 @@ export default () => {
             pomodoro: sessionActive() ? mmss(pomodoro.value.remaining) : '',
             todo: dueTasks() ? `${dueTasks()} tugas` : '',
             water: total(water.value) > 0 ? waterText() : '',
+            weather: weather.value.ok && weather.value.temp !== null ? `${weather.value.temp}°` : '',
             date: formatDateShort(),
         };
         let chosen = 'date';
@@ -195,6 +197,7 @@ export default () => {
             self.hook(pomodoro, () => { syncMode(); syncPomo(); });
             self.hook(todo, syncMode);
             self.hook(water, syncMode);
+            self.hook(weather, syncMode);
             onMinute(syncClock, self);
         },
     });
