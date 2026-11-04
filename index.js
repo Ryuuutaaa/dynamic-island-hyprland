@@ -55,6 +55,8 @@ import WeatherPage from './modules/weather-page.js';
 import { watchWeather, weather as weatherState, refreshWeather } from './modules/weather.js';
 import TimerPage from './modules/timer-page.js';
 import StatsPage from './modules/stats-page.js';
+import CalendarPage from './modules/calendar-page.js';
+import { watchCalendar, calendar as calendarState, refreshCalendar } from './modules/calendar.js';
 import { watchStats, stats as statsState } from './modules/sysstats.js';
 import { watchWellness, toggleWellness, wellness as wellnessState, reminderNow as wellnessReminder, onWellnessAction } from './modules/wellness.js';
 import { timer as timerState, restoreTimer, applyPreset as timerPreset, toggleRunning as timerToggle, resetTimer as timerReset, setMode as timerSetMode } from './modules/timer.js';
@@ -186,6 +188,7 @@ function DynamicIsland() {
             pomodoro: PomodoroPage(),
             timer: TimerPage(),
             stats: StatsPage(),
+            calendar: CalendarPage(),
             water: WaterPage(),
             todo: TodoPage(),
             standup: StandupPage(),
@@ -864,6 +867,7 @@ const dyn = {
     timer: timerState, timerPreset, timerToggle, timerReset, timerSetMode,
     wellness: wellnessState, wellnessToggle: toggleWellness, wellnessReminder,
     stats: statsState,
+    calendar: calendarState, refreshCalendar,
     coverColor,
 };
 globalThis.dynIsland = dyn;
@@ -993,6 +997,7 @@ if (CONFIG.modules?.weather !== false) watchWeather();
 restoreTimer();
 watchWellness();
 watchStats();
+watchCalendar();
 dyn.notifInvoke = notifInvoke;
 dyn.standupApi = {
     add: standupAdd, remove: standupRemove, save: standupSave,

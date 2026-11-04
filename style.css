@@ -1354,3 +1354,30 @@ tooltip > box {
     font-size: 9.5px;
     color: __MUTED__;
 }
+
+/* ── Kalender ─────────────────────────────────────────────────── */
+.dyn-island-cal-title {
+    font-size: 15px;
+    font-weight: 700;
+    color: __FG__;
+}
+
+.dyn-island-cal-when {
+    font-size: 11px;
+    color: __ACCENT__;
+}
+
+.dyn-island-cal-hint {
+    font-size: 10.5px;
+    color: __MUTED__;
+}
+
+.dyn-island-cal-row-time {
+    font-size: 10px;
+    color: __MUTED__;
+}
+
+.dyn-island-cal-row-title {
+    font-size: 10.5px;
+    color: __FG__;
+}

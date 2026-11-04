@@ -58,6 +58,7 @@ export default {
         weather: true,
         timer: true,
         stats: true,
+        calendar: true,
         pomodoro: true,
         water: true,
         todo: true,
@@ -78,6 +79,14 @@ export default {
     // batas karakter sebelum teks dipotong (kartu 420 lebar, peek 310)
     mediaMaxChars: 22,
     notifyMaxChars: 34,
+
+    // KALENDER — satu URL iCal (Google/Outlook "secret address") atau path file
+    // .ics lokal. Kosong = modul tampil dengan petunjuk pengisian.
+    // Pengingat dikirim 10 menit sebelum acara berikutnya.
+    calendar: {
+        icsUrl: '',
+        refreshMinutes: 30,
+    },
 
     // KESEHATAN RINGAN — jeda mata 20-20-20 dan pengingat gerak tiap jam.
     // Hanya notifikasi lokal (tidak ada data disimpan, tidak ada jaringan).
