@@ -48,6 +48,7 @@ import { watchLyrics, lyrics as lyricsStore, retryLyrics } from './modules/lyric
 import { btPreview } from './modules/bluetooth.js';
 import { focusedRect, refresh as refreshMonitors, followFocused, applyFocused } from './modules/monitor.js';
 import { onResume } from './modules/timefmt.js';
+import ClickAway from './modules/clickaway.js';
 import NotificationPopup from './modules/notif-popup.js';
 import PomodoroOsd from './modules/pomodoro-osd.js';
 import StandupPage from './modules/standup-page.js';
@@ -146,6 +147,8 @@ function Ear(side) {
 // hover dan leave-notify tidak menutupnya sampai hotkey ditekan lagi.
 let forcedOpen = false;
 let forcedTimer = 0;
+// Layer penuh layar untuk menutup island saat klik di luar notch.
+let clickAway = null;
 
 // Batas waktu buka-paksa: kalau tidak ada interaksi, notch kembali menutup
 // sendiri. Tanpa ini island bisa tertahan terbuka setelah SUPER+N (bug yang
@@ -162,9 +165,17 @@ function toggleOpen(force) {
         forcedTimer = GLib.timeout_add(GLib.PRIORITY_DEFAULT, FORCED_TIMEOUT, () => {
             forcedTimer = 0;
             forcedOpen = false;
+            if (clickAway) clickAway.visible = false;
             hovered.value = false;
             try { refreshBase(); } catch (_) { }
             return GLib.SOURCE_REMOVE;
+        });
+    }
+    if (clickAway) {
+        clickAway.visible = forcedOpen;
+        if (forcedOpen) clickAway.setHole({
+            w: CONFIG.geometry.expanded.w + 2 * CONFIG.geometry.expanded.ear + 2,
+            h: CONFIG.geometry.expanded.h + 1,
         });
     }
     hovered.value = forcedOpen;
@@ -498,6 +509,12 @@ function DynamicIsland() {
     const animateTo = next => {
         const prevTarget = target;
         target = next;
+        // Lubang input click-away mengikuti geometri kartu (lirik/sholat/chat
+        // lebih lebar dari expanded biasa).
+        if (clickAway) clickAway.setHole({
+            w: next.w + 2 * next.ear + 2,
+            h: next.h + 1,
+        });
         const from = { ...geo };
         const fromR = radiusNow;
         const prevNav = navVisibleFor(prevTarget);
@@ -857,6 +874,7 @@ function DynamicIsland() {
     // widget yang akan disposed.
     island.connect('destroy', () => {
         dead = true;
+        if (clickAway) clickAway.visible = false;
         for (const [variable, id] of variableConns)
             variable.disconnect(id);
         variableConns.length = 0;
@@ -972,7 +990,14 @@ function mountIsland() {
     try {
         detachWindow('dynamic-island');
         island = null;
-        // state hover milik window lama tidak berlaku untuk window baru
+        // state hover/buka-paksa milik window lama tidak berlaku untuk window
+        // baru; click-away juga harus lepas supaya tidak menahan input.
+        forcedOpen = false;
+        if (forcedTimer) {
+            GLib.source_remove(forcedTimer);
+            forcedTimer = 0;
+        }
+        if (clickAway) clickAway.visible = false;
         hovered.value = false;
         // submap keyboard bisa tertinggal aktif kalau window mati saat nav tampil
         Utils.execAsync(['hyprctl', 'dispatch', 'hl.dsp.submap("reset")']).catch(() => { });
@@ -1006,6 +1031,13 @@ function mountIsland() {
 try {
     watchMpris();
     watchNotifications();
+// Layer transparan yang menutup island saat klik di luar notch. Dibuat
+// sebelum window lain supaya tetap di bawah popup/island bila stacking layer
+// mengikuti urutan pembuatan.
+clickAway = ClickAway({ onClose: closeIsland });
+App.addWindow(clickAway);
+dyn.clickAway = clickAway;
+
 // popup notifikasi kanan atas digambar island sendiri (slide + loading bar).
 // Popup bawaan swaync dimatikan lewat DND supaya tidak dobel; notifikasi tetap
 // masuk control center swaync.

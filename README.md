@@ -828,6 +828,13 @@ selama durasi peek.
   Flag `forcedOpen` menahan watchdog hover dan `leave-notify`, jadi notch tetap
   terbuka walau kursor pindah; hotkey yang sama menutupnya lagi, dan `Escape`
   di submap `island` juga memanggil `closeIsland()`.
+- **Klik di luar notch menutup island.** Saat `forcedOpen`, window
+  `dyn-island-clickaway` (layer top, transparan, penuh layar) di-map. Input
+  shape-nya dilubangi selebar badan notch (mengikuti geometri lirik/sholat/chat),
+  jadi klik di dalam notch tetap sampai ke island di bawahnya, sedangkan klik di
+  luar ditelan dan memanggil `closeIsland()`. Layer ini tidak dipakai saat hover
+  biasa karena `leave-notify` sudah menutup notch; ia juga dilepas saat island
+  dibangun ulang atau hotkey menutup paksa.
 
 Window island memakai `keymode: 'none'` — ia **tidak pernah** mengambil fokus
 keyboard, jadi tombol panah tidak bisa ditangkap langsung oleh GTK. Navigasi

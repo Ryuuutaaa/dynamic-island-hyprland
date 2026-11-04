@@ -8,8 +8,11 @@
 .dyn-island-window,
 .dyn-island-frame-wrap,
 .dyn-island-frame,
-.dyn-island-ear-col {
+.dyn-island-ear-col,
+.dyn-island-clickaway {
     background-color: transparent;
+    background-image: none;
+    box-shadow: none;
 }
 
 /* Container clipping untuk animasi lebar (lihat index.js).
