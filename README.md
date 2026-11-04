@@ -21,8 +21,14 @@ indikator kontekstual. Urutannya di `config.js` → `closedIndicators`
 (default `['music', 'pomodoro', 'todo', 'date']`): indikator pertama yang aktif
 yang dipakai, sisanya disembunyikan. Pilihan: `music` (equalizer), `pomodoro`
 (sisa waktu), `todo` (hanya tugas yang punya jam — "hampir jatuh tempo"),
-`water` (progres air), dan `date` sebagai fallback. Prinsipnya "kaya tapi
-tenang": menambah modul tidak menumpuk isi notch.
+`timer` (sisa timer/stopwatch), `water` (progres air), `weather` (suhu), dan
+`date` sebagai fallback. Prinsipnya "kaya tapi tenang": menambah modul tidak
+menumpuk isi notch.
+
+**Glow album art:** saat musik diputar, notch mengambil **warna dominan cover**
+(`modules/cover-color.js`: sampel 24×24, bobot saturasi, buang piksel hampir
+hitam/putih) dan menggambar glow radial dari bawah lewat `drawSky(..., accent)`.
+Glow hilang sendiri saat tidak ada lagu; tidak ada timer, hanya hook Variable.
 
 **Rasio seragam 3:1** untuk `closed` (150×50), `peek` (240×80), dan `expanded`
 (420×140). Sebelumnya `closed` 150×30 = 5:1, sehingga saat menutup lebar dan
@@ -60,7 +66,9 @@ frame 2,98–3,02 sepanjang 420×140 → 150×50.
 | `idle` | **jam besar + tanggal** + kolom ringkas: baterai, `X/Y tugas`, `ml / goal L`, dan bar Bluetooth (hanya saat ada device terhubung; **klik untuk buka halaman bluetooth**) |
 | `media` | album art 72px + judul + artis + progress bar (bisa diklik untuk seek) + prev/play/next + tombol lirik |
 | `media` → lirik | **sub-tampilan** (bukan halaman nav): kiri album art + judul + progress + kontrol, kanan daftar lirik sinkron |
+| `weather` | cuaca Open-Meteo: kondisi sekarang (glyph, suhu, terasa, angin, kelembapan) + 3 hari ke depan |
 | `pomodoro` | ring merah 88px menyusut + countdown 32px + pill (mode berikutnya, play, reset); umpan balik aksi muncul sebagai **kartu OSD kanan atas**, bukan mengembangkan notch |
+| `timer` | timer bebas (preset 1–60 menit) + stopwatch: waktu besar, mode, preset, play/pause, reset |
 | `water` | volume harian, progress, switch pengingat, grafik ml per jam |
 | `todo` | checkmark hijau + strikethrough, counter `X/Y`, pill Tambah/Ubah |
 | `standup` | ringkasan daily standup (`Tersimpan · kemarin 2 · hari ini 1 · blocker 1`) + pill **Isi/Lihat** yang membuka popup tiga daftar |
@@ -71,7 +79,7 @@ frame 2,98–3,02 sepanjang 420×140 → 150×50.
 | `volume` / `brightness` | ikon + bar (Cairo) + persen |
 | `notify` | ikon + `Judul · isi` |
 
-**Modul on/off:** `config.js` → `modules`. Halaman yang dimatikan (mis.
+**Modul on/off:** `config.js` → `modules` (weather, timer, pomodoro, water, todo, standup, shelf, bluetooth, prayer, chat). Halaman yang dimatikan (mis.
 `pomodoro: false`) tidak masuk `PAGE_ORDER`, jadi jumlah dot dan jangkauan
 panah ikut berkurang; halamannya tetap terdaftar di Stack sehingga
 `showTransient(name, ms)` (OSD/notifikasi) tetap bisa memakainya. `idle` dan
@@ -531,6 +539,46 @@ tiga **daftar** yang diisi tiap hari kerja:
 - **Data**: `~/.local/share/dynamic-iland/standup.json` (60 hari terakhir),
   hanya lokal — tidak dikirim ke mana pun.
 
+## Cuaca (Open-Meteo)
+
+Halaman `weather` memakai **Open-Meteo** — gratis, tanpa API key/akun.
+
+- Koordinat & kota mengikuti blok `prayer` (`latitude`, `longitude`, `city`);
+  bisa ditimpa lewat `config.weather`.
+- `modules/weather.js` mengambil kondisi sekarang (suhu, terasa, angin,
+  kelembapan, kode WMO) + 3 hari ke depan, menyimpan hasil terakhir ke
+  `~/.local/share/dynamic-iland/weather.json` supaya tetap ada isi saat offline,
+  dan refresh tiap **15 menit** — hanya kalau `modules.weather` aktif.
+- Kode WMO dipetakan ke label Indonesia + glyph Nerd Font (matahari, bulan,
+  awan, tetes, salju, petir); malam memakai glyph bulan.
+- `closedIndicators` menerima `weather` untuk menampilkan suhu di notch tertutup.
+
+## Timer & Stopwatch
+
+Halaman `timer` (terpisah dari pomodoro yang bersiklus):
+
+- **Timer bebas** dengan preset 1/3/5/10/15/25/45/60 menit, play/pause, reset.
+- **Stopwatch** yang menyimpan `elapsed` saat dijeda.
+- Hitungan memakai **deadline** (`Date.now()`), jadi tetap benar setelah sleep
+  atau AGS restart; `timer.json` hanya ditulis saat status berubah (tick per
+  detik tidak menyentuh disk).
+- Selesai: `complete.oga` + notifikasi lewat pipeline popup yang sama.
+- `closedIndicators` menerima `timer` untuk menampilkan sisa waktu.
+
+## Kesehatan (jeda mata & gerak)
+
+`modules/wellness.js` — dua pengingat lokal, tanpa data & tanpa jaringan:
+
+| Pengingat | Default |
+|---|---|
+| Jeda mata **20-20-20** | tiap 20 menit, "lihat objek ~6 meter selama 20 detik" |
+| Gerak | tiap 60 menit, "berdiri dan bergerak ringan 2 menit" |
+
+- Hanya aktif di dalam `wellness.startHour`–`endHour` (default 08:00–22:00) dan
+  bisa dimatikan lewat `config.wellness.enabled` atau `wellnessToggle()`.
+- Pengingat dijadwalkan ulang setelah menyala, jadi laptop yang baru bangun
+  tidak menumpuk notifikasi.
+
 ## Shelf
 
 Halaman `shelf` (kartu 420×140): judul `Shelf` + jumlah item + chip
@@ -941,6 +989,12 @@ modules/chat-page.js   halaman chat: bubble riwayat, indikator mengetik, Hapus/U
 .env.example          template API key (salin ke ~/.config/dynamic-iland/.env)
 gemini.example.json   template fallback format JSON
 modules/pomodoro.js    timer fokus / istirahat / panjang, persistensi deadline + chime & notifikasi
+modules/weather.js     cuaca Open-Meteo + cache JSON + refresh 15 menit
+modules/weather-page.js halaman cuaca (sekarang + 3 hari)
+modules/timer.js       timer bebas & stopwatch, deadline + persistensi
+modules/timer-page.js  halaman timer (preset, play/pause, reset)
+modules/wellness.js    jeda mata 20-20-20 + pengingat gerak
+modules/cover-color.js warna dominan album art untuk glow notch
 modules/pomodoro-osd.js kartu OSD kanan atas pomodoro (lebar, aksi, menetap, animasi selesai)
 modules/standup.js      state standup + persistensi + pengingat Senin-Jumat 10:00
 modules/standup-page.js halaman ringkas standup di island
@@ -1139,6 +1193,11 @@ ags -r "globalThis.dynIsland.standupApi.remind()"            # pengingat + lonce
 ags -r "globalThis.dynIsland.standupApi.titleFor(1)"         # judul versi Senin (Friday)
 ags -r "JSON.stringify(globalThis.dynIsland.standupApi.state.value)"  # isi standup
 ags -r "String(globalThis.dynIsland.pomodoroCard.visible)"   # kartu OSD pomodoro
+ags -r "globalThis.dynIsland.refreshWeather()"                # paksa ambil cuaca
+ags -r "JSON.stringify(globalThis.dynIsland.weather.value)"   # data cuaca terakhir
+ags -r "globalThis.dynIsland.timerPreset(0.05)"               # timer 3 detik (uji)
+ags -r "globalThis.dynIsland.wellnessReminder()"              # notifikasi jeda mata
+ags -r "globalThis.dynIsland.coverColor.value = [0.95,0.45,0.15]"  # uji glow notch
 ```
 
 `tools/test-nav.sh` menggerakkan pointer dan mengklik lewat `/dev/uinput`
