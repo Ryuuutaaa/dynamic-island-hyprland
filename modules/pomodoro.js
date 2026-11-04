@@ -10,7 +10,42 @@ export const MODES = {
     longBreak: { label: 'Istirahat panjang', seconds: 15 * 60 },
 };
 
-export const pomodoro = Variable({
+const DIR = `${GLib.get_user_data_dir()}/dynamic-iland`;
+const FILE = `${DIR}/pomodoro.json`;
+
+// Sesi fokus harus tetap hidup setelah AGS restart (mis. reload config).
+// Disimpan: mode, status jalan, sisa detik, dan batas akhir dalam epoch ms
+// supaya sisa waktu ikut berkurang selama AGS mati.
+function readState() {
+    try {
+        const [ok, bytes] = GLib.file_get_contents(FILE);
+        if (!ok) return null;
+        const saved = JSON.parse(new TextDecoder().decode(bytes));
+        const mode = MODES[saved?.mode] ? saved.mode : 'focus';
+        const total = MODES[mode].seconds;
+        let remaining = Number(saved?.remaining);
+        if (!Number.isFinite(remaining) || remaining < 0 || remaining > total) remaining = total;
+        let running = !!saved?.running;
+        const endsAtEpoch = Number(saved?.endsAtEpoch) || 0;
+        if (running && endsAtEpoch > 0) {
+            const left = Math.ceil((endsAtEpoch - Date.now()) / 1000);
+            if (left <= 0) {
+                // habis saat AGS mati: jangan bunyikan chime yang terlambat
+                running = false;
+                remaining = 0;
+            } else {
+                remaining = Math.min(total, left);
+            }
+        }
+        return { mode, running, remaining, total };
+    } catch (_) {
+        return null;
+    }
+}
+
+const initial = readState();
+
+export const pomodoro = Variable(initial ?? {
     mode: 'focus',
     running: false,
     remaining: MODES.focus.seconds,
@@ -20,6 +55,32 @@ export const pomodoro = Variable({
 const CHIME = '/usr/share/sounds/freedesktop/stereo/alarm-clock-elapsed.oga';
 
 let timer = 0;
+let endsAtEpoch = 0;
+let saveTimer = 0;
+
+function writeState() {
+    try {
+        GLib.mkdir_with_parents(DIR, 0o755);
+        const state = pomodoro.value;
+        GLib.file_set_contents(FILE, JSON.stringify({
+            mode: state.mode,
+            running: state.running,
+            remaining: state.remaining,
+            endsAtEpoch: state.running ? endsAtEpoch : 0,
+        }));
+    } catch (error) {
+        console.error(`[dyn-island] gagal simpan pomodoro: ${error}`);
+    }
+}
+
+const persist = () => {
+    if (saveTimer) GLib.source_remove(saveTimer);
+    saveTimer = GLib.timeout_add(GLib.PRIORITY_DEFAULT, 300, () => {
+        saveTimer = 0;
+        writeState();
+        return GLib.SOURCE_REMOVE;
+    });
+};
 
 const publish = patch => { pomodoro.value = { ...pomodoro.value, ...patch }; };
 
@@ -38,6 +99,8 @@ let endsAt = 0;
 const startTick = () => {
     if (timer) return;
     endsAt = GLib.get_monotonic_time() / 1000 + pomodoro.value.remaining * 1000;
+    endsAtEpoch = Date.now() + pomodoro.value.remaining * 1000;
+    persist();
     timer = GLib.timeout_add(GLib.PRIORITY_DEFAULT, 250, () => {
         const current = pomodoro.value;
         if (!current.running) {
@@ -89,6 +152,7 @@ export function setMode(mode) {
         remaining: MODES[mode].seconds,
         total: MODES[mode].seconds,
     };
+    persist();
 }
 
 export function toggleRunning() {
@@ -104,11 +168,17 @@ export function toggleRunning() {
     const running = !current.running;
     publish({ running });
     if (running) startTick();
-    else stopTick();
+    else {
+        stopTick();
+        persist();
+    }
 }
 
 export function reset() {
     setMode(pomodoro.value.mode);
 }
+
+// Lanjutkan sesi yang sedang berjalan setelah AGS restart.
+if (pomodoro.value.running) startTick();
 
 export default pomodoro;
