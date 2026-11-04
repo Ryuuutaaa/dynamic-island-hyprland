@@ -57,10 +57,12 @@ const CHIME = '/usr/share/sounds/freedesktop/stereo/alarm-clock-elapsed.oga';
 
 // Pemicu kartu OSD di pojok kanan atas (modules/pomodoro-osd.js). Sengaja
 // bukan halaman island: dulu notch di tengah ikut mengembang setiap start/pause.
-export const pomodoroOsd = Variable({ seq: 0 });
+export const pomodoroOsd = Variable({ seq: 0, kind: 'idle' });
 
-const showOsd = () => {
-    pomodoroOsd.value = { seq: pomodoroOsd.value.seq + 1 };
+// kind: start | pause | mode | done — dipakai kartu kanan atas untuk memutuskan
+// menetap, hanya muncul sebentar, atau memutar animasi selesai.
+const showOsd = kind => {
+    pomodoroOsd.value = { seq: pomodoroOsd.value.seq + 1, kind };
 };
 
 let timer = 0;
@@ -149,10 +151,10 @@ function complete(mode) {
         isFocus ? 'Fokus selesai' : 'Istirahat selesai',
         isFocus ? 'Waktunya istirahat sebentar.' : 'Siap fokus lagi?',
     ]).catch(() => { });
-    setMode(nextMode);
+    setMode(nextMode, 'done');
 }
 
-export function setMode(mode) {
+export function setMode(mode, kind = 'mode') {
     if (!MODES[mode]) return;
     stopTick();
     pomodoro.value = {
@@ -162,7 +164,7 @@ export function setMode(mode) {
         total: MODES[mode].seconds,
     };
     persist();
-    showOsd();
+    showOsd(kind);
 }
 
 export function toggleRunning() {
@@ -173,12 +175,12 @@ export function toggleRunning() {
         setMode(current.mode);
         publish({ running: true });
         startTick();
-        showOsd();
+        showOsd('start');
         return;
     }
     const running = !current.running;
     publish({ running });
-    showOsd();
+    showOsd(running ? 'start' : 'pause');
     if (running) startTick();
     else {
         stopTick();

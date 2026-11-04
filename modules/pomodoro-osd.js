@@ -1,13 +1,19 @@
 import GLib from 'gi://GLib';
 import Widget from 'resource:///com/github/Aylur/ags/widget.js';
-import CONFIG from '../config.js';
-import { followFocused } from './monitor.js';
-import { MODES, pomodoro, pomodoroOsd } from './pomodoro.js';
+import { applyFocused } from './monitor.js';
+import { MODES, pomodoro, pomodoroOsd, reset, setMode, toggleRunning } from './pomodoro.js';
 
-// Kartu kecil di pojok kanan atas, terpisah dari island. Dulu umpan balik
-// pomodoro memakai showTransient() sehingga notch di tengah layar ikut
-// mengembang setiap kali timer dimulai/dijeda — terlalu mengganggu.
-const HIDE_MS = Math.max(1800, (CONFIG.osdTimeout ?? 1600) + 600);
+// Kartu pomodoro di pojok kanan atas, terpisah dari island:
+// - lebar, memuat mode, sisa waktu, bar progres, dan tombol aksi
+// - MENETAP selama sesi berjalan/dijeda (tidak auto-hide seperti notifikasi)
+// - berkedip sebentar saat sesi selesai / masuk waktu istirahat
+// - dipasang sekali ke monitor yang sedang fokus, tidak ikut berpindah monitor
+
+const NEXT_MODE = { focus: 'break', break: 'longBreak', longBreak: 'focus' };
+const NEXT_LABEL = { focus: 'Istirahat', break: 'Istirahat panjang', longBreak: 'Fokus' };
+
+const LINGER_AFTER_ACTION = 4000;   // jeda singkat setelah pause/ganti mode
+const LINGER_AFTER_FINISH = 6000;   // biar animasi selesai sempat terlihat
 
 const clock = seconds => {
     const total = Math.max(0, Math.round(Number(seconds) || 0));
@@ -16,15 +22,34 @@ const clock = seconds => {
     return `${String(minutes).padStart(2, '0')}:${String(rest).padStart(2, '0')}`;
 };
 
+// Widget AGS bukan Gtk.Widget: add/remove_style_class_name tidak tersedia,
+// jadi kelas animasi di-set lewat properti className.
+const setFinished = (box, on) => {
+    box.className = on ? 'dyn-island-pomo-osd is-finished' : 'dyn-island-pomo-osd';
+};
+
+const actionButton = (label, onClicked, tooltip) => Widget.Button({
+    className: 'dyn-island-pomo-osd-btn',
+    ...(tooltip ? { tooltipText: tooltip } : {}),
+    child: Widget.Label({ label }),
+    onClicked,
+});
+
 export default () => {
     const time = Widget.Label({ className: 'dyn-island-pomo-osd-time', xalign: 0 });
-    const mode = Widget.Label({ className: 'dyn-island-pomo-osd-mode', xalign: 0 });
-    const state = Widget.Label({ className: 'dyn-island-pomo-osd-state' });
+    const modeText = Widget.Label({ className: 'dyn-island-pomo-osd-mode', xalign: 0 });
+    const stateText = Widget.Label({ className: 'dyn-island-pomo-osd-state' });
+    const bar = Widget.ProgressBar({ className: 'dyn-island-pomo-osd-bar', value: 0 });
+
+    const play = actionButton('⏸', () => toggleRunning(), 'Mulai / jeda');
+    const skip = actionButton('Istirahat', () => setMode(NEXT_MODE[pomodoro.value.mode]), 'Mode berikutnya');
+    const redo = actionButton('↻', () => reset(), 'Reset');
 
     const card = Widget.Box({
         className: 'dyn-island-pomo-osd',
         vertical: true,
-        widthRequest: 188,
+        widthRequest: 320,
+        spacing: 6,
         children: [
             Widget.Box({
                 className: 'dyn-island-pomo-osd-head',
@@ -36,11 +61,20 @@ export default () => {
                         xalign: 0,
                     }),
                     Widget.Label({ hexpand: true }),
-                    state,
+                    stateText,
                 ],
             }),
-            time,
-            mode,
+            Widget.Box({
+                className: 'dyn-island-pomo-osd-clock',
+                spacing: 10,
+                children: [time, modeText],
+            }),
+            bar,
+            Widget.Box({
+                className: 'dyn-island-pomo-osd-actions',
+                spacing: 6,
+                children: [play, skip, redo],
+            }),
         ],
     });
 
@@ -51,41 +85,98 @@ export default () => {
         anchor: ['top', 'right'],
         exclusivity: 'ignore',
         keymode: 'none',
-        margins: [12, 12, 0, 0],
+        // 110 = margin 12 + tinggi popup notifikasi 90 + jarak 8
+        margins: [110, 12, 0, 0],
         visible: false,
         child: card,
     });
-    followFocused(win);
+
+    // pasang sekali ke monitor yang aktif sekarang; sengaja bukan followFocused
+    // supaya kartu tidak melompat pindah monitor saat kursor berpindah
+    applyFocused(win).catch(() => { });
 
     let hideTimer = 0;
+    let blinkTimer = 0;
+    let celebrating = false;
+    // true setelah sesi selesai: kartu tetap tampil sampai user mulai atau reset
+    let pinned = false;
 
-    const refresh = () => {
-        const current = pomodoro.value;
-        time.label = clock(current.remaining);
-        mode.label = MODES[current.mode]?.label ?? '';
-        state.label = current.running ? 'berjalan' : 'dijeda';
-    };
-
-    const hide = () => {
-        hideTimer = 0;
-        win.visible = false;
-    };
-
-    const show = () => {
-        refresh();
-        win.visible = true;
+    const clearHide = () => {
         if (hideTimer) GLib.source_remove(hideTimer);
-        hideTimer = GLib.timeout_add(GLib.PRIORITY_DEFAULT, HIDE_MS, () => {
-            hide();
+        hideTimer = 0;
+    };
+
+    const scheduleHide = ms => {
+        clearHide();
+        hideTimer = GLib.timeout_add(GLib.PRIORITY_DEFAULT, ms, () => {
+            hideTimer = 0;
+            // jangan sembunyikan kalau ternyata timer jalan lagi
+            if (!pomodoro.value.running && !celebrating && !pinned) win.visible = false;
             return GLib.SOURCE_REMOVE;
         });
     };
 
-    // dipicu dari modules/pomodoro.js setiap start/pause/ganti mode
-    win.hook(pomodoroOsd, () => show());
-    // hitung mundur di dalam kartu tetap jalan selama kartu tampil
+    // Animasi selesai: kartu menyala ke warna aksen (transisi CSS) lalu
+    // memudar kembali. Tidak berkedip supaya tidak terasa seperti flicker.
+    const celebrate = () => {
+        if (blinkTimer) GLib.source_remove(blinkTimer);
+        celebrating = true;
+        setFinished(card, true);
+        blinkTimer = GLib.timeout_add(GLib.PRIORITY_DEFAULT, 2600, () => {
+            blinkTimer = 0;
+            celebrating = false;
+            setFinished(card, false);
+            // kalau tidak ada sesi aktif, jangan menggantung di layar
+            if (!pomodoro.value.running && !pinned) scheduleHide(400);
+            return GLib.SOURCE_REMOVE;
+        });
+    };
+
+    const refresh = () => {
+        const current = pomodoro.value;
+        const total = Math.max(1, current.total);
+        const done = Math.min(1, Math.max(0, (total - current.remaining) / total));
+        time.label = clock(current.remaining);
+        modeText.label = MODES[current.mode]?.label ?? '';
+        stateText.label = current.running ? 'berjalan' : 'dijeda';
+        play.child.label = current.running ? '⏸' : '▶';
+        skip.child.label = NEXT_LABEL[current.mode] ?? 'Mode';
+        bar.value = current.running || current.remaining < total ? done : 0;
+    };
+
+    const show = kind => {
+        refresh();
+        win.visible = true;
+        const current = pomodoro.value;
+        if (kind === 'done') {
+            // sesi selesai: animasi + kartu menetap menunggu aksi berikutnya
+            celebrate();
+            pinned = true;
+            clearHide();
+            return;
+        }
+        pinned = false;
+        // sesi aktif (jalan atau dijeda) = kartu menetap, tidak dijadwalkan hilang
+        if (current.running || current.remaining < current.total) {
+            clearHide();
+            return;
+        }
+        scheduleHide(LINGER_AFTER_ACTION);
+    };
+
+    win.hook(pomodoroOsd, () => show(pomodoroOsd.value.kind));
     win.hook(pomodoro, () => {
-        if (win.visible) refresh();
+        refresh();
+        if (pomodoro.value.running) {
+            pinned = false;
+            clearHide();
+            win.visible = true;
+        }
+    });
+
+    win.connect('destroy', () => {
+        if (hideTimer) GLib.source_remove(hideTimer);
+        if (blinkTimer) GLib.source_remove(blinkTimer);
     });
 
     return win;
