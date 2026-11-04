@@ -102,7 +102,7 @@ tooltip > box {
     min-width: 18px;
     min-height: 18px;
     padding: 0px 4px;
-    border-radius: 9px;
+    border-radius: 8px;
     background-color: transparent;
     background-image: none;
     border: none;
@@ -117,7 +117,7 @@ tooltip > box {
     color: __BG__;
 }
 .dyn-island-nav-arrow {
-    font-size: 10px;
+    font-size: 9.5px;
     color: __FG__;
 }
 
@@ -137,7 +137,7 @@ tooltip > box {
     min-width: 108px;
 }
 .dyn-island-idle-stat-icon {
-    font-size: 12px;
+    font-size: 11px;
     color: __ACCENT2__;
 }
 .dyn-island-idle-stat {
@@ -190,14 +190,14 @@ tooltip > box {
     color: __ACCENT2__;
 }
 .dyn-island-bt-batt {
-    font-size: 12px;
+    font-size: 11px;
     color: __FG__;
 }
 .dyn-island-bt-vol {
     min-width: 340px;
 }
 .dyn-island-bt-vol-text {
-    font-size: 12px;
+    font-size: 11px;
     color: __MUTED__;
     min-width: 36px;
 }
@@ -214,12 +214,12 @@ tooltip > box {
 }
 
 .dyn-island-prayer-clock {
-    font-size: 9px;
+    font-size: 9.5px;
     color: __MUTED__;
 }
 
 .dyn-island-prayer-city {
-    font-size: 9px;
+    font-size: 9.5px;
     color: __MUTED__;
 }
 .dyn-island-prayer-next {
@@ -243,11 +243,11 @@ tooltip > box {
     min-width: 72px;
 }
 .dyn-island-prayer-time-name {
-    font-size: 9px;
+    font-size: 9.5px;
     color: __MUTED__;
 }
 .dyn-island-prayer-time-value {
-    font-size: 12px;
+    font-size: 11px;
     color: __FG__;
 }
 .dyn-island-prayer-time.on .dyn-island-prayer-time-name,
@@ -270,12 +270,12 @@ tooltip > box {
     color: __FG__;
 }
 .dyn-island-media-artist {
-    font-size: 12px;
+    font-size: 11px;
     color: __MUTED__;
 }
 .dyn-island-ctl {
     padding: 2px 8px;
-    border-radius: 10px;
+    border-radius: 12px;
     /* tombol kontrol tanpa background bawaan tema (GTK3 tetap menggambar
        background/box-shadow button walau kelas tidak mendeklarasikannya) */
     background-color: transparent;
@@ -327,7 +327,7 @@ tooltip > box {
     background-color: __SURFACE_DIM__;
 }
 .dyn-island-lyric-text {
-    font-size: 12px;
+    font-size: 11px;
     color: __MUTED__;
 }
 .dyn-island-lyric.on .dyn-island-lyric-text {
@@ -335,7 +335,7 @@ tooltip > box {
     font-weight: 700;
 }
 .dyn-island-lyrics-empty {
-    font-size: 12px;
+    font-size: 11px;
     color: __MUTED__;
 }
 /* state gagal jaringan: bisa diklik untuk mencoba lagi */
@@ -351,7 +351,7 @@ tooltip > box {
 
 /* ── pomodoro ───────────────────────────────────────────────── */
 .dyn-island-pomo-title {
-    font-size: 12px;
+    font-size: 11px;
     color: __MUTED__;
 }
 .dyn-island-pomo-time {
@@ -377,7 +377,7 @@ tooltip > box {
     color: __BG__;
 }
 .dyn-island-pill-label {
-    font-size: 12px;
+    font-size: 11px;
     color: __FG__;
 }
 
@@ -397,7 +397,7 @@ tooltip > box {
     color: __FG__;
 }
 .dyn-island-water-goal {
-    font-size: 12px;
+    font-size: 11px;
     color: __MUTED__;
 }
 /* status ringkas di kanan baris volume ("50% · 750 ml lagi") */
@@ -407,7 +407,7 @@ tooltip > box {
 }
 /* caption kecil di depan pill −/+ supaya jelas itu mengubah TARGET */
 .dyn-island-water-goalcap {
-    font-size: 9px;
+    font-size: 9.5px;
     color: __MUTED__;
 }
 .dyn-island-water-meta {
@@ -453,7 +453,7 @@ tooltip > box {
     background-color: __SURFACE_DIM__;
 }
 .dyn-island-todo-text {
-    font-size: 12px;
+    font-size: 11px;
     color: __FG__;
 }
 .dyn-island-todo-text.done {
@@ -462,7 +462,7 @@ tooltip > box {
 }
 /* jatuh tempo: label terpisah supaya tidak ikut terpotong bersama teks tugas */
 .dyn-island-todo-due {
-    font-size: 10px;
+    font-size: 9.5px;
     color: __MUTED__;
 }
 .dyn-island-todo-due.done {
@@ -481,7 +481,7 @@ tooltip > box {
     color: __DANGER__;
 }
 .dyn-island-todo-empty {
-    font-size: 12px;
+    font-size: 11px;
     color: __MUTED__;
 }
 
@@ -497,7 +497,7 @@ tooltip > box {
 }
 .dyn-island-chip {
     padding: 1px 9px;
-    border-radius: 9px;
+    border-radius: 8px;
     background-color: __SURFACE__;
     transition: 140ms ease-out;
 }
@@ -523,12 +523,12 @@ tooltip > box {
     color: __MUTED__;
 }
 .dyn-island-shelf-zone-title {
-    font-size: 12px;
+    font-size: 11px;
     font-weight: 600;
     color: __FG__;
 }
 .dyn-island-shelf-zone-sub {
-    font-size: 9px;
+    font-size: 9.5px;
     color: __MUTED__;
 }
 .dyn-island-shelf-pane,
@@ -537,7 +537,7 @@ tooltip > box {
 }
 .dyn-island-shelf-card {
     padding: 4px 2px;
-    border-radius: 9px;
+    border-radius: 8px;
     background-color: __SURFACE_DIM__;
     transition: 140ms ease-out;
 }
@@ -548,14 +548,14 @@ tooltip > box {
     color: __FG__;
 }
 .dyn-island-shelf-name {
-    font-size: 10px;
+    font-size: 9.5px;
     color: __FG__;
 }
 .dyn-island-shelf-card.missing .dyn-island-shelf-name {
     color: __MUTED__;
 }
 .dyn-island-shelf-size {
-    font-size: 9px;
+    font-size: 9.5px;
     color: __MUTED__;
 }
 
@@ -565,7 +565,7 @@ tooltip > box {
     color: __ACCENT2__;
 }
 .dyn-island-osd-value {
-    font-size: 12px;
+    font-size: 11px;
     font-weight: 700;
     min-width: 40px;
 }
@@ -581,7 +581,7 @@ tooltip > box {
     color: __ACCENT2__;
 }
 .dyn-island-notif-text {
-    font-size: 12px;
+    font-size: 11px;
 }
 
 /* ── popup notifikasi (kanan atas) ─────────────────────────────────
@@ -611,7 +611,7 @@ tooltip > box {
 
 .dyn-island-popup-body {
     color: __MUTED__;
-    font-size: 12px;
+    font-size: 11px;
 }
 
 .dyn-island-popup-glyph {
@@ -644,7 +644,7 @@ tooltip > box {
 }
 
 .dyn-island-popup-close-icon {
-    font-size: 12px;
+    font-size: 11px;
 }
 
 
@@ -669,7 +669,7 @@ tooltip > box {
     color: __FG__;
 }
 .dyn-island-chat-sub {
-    font-size: 9px;
+    font-size: 9.5px;
     color: __MUTED__;
 }
 .dyn-island-chat-pane,
@@ -682,7 +682,7 @@ tooltip > box {
 }
 .dyn-island-chat-bubble {
     padding: 5px 9px;
-    border-radius: 10px;
+    border-radius: 12px;
     background-color: transparent;
 }
 .dyn-island-chat-bubble.model {
@@ -693,26 +693,26 @@ tooltip > box {
     background-color: __CHAT_USER__;
 }
 .dyn-island-chat-text {
-    font-size: 11.5px;
+    font-size: 11px;
     color: __FG__;
 }
 .dyn-island-chat-empty {
-    font-size: 10px;
+    font-size: 9.5px;
     color: __MUTED__;
 }
 .dyn-island-chat-typing {
-    font-size: 10px;
+    font-size: 9.5px;
     color: __MUTED__;
     font-style: italic;
 }
 .dyn-island-chat-error {
-    font-size: 10px;
+    font-size: 9.5px;
     color: __DANGER__;
 }
 
 /* ikon pill chat dipisah dari label lewat Box spacing 6px */
 .dyn-island-pill-icon {
-    font-size: 12px;
+    font-size: 11px;
     color: __FG__;
 }
 
@@ -745,12 +745,12 @@ tooltip > box {
 }
 
 .gemini-chat-title {
-    font-size: 14px;
+    font-size: 13px;
     font-weight: 700;
     color: __FG__;
 }
 .gemini-chat-sub {
-    font-size: 10px;
+    font-size: 9.5px;
     color: __MUTED__;
 }
 
@@ -788,10 +788,10 @@ tooltip > box {
 .gemini-chat-entry {
     background: __SURFACE__;
     border: 1px solid __SURFACE_STRONG__;
-    border-radius: 10px;
+    border-radius: 12px;
     padding: 7px 10px;
     color: __FG__;
-    font-size: 12px;
+    font-size: 11px;
     outline: none;
     box-shadow: none;
 }
@@ -810,13 +810,13 @@ tooltip > box {
     padding-left: 11px;
 }
 .gemini-chat-placeholder {
-    font-size: 12px;
+    font-size: 11px;
     color: __MUTED__;
 }
 
 .gemini-chat-send {
     background: __ACCENT__;
-    border-radius: 10px;
+    border-radius: 12px;
     padding: 7px 14px;
 }
 .gemini-chat-send:hover {
@@ -830,7 +830,7 @@ tooltip > box {
 }
 .gemini-chat-send-label {
     color: __FG__;
-    font-size: 12px;
+    font-size: 11px;
     font-weight: 600;
 }
 
@@ -871,7 +871,7 @@ tooltip > box {
     background: __SURFACE_STRONG__;
 }
 .gemini-chat-icon-label {
-    font-size: 12px;
+    font-size: 11px;
     color: __MUTED__;
 }
 .gemini-chat-icon-btn:hover .gemini-chat-icon-label {
@@ -921,7 +921,7 @@ tooltip > box {
 .gemini-chat .dyn-island-chat-bubble.model {
     background: __SURFACE__;
     padding: 7px 10px;
-    border-radius: 10px;
+    border-radius: 12px;
 }
 .gemini-chat .dyn-island-chat-bubble.user {
     padding: 7px 10px;
@@ -960,14 +960,14 @@ tooltip > box {
 }
 
 .dyn-island-pomo-osd-title {
-    font-size: 10px;
+    font-size: 9.5px;
     font-weight: 600;
     letter-spacing: 1.1px;
     color: __MUTED__;
 }
 
 .dyn-island-pomo-osd-state {
-    font-size: 10px;
+    font-size: 9.5px;
     color: __ACCENT__;
 }
 
@@ -983,7 +983,7 @@ tooltip > box {
 }
 
 .dyn-island-pomo-osd-mode {
-    font-size: 12px;
+    font-size: 11px;
     color: __MUTED__;
 }
 
@@ -1005,7 +1005,7 @@ tooltip > box {
 
 .dyn-island-pomo-osd-btn {
     background: __SURFACE__;
-    border-radius: 9px;
+    border-radius: 8px;
     padding: 4px 10px;
     font-size: 11px;
     color: __FG__;
@@ -1057,19 +1057,19 @@ tooltip > box {
 }
 
 .standup-section-title {
-    font-size: 10px;
+    font-size: 9.5px;
     font-weight: 600;
     letter-spacing: 1.1px;
     color: __MUTED__;
 }
 
 .standup-bullet {
-    font-size: 12px;
+    font-size: 11px;
     color: __ACCENT__;
 }
 
 .standup-item-text {
-    font-size: 12px;
+    font-size: 11px;
     color: __FG__;
 }
 
@@ -1084,22 +1084,22 @@ tooltip > box {
 }
 
 .standup-remove label {
-    font-size: 12px;
+    font-size: 11px;
     color: __MUTED__;
 }
 
 .standup-entry {
     background: __SURFACE__;
-    border-radius: 9px;
+    border-radius: 8px;
     padding: 5px 9px;
-    font-size: 12px;
+    font-size: 11px;
     color: __FG__;
     caret-color: __ACCENT__;
 }
 
 .standup-add {
     background: __SURFACE__;
-    border-radius: 9px;
+    border-radius: 8px;
     padding: 2px 11px;
 }
 
@@ -1108,25 +1108,25 @@ tooltip > box {
 }
 
 .standup-add label {
-    font-size: 14px;
+    font-size: 13px;
     color: __FG__;
 }
 
 .standup-save {
     background: __ACCENT__;
-    border-radius: 9px;
+    border-radius: 8px;
     padding: 5px 14px;
 }
 
 .standup-save label {
-    font-size: 12px;
+    font-size: 11px;
     font-weight: 600;
     color: #14161a;
 }
 
 .standup-dismiss {
     background: __SURFACE__;
-    border-radius: 9px;
+    border-radius: 8px;
     padding: 5px 12px;
 }
 
@@ -1135,7 +1135,7 @@ tooltip > box {
 }
 
 .standup-dismiss label {
-    font-size: 12px;
+    font-size: 11px;
     color: __FG__;
 }
 
@@ -1179,7 +1179,7 @@ tooltip > box {
 }
 
 .dyn-island-weather-condition {
-    font-size: 11.5px;
+    font-size: 11px;
     color: __FG__;
 }
 
@@ -1195,12 +1195,12 @@ tooltip > box {
 
 .dyn-island-weather-tile {
     background: __SURFACE__;
-    border-radius: 11px;
+    border-radius: 12px;
     padding: 6px 9px 6px 9px;
 }
 
 .dyn-island-weather-tile-day {
-    font-size: 9px;
+    font-size: 9.5px;
     font-weight: 600;
     letter-spacing: 0.8px;
     color: __MUTED__;
@@ -1208,7 +1208,7 @@ tooltip > box {
 
 .dyn-island-weather-tile-glyph {
     font-family: "JetBrainsMono Nerd Font", "Ubuntu", sans-serif;
-    font-size: 14px;
+    font-size: 13px;
     color: __ACCENT__;
 }
 
@@ -1232,7 +1232,7 @@ tooltip > box {
 }
 
 .dyn-island-timer-sub {
-    font-size: 10.5px;
+    font-size: 11px;
     letter-spacing: 0.3px;
     color: __MUTED__;
 }
@@ -1288,7 +1288,7 @@ tooltip > box {
 
 .dyn-island-timer-play {
     padding: 3px 15px;
-    border-radius: 10px;
+    border-radius: 12px;
     background: __ACCENT__;
 }
 
@@ -1297,7 +1297,7 @@ tooltip > box {
 }
 
 .dyn-island-timer-play label {
-    font-size: 11.5px;
+    font-size: 11px;
     font-weight: 700;
     color: #14161a;
 }
@@ -1312,7 +1312,7 @@ tooltip > box {
 
 .dyn-island-timer-reset {
     padding: 3px 11px;
-    border-radius: 10px;
+    border-radius: 12px;
     background: __SURFACE__;
 }
 
@@ -1321,7 +1321,7 @@ tooltip > box {
 }
 
 .dyn-island-timer-reset label {
-    font-size: 12px;
+    font-size: 11px;
     color: __MUTED__;
 }
 
@@ -1337,7 +1337,7 @@ tooltip > box {
 }
 
 .dyn-island-stats-label {
-    font-size: 9px;
+    font-size: 9.5px;
     font-weight: 700;
     letter-spacing: 1.1px;
     color: __MUTED__;
@@ -1368,16 +1368,16 @@ tooltip > box {
 }
 
 .dyn-island-cal-hint {
-    font-size: 10.5px;
+    font-size: 11px;
     color: __MUTED__;
 }
 
 .dyn-island-cal-row-time {
-    font-size: 10px;
+    font-size: 9.5px;
     color: __MUTED__;
 }
 
 .dyn-island-cal-row-title {
-    font-size: 10.5px;
+    font-size: 11px;
     color: __FG__;
 }
