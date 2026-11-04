@@ -1,3 +1,4 @@
+import Cairo from 'gi://cairo?version=1.0';
 import GLib from 'gi://GLib';
 import Gtk from 'gi://Gtk?version=3.0';
 import Widget from 'resource:///com/github/Aylur/ags/widget.js';
@@ -55,7 +56,15 @@ const SkyArc = () => Widget.DrawingArea({
         // data lama bisa tanpa sunrise: perkirakan 80 menit setelah Subuh
         const sunrise = Number.isFinite(state.sunrise) ? state.sunrise : fajr + 80;
         const span = Math.max(1, maghrib - sunrise);
-        const realT = (minutesNow() - sunrise) / span;
+        const nowM = minutesNow();
+        const dayT = (nowM - sunrise) / span;
+        // Malam: Magrib -> terbit besok. Jam setelah tengah malam digeser +24 jam
+        // supaya rentangnya tetap kontinu.
+        const nightSpan = Math.max(1, (sunrise + 1440) - maghrib);
+        const nightClock = nowM < sunrise ? nowM + 1440 : nowM;
+        const nightT = (nightClock - maghrib) / nightSpan;
+        const isNight = dayT < 0 || dayT > 1;
+        const realT = isNight ? nightT : dayT;
         let t = realT;
         if (sweep.active) {
             const p = Math.min(1, (nowMs() - sweep.start) / SWEEP_MS);
@@ -94,8 +103,25 @@ const SkyArc = () => Widget.DrawingArea({
             cr.stroke();
         }
 
+        // malam: bulan sabit bergerak dari Magrib ke terbit
+        if (isNight && t >= 0 && t <= 1) {
+            const [x, y] = point(t);
+            cr.setSourceRGBA(0.78, 0.84, 1.0, 0.13);
+            cr.arc(x, y, 9, 0, Math.PI * 2);
+            cr.fill();
+            // sabit: lingkaran luar dikurangi lingkaran offset (even-odd)
+            cr.setFillRule(Cairo.FillRule.EVEN_ODD);
+            cr.newSubPath();
+            cr.arc(x, y, 4.6, 0, Math.PI * 2);
+            cr.newSubPath();
+            cr.arc(x + 2.1, y - 1.3, 3.9, 0, Math.PI * 2);
+            cr.setSourceRGBA(0.86, 0.90, 1.0, 0.95);
+            cr.fill();
+            cr.setFillRule(Cairo.FillRule.WINDING);
+        }
+
         // matahari: hanya saat sudah terbit dan belum terbenam
-        if (t >= 0 && t <= 1) {
+        if (!isNight && t >= 0 && t <= 1) {
             const [x, y] = point(t);
             cr.setSourceRGBA(ACCENT[0], ACCENT[1], ACCENT[2], 0.14);
             cr.arc(x, y, 8, 0, Math.PI * 2);
