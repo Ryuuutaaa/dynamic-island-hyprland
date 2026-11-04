@@ -362,9 +362,12 @@ rule kedua id selalu 0. `latest` membawa `seq` supaya kedatangan id tidak
 memicu popup tampil ulang. Terukur setelah perbaikan: `id=54,
 actions=["default","Open"]`.
 
-**Tampilan** (`modules/notif-popup.js` + kelas `.dyn-island-popup*`): kartu
-340px hitam solid radius 16, ikon 26px (fallback glyph lonceng), judul 13px,
-isi 12px redup, X 20×20 di pojok kanan atas, dan loading bar 3px di dasar kartu.
+**Tampilan** (`modules/notif-popup.js` + kelas `.dyn-island-popup*`): tumpukan
+maksimal **3 kartu** 340px dengan jarak 6px, hitam solid radius 16, ikon 26px
+(fallback glyph lonceng), judul 13px, isi 11px redup, dan X 24×24 di pojok kanan
+atas. Hanya kartu terbaru yang punya loading bar 3px; kartu lama memudar
+(opacity isi 0.72 lalu 0.45) tetapi latarnya tetap solid supaya wallpaper tidak
+membocor. Kartu keempat mendorong kartu tertua keluar dari tumpukan.
 
 Ritme terukur: inset kiri/kanan 15px (padding 14 + border 1), inset atas 13px,
 ikon 26 → jarak 10px → teks, gap judul–isi 2px, jarak ke action 10px, jarak ke
@@ -372,8 +375,10 @@ bar 10px, bar 310×3 (selebar isi kartu), sisa bawah 11px. Lebar kartu dipatok
 340px dan inset kiri/kanan simetris; area klik 290px selebar baris (X terpisah).
 
 - **Durasi** mengikuti `expire_timeout` dari aplikasi: `-1` (default server) →
-  5s, `0` → 12s, nilai lain di-clamp **3–15s**. Sebelumnya semua notifikasi
-  dipaksa 5s sehingga notifikasi penting (mis. error build) hilang terlalu cepat.
+  5s, `0` → 12s, nilai lain di-clamp **3–15s**. Yang dihitung adalah kartu
+  terbaru; kartu lama ikut hilang saat tumpukan ditutup. Sebelumnya semua
+  notifikasi dipaksa 5s sehingga notifikasi penting (mis. error build) hilang
+  terlalu cepat.
 - **Watchdog hover 15s**: kalau `leave-notify-event` tidak pernah sampai
   (kursor pindah monitor tepat saat popup muncul), hitungan 5 detik tidak lagi
   tertahan selamanya — popup tetap menutup sendiri.
@@ -397,7 +402,8 @@ bar 10px, bar 310×3 (selebar isi kartu), sisa bawah 11px. Lebar kartu dipatok
   `gdbus emit`), jadi aplikasi sumber melakukan aksinya — WhatsApp membuka
   chat, dsb. Tanpa id → fallback fokus window aplikasi berdasarkan app name.
 - **Tombol X** → `CloseNotification(<id>)` ke daemon (ikut hilang dari control
-  center) + slide keluar.
+  center), kartu itu dibuang dari tumpukan; kartu di bawahnya naik jadi kartu
+  terbaru dan timer dihitung ulang. Tumpukan kosong → slide keluar.
 - **Action**: semua action tampil sebagai chip ringkas; label yang mengandung
   install/update/unduh/pasang/download diganti **ikon unduh** (`U+F019`), label
   lain tetap teks pendek. Action `default` tidak dirender (itu klik badan).
