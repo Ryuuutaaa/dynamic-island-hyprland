@@ -19,7 +19,7 @@ const countdown = ms => {
 export default () => {
     const title = Widget.Label({ className: 'dyn-island-cal-title', xalign: 0, maxWidthChars: 34 });
     const when = Widget.Label({ className: 'dyn-island-cal-when', xalign: 0 });
-    const hint = Widget.Label({ className: 'dyn-island-cal-hint', xalign: 0, wrap: true, maxWidthChars: 46 });
+    const hint = Widget.Label({ className: 'dyn-island-cal-hint', xalign: 0, wrap: true, maxWidthChars: 36 });
     const list = Widget.Box({ className: 'dyn-island-cal-list', vertical: true, spacing: 3 });
 
     const sync = () => {
@@ -29,7 +29,7 @@ export default () => {
             title.label = value.error ? 'Kalender belum siap' : 'Tidak ada acara';
             when.label = '';
             hint.label = value.error === 'URL belum diisi'
-                ? 'Isi config.calendar.icsUrl dengan URL iCal (Google/Outlook) atau path file .ics.'
+                ? 'URL iCal belum diisi (config.calendar.icsUrl).'
                 : (value.error || '');
             hint.visible = !!hint.label;
             list.children = [];
