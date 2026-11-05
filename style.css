@@ -605,6 +605,17 @@ tooltip > box {
 }
 
 /* ── osd (volume / brightness) ──────────────────────────────── */
+.dyn-island-osd-icon-btn {
+    min-width: 24px;
+    min-height: 24px;
+    border-radius: 8px;
+    background: transparent;
+    background-image: none;
+    transition: 140ms ease-out;
+}
+.dyn-island-osd-icon-btn:hover {
+    background: __SURFACE_DIM__;
+}
 .dyn-island-osd-icon {
     font-size: 13px;
     color: __ACCENT2__;
@@ -613,6 +624,10 @@ tooltip > box {
     font-size: 11px;
     font-weight: 700;
     min-width: 40px;
+}
+.dyn-island-osd-device {
+    font-size: 9.5px;
+    color: __MUTED__;
 }
 /* digambar sendiri lewat Cairo (lihat modules/osd.js), jadi tidak ada
    node trough/progress yang perlu di-style di sini */

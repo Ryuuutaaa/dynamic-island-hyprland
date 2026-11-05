@@ -77,7 +77,7 @@ frame 2,98–3,02 sepanjang 420×140 → 150×50.
 | `bluetooth` | info device tersambung (ikon, nama, tipe, alamat, baterai) + slider volume + tombol bisu |
 | `prayer` | jadwal sholat: timeline 24 jam dengan label waktu di posisi aslinya, busur matahari terbit→terbenam, bulan saat malam, tanggal + countdown + kota; background langit mengikuti fase |
 | `chat` | riwayat chat Gemini + tombol **Tanya Gemini** (input rofi) + Hapus/Ulangi; halaman sticky saat dipilih |
-| `volume` / `brightness` | ikon + bar (Cairo) + persen, **bar bisa diklik/digeser** untuk mengatur nilainya |
+| `volume` / `brightness` | ikon + bar (Cairo) + persen + nama device, **bar bisa diklik/digeser**; volume: klik ikon = mute, double-click = 100%; brightness: ikon 3 tingkat (bulan/bohlam/matahari) |
 | `notify` | ikon + `Judul · isi` |
 
 **Modul on/off:** `config.js` → `modules` (weather, timer, pomodoro, water, todo, standup, shelf, bluetooth, prayer, chat). Halaman yang dimatikan (mis.
@@ -647,12 +647,14 @@ fork):
 Bar volume & brightness di OSD bukan lagi indikator pasif:
 
 - Klik di titik mana pun atau **geser** untuk mengatur nilai; area interaksi
-  18px (bar tetap digambar 5px) dan ada knob kecil di ujung isi sebagai
+  **24px** (bar tetap digambar 6px) dan ada knob kecil di ujung isi sebagai
   petunjuk.
 - Volume memakai service `Audio` AGS dan otomatis melepas mute saat digeser di
-  atas nol.
+  atas nol. Klik ikon speaker = mute/unmute, **double-click = 100%**; target
+  ikon 24×24. Nama device (`description` sink) tampil di bawah bar.
 - Brightness memakai **`brightnessctl`** karena file sysfs-nya `root:video` dan
-  user ini tidak ada di grup `video`.
+  user ini tidak ada di grup `video`. Ikon berganti 3 tingkat: bulan (<34%),
+  bohlam (<70%), matahari (≥70%); nama backlight tampil di bawah bar.
 - Timer OSD tetap berlaku: notch menutup ~1,6 detik setelah drag dilepas.
 
 ## Shelf

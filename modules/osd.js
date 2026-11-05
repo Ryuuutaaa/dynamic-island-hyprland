@@ -110,11 +110,18 @@ const volumeMark = () => {
 export function VolumeOsd() {
     const icon = iconLabel();
     const label = valueLabel();
+    const device = Widget.Label({
+        className: 'dyn-island-osd-device',
+        xalign: 0.5,
+        truncate: 'end',
+        maxWidthChars: 28,
+    });
     const progress = bar(value => {
         const speaker = Audio.speaker;
         if (!speaker) return;
         if (value > 0 && speaker.is_muted) speaker.is_muted = false;
         speaker.volume = value;
+        refresh();
     });
 
     const refresh = () => {
@@ -124,14 +131,50 @@ export function VolumeOsd() {
         progress.setFraction(muted ? 0 : volume);
         label.label = muted ? 'bisu' : `${Math.round(volume * 100)}%`;
         icon.label = muted ? '\uf026' : volume < 0.34 ? '\uf027' : '\uf028';
+        device.label = speaker ? (speaker.description || speaker.name || 'Audio') : '';
+        device.visible = !!device.label;
     };
+
+    let lastPress = 0;
+    const iconButton = Widget.EventBox({
+        className: 'dyn-island-osd-icon-btn',
+        tooltipText: 'Klik: bisu · klik dua kali: 100%',
+        child: icon,
+        setup: self => {
+            self.set_size_request(24, 24);
+            self.add_events(Gdk.EventMask.BUTTON_PRESS_MASK);
+            self.connect('button-press-event', () => {
+                const speaker = Audio.speaker;
+                if (!speaker) return true;
+                const now = GLib.get_monotonic_time() / 1000;
+                if (now - lastPress < 300) {
+                    speaker.is_muted = false;
+                    speaker.volume = 1;
+                } else {
+                    speaker.is_muted = !speaker.is_muted;
+                }
+                lastPress = now;
+                refresh();
+                return true;
+            });
+        },
+    });
+
+    const top = Widget.Box({
+        className: 'dyn-island-osd-top',
+        spacing: 10,
+        halign: Gtk.Align.CENTER,
+        children: [iconButton, progress, label],
+    });
 
     return Widget.Box({
         className: 'dyn-island-osd',
-        spacing: 10,
+        vertical: true,
+        spacing: 2,
         // compact & center: OSD juga dipakai di dalam kartu besar saat hover
         halign: Gtk.Align.CENTER,
-        children: [icon, progress, label],
+        valign: Gtk.Align.CENTER,
+        children: [top, device],
         setup: self => {
             // null berarti "belum tahu" supaya OSD tidak muncul sendiri saat boot
             let last = null;
@@ -186,8 +229,19 @@ function backlightPath() {
 export function BrightnessOsd() {
     const icon = iconLabel();
     const label = valueLabel();
+    const device = Widget.Label({
+        className: 'dyn-island-osd-device',
+        xalign: 0.5,
+        truncate: 'end',
+        maxWidthChars: 28,
+    });
     const path = backlightPath();
     const max = path ? (readNumber(`${path}/max_brightness`) || 1) : 1;
+
+    // Tiga tingkat ikon: bulan (redup), bohlam (sedang), matahari (terang).
+    const setIcon = percent => {
+        icon.label = percent < 34 ? '\uf186' : percent < 70 ? '\uf0eb' : '\uf185';
+    };
 
     // brightnessctl dipakai (bukan tulis sysfs langsung): file brightness milik
     // root:video dan user ini tidak ada di grup video. brightnessctl setuid root
@@ -197,22 +251,34 @@ export function BrightnessOsd() {
         const percent = Math.round(value * 100);
         label.label = `${percent}%`;
         progress.setFraction(percent / 100);
+        setIcon(percent);
         Utils.execAsync(['brightnessctl', 'set', `${percent}%`]).catch(error =>
             console.log(`[dyn-island] brightnessctl gagal: ${error}`));
     });
-    icon.label = '\uf185';
+
+    const top = Widget.Box({
+        className: 'dyn-island-osd-top',
+        spacing: 10,
+        halign: Gtk.Align.CENTER,
+        children: [icon, progress, label],
+    });
 
     return Widget.Box({
         className: 'dyn-island-osd',
-        spacing: 10,
+        vertical: true,
+        spacing: 2,
         // compact & center: OSD juga dipakai di dalam kartu besar saat hover
         halign: Gtk.Align.CENTER,
-        children: [icon, progress, label],
+        valign: Gtk.Align.CENTER,
+        children: [top, device],
         setup: self => {
             if (!path) {
                 label.label = '—';
+                device.label = 'Backlight tidak ditemukan';
+                setIcon(0);
                 return;
             }
+            device.label = path.split('/').pop();
             let last = null;
             const update = () => {
                 const raw = readNumber(`${path}/brightness`);
@@ -223,6 +289,7 @@ export function BrightnessOsd() {
                 last = percent;
                 progress.setFraction(percent / 100);
                 label.label = `${Math.round(percent)}%`;
+                setIcon(percent);
             };
             update();
             // sysfs tidak punya event, jadi harus dipoll. 250ms -> 750ms:
