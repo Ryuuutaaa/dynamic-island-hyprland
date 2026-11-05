@@ -15,10 +15,10 @@ const FIELDS = ['yesterday', 'today', 'blockers'];
 const REMINDER_HOUR = 10;
 const KEEP_DAYS = 60;
 
-export const MONDAY_TITLE = 'What did you do on Friday?';
-export const YESTERDAY_TITLE = 'What did you do yesterday?';
-export const TODAY_TITLE = 'What will you do today?';
-export const BLOCKER_TITLE = 'Any blockers?';
+export const MONDAY_TITLE = 'Apa yang kamu kerjakan hari Jumat?';
+export const YESTERDAY_TITLE = 'Apa yang kamu kerjakan kemarin?';
+export const TODAY_TITLE = 'Apa rencana hari ini?';
+export const BLOCKER_TITLE = 'Ada hambatan?';
 
 const isoDay = date => `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}-${String(date.getDate()).padStart(2, '0')}`;
 
@@ -64,7 +64,7 @@ export const standup = Variable({
     reminderAt: 0,
 });
 
-const label = date => `${['Minggu', 'Senin', 'Selasa', 'Rabu', 'Kamis', 'Jumat', 'Sabtu'][date.getDay()]}, ${date.getDate()} ${['Jan', 'Feb', 'Mar', 'Apr', 'Mei', 'Jun', 'Jul', 'Agu', 'Sep', 'Okt', 'Nov', 'Des'][date.getMonth()]}`;
+const label = date => `${['Minggu', 'Senin', 'Selasa', 'Rabu', 'Kamis', 'Jumat', 'Sabtu'][date.getDay()]}, ${date.getDate()} ${['Januari', 'Februari', 'Maret', 'April', 'Mei', 'Juni', 'Juli', 'Agustus', 'September', 'Oktober', 'November', 'Desember'][date.getMonth()]}`;
 
 export function loadStandup() {
     const now = new Date();

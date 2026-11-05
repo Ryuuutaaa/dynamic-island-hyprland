@@ -189,8 +189,8 @@ export default () => {
                     Widget.Box({
                         spacing: 6,
                         children: [
-                            Widget.Label({ className: 'dyn-island-todo-title', label: 'Todo' }),
-                            Widget.Label({ className: 'dyn-island-todo-title-sub', label: 'List' }),
+                            Widget.Label({ className: 'dyn-island-todo-title', label: 'Tugas' }),
+                            Widget.Label({ className: 'dyn-island-todo-title-sub', label: 'Daftar' }),
                         ],
                     }),
                     Widget.Box({

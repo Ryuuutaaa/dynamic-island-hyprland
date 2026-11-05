@@ -18,7 +18,7 @@ const makeChip = () => {
 
 export default () => {
     const bell = Widget.Label({ className: 'standup-page-bell', label: '\uf0f3' });
-    const title = Widget.Label({ className: 'standup-page-title', label: 'Daily Standup', xalign: 0 });
+    const title = Widget.Label({ className: 'standup-page-title', label: 'Standup Harian', xalign: 0 });
     const sub = Widget.Label({ className: 'standup-page-sub', xalign: 0 });
 
     const openBtn = Widget.Button({
@@ -54,7 +54,7 @@ export default () => {
         const b = count(value.blockers);
         setChip(yesterday, y > 0 ? 'done' : 'empty', `Kemarin ${y}`);
         setChip(today, t > 0 ? 'done' : 'empty', `Hari ini ${t}`);
-        setChip(blockers, b > 0 ? 'warn' : 'done', `Blocker ${b}`);
+        setChip(blockers, b > 0 ? 'warn' : 'done', `Hambatan ${b}`);
         sub.label = value.dayLabel
             ? `${value.dayLabel}${value.saved ? ' · tersimpan' : ''}`
             : (value.saved ? 'Tersimpan' : 'Belum diisi');

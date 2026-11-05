@@ -128,7 +128,7 @@ const stateText = device => {
         const battery = Number(device.battery_percentage) || 0;
         return battery > 0 ? `${battery}%` : 'aktif';
     }
-    return 'paired';
+    return 'terpasang';
 };
 
 const DeviceRow = (device, selected, onSelect) => {

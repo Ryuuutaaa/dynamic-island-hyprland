@@ -46,7 +46,7 @@ const LABELS = {
     water: 'Air',
     todo: 'Tugas',
     standup: 'Standup',
-    shelf: 'Shelf',
+    shelf: 'Rak',
     bluetooth: 'Bluetooth',
     prayer: 'Sholat',
     chat: 'Chat',

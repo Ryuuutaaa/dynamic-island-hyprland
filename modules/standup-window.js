@@ -17,9 +17,9 @@ const TOP_MARGIN = 64;
 const MAX_LIST_HEIGHT = 132;
 
 const SECTIONS = [
-    { key: 'yesterday', title: () => standup.value.yesterdayTitle, placeholder: 'Tambah poin kemarin…' },
+    { key: 'yesterday', title: () => standup.value.yesterdayTitle, placeholder: 'Tambah kegiatan kemarin…' },
     { key: 'today', title: () => TODAY_TITLE, placeholder: 'Tambah rencana hari ini…' },
-    { key: 'blockers', title: () => BLOCKER_TITLE, placeholder: 'Tambah blocker (kalau ada)…' },
+    { key: 'blockers', title: () => BLOCKER_TITLE, placeholder: 'Tambah hambatan (kalau ada)…' },
 ];
 
 export default () => {
@@ -105,7 +105,7 @@ export default () => {
 
     const sections = SECTIONS.map(buildSection);
 
-    const title = Widget.Label({ className: 'standup-title', label: 'Daily Standup', xalign: 0 });
+    const title = Widget.Label({ className: 'standup-title', label: 'Standup Harian', xalign: 0 });
     const day = Widget.Label({ className: 'standup-day', xalign: 0 });
     const status = Widget.Label({ className: 'standup-status', label: '' });
 

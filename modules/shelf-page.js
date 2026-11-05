@@ -208,7 +208,7 @@ export default () => {
                 className: 'dyn-island-shelf-head',
                 spacing: 8,
                 children: [
-                    Widget.Label({ className: 'dyn-island-shelf-title', label: 'Shelf' }),
+                    Widget.Label({ className: 'dyn-island-shelf-title', label: 'Rak' }),
                     count,
                     clear,
                     undo,
