@@ -150,7 +150,7 @@ export default () => {
         for (const widget of widgets) widget.set_opacity(0);
         let current = null;
         current = ramp({
-            duration: 180,
+            duration: CONFIG.motion?.reduced ? 120 : 180,
             onFrame: value => {
                 if (dead) return;
                 for (const widget of widgets) widget.set_opacity(value);

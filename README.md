@@ -50,6 +50,9 @@ frame 2,98–3,02 sepanjang 420×140 → 150×50.
   bisa dianimasikan di GTK3, jadi nilainya dipasang sekali per state.
 - **Konten** berganti bertahap: bentuk dulu, isi menyusul setelah
   `contentDelay` 200ms, fade-in 320ms (`ramp` ease-out).
+- **`motion.reduced: true`** mempersingkat semuanya: ukuran 120ms tanpa
+  overshoot, delay konten 0, fade konten 120ms, crossfade halaman 120ms,
+  fade-out close 80ms, dan fade indikator closed 120ms. Default `false`.
 - GTK3 tidak punya `transform` dan tidak menganimasikan `width`/`height` lewat
   CSS, jadi ukuran notch digerakkan dari JS per frame (`set_size_request`),
   dan konten di-clip oleh `Gtk.ScrolledWindow` dengan
@@ -996,7 +999,7 @@ chmod 600 ~/.config/dynamic-iland/.env
 | `monitor` | `'focused'` atau index monitor |
 | `marginTop` | jarak dari tepi atas (0 = nempel) |
 | `geometry` | `closed` / `expanded` / `peek`: `{ w, h, r, ear }` |
-| `motion` | `sizeDuration`, `sizeCurve` |
+| `motion` | `reduced`, `sizeDuration`, `sizeCurve` |
 | `osdTimeout` / `notifyTimeout` | durasi peek (ms) |
 | `pinTimeout` | durasi halaman pilihan manual (ms) |
 | `contentDelay` / `contentFade` | jeda & durasi fade-in konten (ms) |

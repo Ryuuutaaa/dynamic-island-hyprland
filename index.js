@@ -189,6 +189,11 @@ const closeIsland = () => toggleOpen(false);
 
 function DynamicIsland() {
     const GEO = CONFIG.geometry;
+    const REDUCED = !!CONFIG.motion?.reduced;
+    const SIZE_DURATION = REDUCED ? 120 : CONFIG.motion.sizeDuration;
+    const SIZE_CURVE = REDUCED ? [0.2, 0, 0, 1] : CONFIG.motion.sizeCurve;
+    const CONTENT_FADE = REDUCED ? 120 : CONFIG.contentFade;
+    const CONTENT_DELAY = REDUCED ? 0 : CONFIG.contentDelay;
     // Ukuran berjalan (dianimasikan). Dideklarasikan di awal karena dipakai
     // pointerOnIsland() untuk hit-test hover.
     const geo = { w: GEO.closed.w, h: GEO.closed.h, ear: GEO.closed.ear };
@@ -237,7 +242,7 @@ function DynamicIsland() {
             self.hhomogeneous = false;
             self.vhomogeneous = false;
             self.transition = CONFIG.transition;
-            self.transition_duration = CONFIG.transitionDuration;
+            self.transition_duration = REDUCED ? 120 : CONFIG.transitionDuration;
             self.shown = 'closed';
         },
     });
@@ -579,8 +584,8 @@ function DynamicIsland() {
         // "snap" 14 <-> 32 di frame pertama.
         let radiusStep = -1;
         tween = bezierTween({
-            duration: CONFIG.motion.sizeDuration,
-            curve: CONFIG.motion.sizeCurve,
+            duration: SIZE_DURATION,
+            curve: SIZE_CURVE,
             onFrame: value => {
                 geo.w = from.w + (next.w - from.w) * value;
                 geo.h = from.h + (next.h - from.h) * value;
@@ -643,7 +648,7 @@ function DynamicIsland() {
 
     // ── konten bertahap (Nusa: keluar .2s, masuk .32s delay .2s) ────
     const fadeIn = ramp({
-        duration: CONFIG.contentFade,
+        duration: CONTENT_FADE,
         onFrame: value => stack.set_opacity(value),
     });
     let swapTimer = 0;
@@ -695,7 +700,7 @@ function DynamicIsland() {
                     stack.set_opacity(1);
                 };
                 out = ramp({
-                    duration: 140,
+                    duration: REDUCED ? 80 : 140,
                     onFrame: value => stack.set_opacity(1 - value),
                     // Swap di frame yang sama dengan tick terakhir fade-out:
                     // tidak ada frame kartu kosong antara opacity 0 dan 1.
@@ -704,11 +709,12 @@ function DynamicIsland() {
                 fadeOut = out;
                 out.start();
                 // jaring pengaman bila ramp terhenti tanpa onDone
-                swapTimer = GLib.timeout_add(GLib.PRIORITY_DEFAULT, 200, () => {
-                    swapTimer = 0;
-                    finish();
-                    return GLib.SOURCE_REMOVE;
-                });
+                swapTimer = GLib.timeout_add(GLib.PRIORITY_DEFAULT,
+                    REDUCED ? 120 : 200, () => {
+                        swapTimer = 0;
+                        finish();
+                        return GLib.SOURCE_REMOVE;
+                    });
                 return;
             }
             setShown('closed');
@@ -716,7 +722,7 @@ function DynamicIsland() {
             return;
         }
         // membuka: bentuk dulu, konten menyusul
-        swapTimer = GLib.timeout_add(GLib.PRIORITY_DEFAULT, CONFIG.contentDelay, () => {
+        swapTimer = GLib.timeout_add(GLib.PRIORITY_DEFAULT, CONTENT_DELAY, () => {
             swapTimer = 0;
             // lirik = sub-tampilan media, bukan halaman nav tersendiri
             setShown(inLyricsView() ? 'lyrics' : page.value);

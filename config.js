@@ -31,6 +31,10 @@ export default {
     // border-radius sendiri TIDAK bisa dianimasikan di GTK3, jadi nilainya
     // dipasang sekali per state — lihat index.js (animateTo).
     motion: {
+        // true: semua transisi ukuran/konten dipersingkat (120ms, tanpa
+        // overshoot) dan fade konten 120ms. Berguna saat fokus/aksesibilitas
+        // lebih penting daripada efek.
+        reduced: false,
         sizeDuration: 620,
         sizeCurve: [0.34, 1.32, 0.5, 1],
     },
