@@ -71,7 +71,7 @@ frame 2,98–3,02 sepanjang 420×140 → 150×50.
 | `media` → lirik | **sub-tampilan** (bukan halaman nav): kiri album art + judul + progress + kontrol, kanan daftar lirik sinkron |
 | `weather` | cuaca Open-Meteo: kondisi sekarang + 3 hari ke depan; saat feed gagal muncul tombol **Muat ulang** di kanan |
 | `pomodoro` | ring merah 88px menyusut + countdown 38px + pill (mode berikutnya, play, reset); umpan balik aksi muncul sebagai **kartu OSD kanan atas**, bukan mengembangkan notch |
-| `timer` | timer bebas (preset 1–60 menit) + stopwatch: waktu besar, mode, preset, play/pause, reset |
+| `timer` | timer bebas (preset 1–60 menit + stepper ±1 menit 1–90) + stopwatch: waktu besar, mode, preset, play/pause, reset |
 | `stats` | kartu CPU / RAM / suhu dengan bar, detail per kartu, dan footer **disk / + swap** terpisah |
 | `water` | volume harian, progress, switch pengingat, grafik ml per jam dengan label 9.5px (tiap 2 jam agar tidak bertumpuk) |
 | `todo` | checkmark hijau + strikethrough, counter `X/Y`, pill Tambah/Ubah |
@@ -614,6 +614,8 @@ Halaman `weather` memakai **Open-Meteo** — gratis, tanpa API key/akun.
 Halaman `timer` (terpisah dari pomodoro yang bersiklus):
 
 - **Timer bebas** dengan preset 1/3/5/10/15/25/45/60 menit, play/pause, reset.
+- **Stepper ±1 menit** di baris aksi (target 24px, rentang 1–90 menit); hanya
+  aktif saat timer berhenti, bukan saat berjalan.
 - **Stopwatch** yang menyimpan `elapsed` saat dijeda.
 - Hitungan memakai **deadline** (`Date.now()`), jadi tetap benar setelah sleep
   atau AGS restart; `timer.json` hanya ditulis saat status berubah (tick per

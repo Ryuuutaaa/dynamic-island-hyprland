@@ -1,7 +1,7 @@
 import Gtk from 'gi://Gtk?version=3.0';
 import Widget from 'resource:///com/github/Aylur/ags/widget.js';
 import {
-    applyPreset, mmss, PRESETS, resetTimer, setMode, timer, toggleRunning,
+    adjustTime, applyPreset, mmss, PRESETS, resetTimer, setMode, timer, toggleRunning,
 } from './timer.js';
 import { tabular } from './type.js';
 
@@ -17,9 +17,18 @@ const presetButton = minutes => Widget.Button({
     onClicked: () => applyPreset(minutes),
 });
 
+const stepButton = (label, delta, tooltip) => Widget.Button({
+    className: 'dyn-island-timer-step',
+    tooltipText: tooltip,
+    child: Widget.Label({ className: 'dyn-island-timer-step-label', label }),
+    onClicked: () => adjustTime(delta),
+});
+
 export default () => {
     const time = tabular(Widget.Label({ className: 'dyn-island-timer-time', xalign: 0 }));
     const sub = tabular(Widget.Label({ className: 'dyn-island-timer-sub', xalign: 0 }));
+    const minus = stepButton('\u2212', -60, 'Kurangi 1 menit');
+    const plus = stepButton('+', 60, 'Tambah 1 menit');
 
     const modeTimer = Widget.Button({
         className: 'dyn-island-timer-mode',
@@ -79,6 +88,9 @@ export default () => {
         modeTimer.className = isTimer ? 'dyn-island-timer-mode is-active' : 'dyn-island-timer-mode';
         modeStopwatch.className = isTimer ? 'dyn-island-timer-mode' : 'dyn-island-timer-mode is-active';
         presets.visible = isTimer;
+        const canAdjust = isTimer && !value.running;
+        minus.sensitive = canAdjust;
+        plus.sensitive = canAdjust;
     };
 
     return Widget.Box({
@@ -114,7 +126,7 @@ export default () => {
                     Widget.Box({
                         className: 'dyn-island-timer-actions',
                         spacing: 4,
-                        children: [play, reset],
+                        children: [minus, plus, play, reset],
                     }),
                 ],
             }),

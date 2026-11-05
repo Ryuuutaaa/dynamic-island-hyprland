@@ -172,6 +172,17 @@ export function applyPreset(minutes) {
     startTimer(minutes);
 }
 
+// Stepper ±1 menit; hanya saat timer berhenti. Rentang 1–90 menit supaya
+// tombol tidak bisa menghasilkan durasi nol/negatif atau timer seharian.
+export function adjustTime(deltaSeconds) {
+    const value = timer.value;
+    if (value.mode !== 'timer' || value.running) return;
+    const total = Math.max(60, Math.min(90 * 60,
+        Math.round((value.total + (Number(deltaSeconds) || 0)) / 60) * 60));
+    stopTick();
+    publish({ running: false, total, remaining: total });
+}
+
 export function restoreTimer() {
     const saved = readState();
     if (!saved) return;
