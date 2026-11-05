@@ -671,8 +671,8 @@ fork):
 Bar volume & brightness di OSD bukan lagi indikator pasif:
 
 - Klik di titik mana pun atau **geser** untuk mengatur nilai; area interaksi
-  **24px** (bar tetap digambar 6px) dan ada knob kecil di ujung isi sebagai
-  petunjuk.
+  **34px** (bar 6px di tengah, 13px ruang atas untuk bubble) dan ada knob kecil
+  di ujung isi. Saat drag, bubble nilai (`73%`) mengikuti knob.
 - Volume memakai service `Audio` AGS dan otomatis melepas mute saat digeser di
   atas nol. Klik ikon speaker = mute/unmute, **double-click = 100%**; target
   ikon 24×24. Nama device (`description` sink) tampil di bawah bar.

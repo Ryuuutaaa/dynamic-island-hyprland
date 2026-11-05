@@ -2,6 +2,8 @@ import GLib from 'gi://GLib';
 import Gio from 'gi://Gio';
 import Gdk from 'gi://Gdk?version=3.0';
 import Gtk from 'gi://Gtk?version=3.0';
+import Pango from 'gi://Pango';
+import PangoCairo from 'gi://PangoCairo';
 import Widget from 'resource:///com/github/Aylur/ags/widget.js';
 import * as Utils from 'resource:///com/github/Aylur/ags/utils.js';
 import Audio from 'resource:///com/github/Aylur/ags/service/audio.js';
@@ -13,8 +15,8 @@ import { eventButton, eventX } from './pointer.js';
 import { tabular } from './type.js';
 
 const BAR_HEIGHT = 6;
-// Area klik/geser lebih tinggi dari bar: 5px terlalu tipis untuk ditunjuk.
-const BAR_HIT = 24;
+// Area klik/geser lebih tinggi dari bar: ruang atas dipakai bubble nilai.
+const BAR_HIT = 34;
 const BAR_WIDTH = 110;
 const TRACK_RGB = hexToRgb(palette.fg);
 const FILL_RGB = hexToRgb(palette.accent2);
@@ -74,6 +76,7 @@ const bar = (onSet = null) => {
             self.connect('button-release-event', () => {
                 if (!dragging) return false;
                 dragging = false;
+                self.queue_draw();
                 return true;
             });
         },
@@ -84,16 +87,37 @@ const bar = (onSet = null) => {
             cr.fill();
 
             const filled = width * fraction;
-            if (filled <= 0) return;
-            cr.setSourceRGBA(FILL_RGB[0], FILL_RGB[1], FILL_RGB[2], 1);
-            roundedRect(cr, 0, y, Math.max(BAR_HEIGHT, filled), BAR_HEIGHT, BAR_HEIGHT / 2);
-            cr.fill();
-
             // knob: titik terang di ujung isi, petunjuk bar bisa digeser
             const knob = Math.min(width - 2, Math.max(2, filled));
-            cr.arc(knob, height / 2, 4.2, 0, Math.PI * 2);
-            cr.setSourceRGBA(TRACK_RGB[0], TRACK_RGB[1], TRACK_RGB[2], 0.95);
+            if (filled > 0) {
+                cr.setSourceRGBA(FILL_RGB[0], FILL_RGB[1], FILL_RGB[2], 1);
+                roundedRect(cr, 0, y, Math.max(BAR_HEIGHT, filled), BAR_HEIGHT, BAR_HEIGHT / 2);
+                cr.fill();
+                cr.arc(knob, height / 2, 4.2, 0, Math.PI * 2);
+                cr.setSourceRGBA(TRACK_RGB[0], TRACK_RGB[1], TRACK_RGB[2], 0.95);
+                cr.fill();
+            }
+
+            if (!dragging) return;
+            // Bubble nilai mengikuti knob selama drag, di ruang atas bar.
+            const layout = PangoCairo.create_layout(cr);
+            layout.set_font_description(Pango.FontDescription.from_string('Ubuntu 9.5'));
+            layout.set_text(`${Math.round(fraction * 100)}%`, -1);
+            const [textW, textH] = layout.get_pixel_size();
+            const bubbleW = textW + 10;
+            const bubbleH = 13;
+            const bubbleX = Math.max(0, Math.min(width - bubbleW, knob - bubbleW / 2));
+            cr.setSourceRGBA(0, 0, 0, 0.92);
+            roundedRect(cr, bubbleX, 0, bubbleW, bubbleH, 6);
             cr.fill();
+            cr.setLineWidth(1);
+            cr.setSourceRGBA(TRACK_RGB[0], TRACK_RGB[1], TRACK_RGB[2], 0.22);
+            roundedRect(cr, bubbleX + 0.5, 0.5, bubbleW - 1, bubbleH - 1, 5.5);
+            cr.stroke();
+            cr.setSourceRGBA(TRACK_RGB[0], TRACK_RGB[1], TRACK_RGB[2], 1);
+            cr.moveTo(bubbleX + (bubbleW - textW) / 2,
+                (bubbleH - textH) / 2);
+            PangoCairo.show_layout(cr, layout);
         },
     });
 };
