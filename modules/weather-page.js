@@ -110,6 +110,9 @@ export default () => {
             max: day.max,
             min: day.min,
         }));
+        // forecast lama tidak boleh tetap tampil saat data gagal dimuat:
+        // kombinasi tiles + "Muat ulang" melebarkan kartu dari 464 ke 478.
+        days.visible = has && days.children.length > 0;
 
         const now = Date.now();
         const upcoming = (value.hourly || [])
