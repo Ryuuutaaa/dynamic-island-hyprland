@@ -95,6 +95,7 @@ export default () => {
         tooltipText: 'Hapus riwayat chat (tidak menghapus API key)',
         child: Widget.Label({ className: 'dyn-island-chip-label', label: 'Hapus' }),
         onClicked: () => clearChat(),
+        setup: self => self.set_no_show_all(true),
     });
     const head = Widget.CenterBox({
         className: 'dyn-island-chat-head',
@@ -155,6 +156,13 @@ export default () => {
             : '';
         sub.label = `Gemini · ${modelLabel()}${latency}`;
         const rows = state.messages.map(bubble);
+        // Hapus hanya relevan kalau sudah ada riwayat.
+        const hasMessages = state.messages.length > 0;
+        clear.visible = hasMessages;
+        if (hasMessages) {
+            clear.show();
+            clear.child.show();
+        }
 
         if (state.status === 'loading') {
             rows.push(Widget.Label({

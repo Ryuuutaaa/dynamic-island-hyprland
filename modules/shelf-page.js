@@ -74,7 +74,7 @@ const Card = item => Widget.Button({
     },
 });
 
-const DropZone = over => Widget.Box({
+const DropZone = (over, hasItems) => Widget.Box({
     className: `dyn-island-shelf-zone${over ? ' over' : ''}`,
     halign: Gtk.Align.FILL,
     valign: Gtk.Align.FILL,
@@ -96,7 +96,11 @@ const DropZone = over => Widget.Box({
             }),
             Widget.Label({
                 className: 'dyn-island-shelf-zone-sub',
-                label: 'Seret keluar · klik untuk buka',
+                label: over
+                    ? 'Lepas untuk menambah'
+                    : hasItems
+                        ? 'Seret keluar · klik untuk buka'
+                        : 'File asli tidak dipindahkan',
                 xalign: 0.5,
             }),
         ],
@@ -143,11 +147,13 @@ export default () => {
         // kalau lebih banyak dari yang muat, beri tahu bahwa daftarnya bisa digeser
         count.label = total > FITS ? `${total} item · geser ›` : `${total} item`;
         count.visible = total > 0;
+        // "Hapus semua" tidak masuk akal saat shelf kosong.
+        clear.visible = total > 0;
 
         // drop zone tampil saat kosong ATAU saat ada drag masuk (jadi target
         // drop selalu terlihat saat dibutuhkan)
         if (!state.items.length || shelfDragOver.value) {
-            content.children = [DropZone(shelfDragOver.value)];
+            content.children = [DropZone(shelfDragOver.value, state.items.length > 0)];
             return;
         }
 
