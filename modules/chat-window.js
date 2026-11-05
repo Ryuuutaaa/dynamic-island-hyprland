@@ -170,11 +170,26 @@ export default () => {
         children: [placeholder],
     });
 
+    // Field surface harus berada di parent EventBox: background Entry sendiri
+    // menutupi label placeholder overlay. Entry tetap transparan.
+    const entryBox = Widget.EventBox({
+        className: 'gemini-chat-entry-box',
+        hexpand: true,
+        child: entry,
+    });
     const entryWrap = Widget.Overlay({
         className: 'gemini-chat-entry-wrap',
         hexpand: true,
-        child: entry,
+        child: entryBox,
         overlays: [placeholderLayer],
+    });
+    entry.connect('focus-in-event', () => {
+        entryBox.toggleClassName('is-focused', true);
+        return false;
+    });
+    entry.connect('focus-out-event', () => {
+        entryBox.toggleClassName('is-focused', false);
+        return false;
     });
 
     const sendBtn = Widget.Button({

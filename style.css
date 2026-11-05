@@ -915,10 +915,21 @@ tooltip > box {
     color: __DANGER__;
 }
 
-.gemini-chat-entry {
+.gemini-chat-entry-wrap {
+    background: transparent;
+}
+.gemini-chat-entry-box {
     background: __SURFACE__;
     border: 1px solid __SURFACE_STRONG__;
     border-radius: 12px;
+}
+.gemini-chat-entry-box.is-focused {
+    border-color: __ACCENT__;
+}
+.gemini-chat-entry {
+    background: transparent;
+    border: none;
+    border-radius: 0px;
     padding: 7px 10px;
     color: __FG__;
     font-size: 11px;
@@ -926,18 +937,18 @@ tooltip > box {
     box-shadow: none;
 }
 .gemini-chat-entry:focus {
-    border-color: __ACCENT__;
+    background: transparent;
+    border: none;
     outline: none;
     box-shadow: none;
 }
 
-/* placeholder sendiri (GTK3 menyembunyikan placeholderText saat entry fokus) */
-.gemini-chat-entry-wrap {
-    background: transparent;
-}
+/* placeholder sendiri (GTK3 menyembunyikan placeholderText saat entry fokus).
+   Entry harus transparan: background gelap di entry menutupi label overlay. */
 .gemini-chat-placeholder-layer {
     background: transparent;
     padding-left: 11px;
+    padding-top: 7px;
 }
 .gemini-chat-placeholder {
     font-size: 11px;
