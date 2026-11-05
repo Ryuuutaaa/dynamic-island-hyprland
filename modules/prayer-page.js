@@ -1,26 +1,25 @@
 import Cairo from 'gi://cairo?version=1.0';
-import GLib from 'gi://GLib';
+import Pango from 'gi://Pango';
+import PangoCairo from 'gi://PangoCairo';
 import Gtk from 'gi://Gtk?version=3.0';
 import Widget from 'resource:///com/github/Aylur/ags/widget.js';
 import * as Utils from 'resource:///com/github/Aylur/ags/utils.js';
 import { prayer } from './prayer.js';
-import { computeTimes, formatMinutes, nextPrayer } from './prayer-calc.js';
+import { nextPrayer } from './prayer-calc.js';
 import { palette, hexToRgb } from '../theme.js';
 import { tabular } from './type.js';
 
+const FG = hexToRgb(palette.fg);
 const MUTED = hexToRgb(palette.muted);
 const ACCENT = hexToRgb(palette.accent2);
 
-const ARC_W = 360;
-const ARC_H = 56;
-// Matahari asli bergerak ~0,008 px/detik (360 px per 12 jam) sehingga tidak
-// terlihat. Saat halaman dibuka, matahari "meluncur" dari titik terbit ke
-// posisi sekarang supaya rotasinya terlihat; setelah itu mengikuti waktu asli.
-const SWEEP_MS = 1800;
-const sweep = { active: false, start: 0, from: 0 };
-// ease-in-out: matahari melaju rata di tengah, tidak "menyentak" di awal
-const easeOut = p => (p < 0.5 ? 4 * p * p * p : 1 - Math.pow(-2 * p + 2, 3) / 2);
-const nowMs = () => GLib.get_monotonic_time() / 1000;
+const CHART_W = 360;
+const CHART_H = 82;
+const BASE_Y = 38;
+const LABEL_Y = 48;
+const DAY_NAMES = ['Minggu', 'Senin', 'Selasa', 'Rabu', 'Kamis', 'Jumat', 'Sabtu'];
+const MONTH_NAMES = ['Januari', 'Februari', 'Maret', 'April', 'Mei', 'Juni', 'Juli',
+    'Agustus', 'September', 'Oktober', 'November', 'Desember'];
 
 const pad2 = n => String(n).padStart(2, '0');
 
@@ -32,275 +31,282 @@ const formatCountdown = ms => {
     return `${pad2(h)}:${pad2(m)}:${pad2(s)}`;
 };
 
-const minutesNow = () => {
-    // debug animasi siang: ags -r "globalThis.__prayerNowMinutes = 720"
+// Override waktu untuk pengujian/desain: `__prayerNowMinutes = 1200` (20:00).
+// Dipakai juga oleh nextPrayer supaya label "Besok Subuh" dan posisi matahari
+// tetap konsisten saat menguji state malam.
+const overrideDate = () => {
+    const date = new Date();
     const override = globalThis.__prayerNowMinutes;
-    if (typeof override === 'number' && Number.isFinite(override)) return override;
-    const now = new Date();
-    return now.getHours() * 60 + now.getMinutes() + now.getSeconds() / 60;
-};
-
-// Malam = sebelum terbit atau sesudah Magrib.
-const isNightNow = state => {
-    if (!state?.times?.length) return false;
-    const now = minutesNow();
-    const sunrise = Number.isFinite(state.sunrise) ? state.sunrise : state.times[0].minutes + 80;
-    return now < sunrise || now >= state.times[3].minutes;
-};
-
-// Subuh yang akan datang setelah Magrib adalah Subuh besok.
-const fajrTomorrow = state => {
-    try {
-        const day = new Date();
-        day.setDate(day.getDate() + 1);
-        const next = computeTimes(day, state.location ?? {});
-        return next.times?.[0]?.minutes ?? state.times[0].minutes + 1;
-    } catch (_) {
-        return state.times[0].minutes + 1;
+    if (typeof override === 'number' && Number.isFinite(override)) {
+        const minutes = ((override % 1440) + 1440) % 1440;
+        date.setHours(Math.floor(minutes / 60), Math.floor(minutes % 60),
+            Math.floor((minutes % 1) * 60), 0);
     }
+    return date;
 };
 
-// Busur langit: matahari bergerak dari TERBIT sampai TERBENAM sehingga
-// puncaknya jatuh tepat di Dzuhur (tengah antara sunrise dan maghrib).
-// Busur sengaja tanpa titik per-waktu: label waktu di bawahnya rata 5 kolom,
-// jadi marker di busur akan tampak tidak sejajar dan menyesatkan.
-const SkyArc = () => Widget.DrawingArea({
-    className: 'dyn-island-prayer-arc',
-    setup: self => self.set_size_request(ARC_W, ARC_H),
-    drawFn: (self, cr, width, height) => {
-        const state = prayer.value;
-        if (!state?.times?.length) return;
+const minutesOf = date => date.getHours() * 60 + date.getMinutes() + date.getSeconds() / 60;
 
-        const times = state.times;
-        const fajr = times[0].minutes;
-        const maghrib = times[3].minutes;
-        // data lama bisa tanpa sunrise: perkirakan 80 menit setelah Subuh
-        const sunrise = Number.isFinite(state.sunrise) ? state.sunrise : fajr + 80;
-        const span = Math.max(1, maghrib - sunrise);
-        const nowM = minutesNow();
-        const dayT = (nowM - sunrise) / span;
-        // Malam: Magrib -> Subuh besok, supaya ujung busur sama dengan label
-        // terakhir di baris malam. Sebelum Subuh, rentangnya mulai dari Magrib
-        // kemarin malam (digeser -24 jam).
-        const evening = nowM >= maghrib;
-        const nightStart = evening ? maghrib : maghrib - 1440;
-        const nightEnd = evening ? fajrTomorrow(state) + 1440 : fajr;
-        const nightT = (nowM - nightStart) / Math.max(1, nightEnd - nightStart);
-        const isNight = dayT < 0 || dayT > 1;
-        const realT = isNight ? nightT : dayT;
-        let t = realT;
-        if (sweep.active) {
-            const p = Math.min(1, (nowMs() - sweep.start) / SWEEP_MS);
-            if (p >= 1) {
-                sweep.active = false;
-            } else {
-                const target = Math.max(0, Math.min(1, realT));
-                t = sweep.from + (target - sweep.from) * easeOut(p);
+const dateLabel = date =>
+    `${DAY_NAMES[date.getDay()]}, ${date.getDate()} ${MONTH_NAMES[date.getMonth()]}`;
+
+const makeLayout = (cr, text, size, { bold = false, tabular: tabularText = false } = {}) => {
+    const layout = PangoCairo.create_layout(cr);
+    layout.set_font_description(Pango.FontDescription.from_string(
+        `${bold ? 'Ubuntu Bold' : 'Ubuntu'} ${size}`));
+    layout.set_text(String(text), -1);
+    if (tabularText) {
+        const attrs = Pango.AttrList.new();
+        attrs.insert(Pango.attr_font_features_new('tnum 1'));
+        layout.set_attributes(attrs);
+    }
+    return layout;
+};
+
+const layoutWidth = layout => layout.get_pixel_size()[0];
+
+const paint = (cr, layout, x, y, rgb, alpha) => {
+    cr.setSourceRGBA(rgb[0], rgb[1], rgb[2], alpha);
+    cr.moveTo(x, y);
+    PangoCairo.show_layout(cr, layout);
+};
+
+// Timeline 24 jam: label waktu berada di posisi jam sebenarnya, bukan dibagi
+// rata. Busur matahari hanya digambar dari terbit sampai terbenam sehingga
+// Dzuhur/Ashar/Maghrib jatuh tepat di bawah titik yang sesuai; Subuh/Isya
+// berada di luar busur (sebelum terbit / sesudah terbenam).
+const SkyChart = () => {
+    const area = Widget.DrawingArea({
+        className: 'dyn-island-prayer-chart',
+        setup: self => self.set_size_request(CHART_W, CHART_H),
+        drawFn: (self, cr, width, height) => {
+            const state = prayer.value;
+            if (!state?.times?.length) return;
+
+            const nowDate = overrideDate();
+            const nowM = minutesOf(nowDate);
+            const next = nextPrayer(state, nowDate);
+            const times = state.times.map(time => ({ ...time }));
+            if (next?.tomorrow) {
+                const fajr = times.find(time => time.key === 'fajr');
+                if (fajr) {
+                    fajr.minutes = next.minutes;
+                    fajr.label = next.label;
+                    fajr.tomorrow = true;
+                }
             }
-        }
 
-        const base = height - 5;
-        const peak = 7;
-        const point = q => {
-            const clamped = Math.max(0, Math.min(1, q));
-            return [
-                clamped * width,
-                base - Math.sin(Math.PI * clamped) * (base - peak),
-            ];
-        };
-        const strokeArc = (from, to, steps = 40) => {
-            cr.moveTo(...point(from));
-            for (let i = 1; i <= steps; i++)
-                cr.lineTo(...point(from + (to - from) * (i / steps)));
-        };
-        cr.setLineWidth(1.2);
-        cr.setSourceRGBA(MUTED[0], MUTED[1], MUTED[2], 0.22);
-        strokeArc(0, 1);
-        cr.stroke();
+            const sunrise = Number.isFinite(state.sunrise)
+                ? state.sunrise
+                : times[0].minutes + 80;
+            const maghrib = times.find(time => time.key === 'maghrib')?.minutes
+                ?? times[3].minutes;
+            const xFor = minutes => Math.max(0, Math.min(width, (minutes / 1440) * width));
+            const base = BASE_Y;
+            const dayStart = xFor(sunrise);
+            const dayEnd = xFor(maghrib);
 
-        const progress = Math.max(0, Math.min(1, t));
-        if (progress > 0) {
-            cr.setLineWidth(1.6);
-            cr.setSourceRGBA(ACCENT[0], ACCENT[1], ACCENT[2], 0.62);
-            strokeArc(0, progress);
+            cr.setLineWidth(1);
+            cr.setSourceRGBA(MUTED[0], MUTED[1], MUTED[2], 0.16);
+            cr.moveTo(0, base);
+            cr.lineTo(width, base);
             cr.stroke();
-        }
 
-        // malam: bulan sabit bergerak dari Magrib ke terbit
-        if (isNight && t >= 0 && t <= 1) {
-            const [x, y] = point(t);
-            cr.setSourceRGBA(0.78, 0.84, 1.0, 0.13);
-            cr.arc(x, y, 9, 0, Math.PI * 2);
-            cr.fill();
-            // sabit: lingkaran luar dikurangi lingkaran offset (even-odd)
-            cr.setFillRule(Cairo.FillRule.EVEN_ODD);
-            cr.newSubPath();
-            cr.arc(x, y, 4.6, 0, Math.PI * 2);
-            cr.newSubPath();
-            cr.arc(x + 2.1, y - 1.3, 3.9, 0, Math.PI * 2);
-            cr.setSourceRGBA(0.86, 0.90, 1.0, 0.95);
-            cr.fill();
-            cr.setFillRule(Cairo.FillRule.WINDING);
-        }
+            // pita siang: terang tipis dari terbit sampai terbenam
+            cr.setLineWidth(3);
+            cr.setSourceRGBA(ACCENT[0], ACCENT[1], ACCENT[2], 0.10);
+            cr.moveTo(dayStart, base);
+            cr.lineTo(dayEnd, base);
+            cr.stroke();
 
-        // matahari: hanya saat sudah terbit dan belum terbenam
-        if (!isNight && t >= 0 && t <= 1) {
-            const [x, y] = point(t);
-            cr.setSourceRGBA(ACCENT[0], ACCENT[1], ACCENT[2], 0.14);
-            cr.arc(x, y, 8, 0, Math.PI * 2);
-            cr.fill();
-            cr.setSourceRGBA(ACCENT[0], ACCENT[1], ACCENT[2], 0.95);
-            cr.arc(x, y, 3.2, 0, Math.PI * 2);
-            cr.fill();
-        }
-    },
-});
+            const point = q => [
+                dayStart + q * (dayEnd - dayStart),
+                base - Math.sin(Math.PI * q) * (base - 8),
+            ];
+            const strokeArc = (from, to, steps = 44) => {
+                cr.moveTo(...point(from));
+                for (let i = 1; i <= steps; i++)
+                    cr.lineTo(...point(from + (to - from) * (i / steps)));
+            };
+
+            cr.setLineWidth(1.2);
+            cr.setSourceRGBA(MUTED[0], MUTED[1], MUTED[2], 0.24);
+            strokeArc(0, 1);
+            cr.stroke();
+
+            const isDay = nowM >= sunrise && nowM <= maghrib;
+            const dayProgress = isDay
+                ? Math.max(0, Math.min(1, (nowM - sunrise) / Math.max(1, maghrib - sunrise)))
+                : 0;
+            if (isDay && dayProgress > 0) {
+                cr.setLineWidth(1.6);
+                cr.setSourceRGBA(ACCENT[0], ACCENT[1], ACCENT[2], 0.62);
+                strokeArc(0, dayProgress);
+                cr.stroke();
+            }
+
+            const nowX = xFor(nowM);
+            cr.setLineWidth(1);
+            cr.setSourceRGBA(MUTED[0], MUTED[1], MUTED[2], 0.24);
+            cr.moveTo(nowX, 6);
+            cr.lineTo(nowX, base + 3);
+            cr.stroke();
+
+            if (isDay) {
+                const [x, y] = point(dayProgress);
+                cr.setSourceRGBA(ACCENT[0], ACCENT[1], ACCENT[2], 0.14);
+                cr.arc(x, y, 8, 0, Math.PI * 2);
+                cr.fill();
+                cr.setSourceRGBA(ACCENT[0], ACCENT[1], ACCENT[2], 0.95);
+                cr.arc(x, y, 3.2, 0, Math.PI * 2);
+                cr.fill();
+            } else {
+                // bulan: posisi sekarang di timeline malam
+                const y = base - 12;
+                cr.setSourceRGBA(0.78, 0.84, 1.0, 0.12);
+                cr.arc(nowX, y, 9, 0, Math.PI * 2);
+                cr.fill();
+                cr.setFillRule(Cairo.FillRule.EVEN_ODD);
+                cr.newSubPath();
+                cr.arc(nowX, y, 4.6, 0, Math.PI * 2);
+                cr.newSubPath();
+                cr.arc(nowX + 2.1, y - 1.3, 3.9, 0, Math.PI * 2);
+                cr.setSourceRGBA(0.86, 0.90, 1.0, 0.95);
+                cr.fill();
+                cr.setFillRule(Cairo.FillRule.WINDING);
+            }
+
+            const nextKey = next?.key ?? null;
+            const items = times.map(time => {
+                const isNext = time.key === nextKey;
+                const isPast = !time.tomorrow && time.minutes < nowM && !isNext;
+                const name = time.key === 'fajr' && time.tomorrow ? 'Subuh besok' : time.name;
+                const nameLayout = makeLayout(cr, name, 9.5, { bold: isNext });
+                const timeLayout = makeLayout(cr, time.label, 11, {
+                    bold: isNext,
+                    tabular: true,
+                });
+                return {
+                    time,
+                    isNext,
+                    isPast,
+                    nameLayout,
+                    timeLayout,
+                    nameWidth: layoutWidth(nameLayout),
+                    timeWidth: layoutWidth(timeLayout),
+                    x: xFor(time.minutes),
+                };
+            });
+            items.sort((a, b) => a.x - b.x);
+
+            // Cegah label Magrib/Isya saling menimpa: geser label ke kanan,
+            // lalu sambungkan dengan garis tipis ke tick waktu aslinya.
+            let cursor = 0;
+            const gap = 6;
+            for (const item of items) {
+                const itemWidth = Math.max(item.nameWidth, item.timeWidth);
+                let center = item.x;
+                if (center - itemWidth / 2 < cursor) center = cursor + itemWidth / 2;
+                center = Math.max(itemWidth / 2 + 2,
+                    Math.min(width - itemWidth / 2 - 2, center));
+                item.labelWidth = itemWidth;
+                item.center = center;
+                cursor = center + itemWidth / 2 + gap;
+            }
+            const overflow = cursor - gap - (width - 2);
+            if (overflow > 0) {
+                for (const item of items)
+                    item.center = Math.max(item.labelWidth / 2 + 2, item.center - overflow);
+            }
+
+            for (const item of items) {
+                const color = item.isNext ? ACCENT : item.isPast ? MUTED : FG;
+                const alpha = item.isNext ? 1 : item.isPast ? 0.38 : 0.82;
+
+                cr.setLineWidth(item.isNext ? 2 : 1);
+                cr.setSourceRGBA(color[0], color[1], color[2], item.isNext ? 1 : 0.34);
+                cr.moveTo(item.x, base + 2);
+                cr.lineTo(item.x, base + 6);
+                cr.stroke();
+
+                if (Math.abs(item.center - item.x) > 1.5) {
+                    cr.setLineWidth(1);
+                    cr.setSourceRGBA(MUTED[0], MUTED[1], MUTED[2], 0.22);
+                    cr.moveTo(item.x, base + 6);
+                    cr.lineTo(item.center, LABEL_Y - 3);
+                    cr.stroke();
+                }
+
+                paint(cr, item.nameLayout,
+                    item.center - item.nameWidth / 2, LABEL_Y, color, alpha);
+                paint(cr, item.timeLayout,
+                    item.center - item.timeWidth / 2, LABEL_Y + 12, color, alpha);
+            }
+        },
+    });
+    return area;
+};
 
 export default () => {
+    const date = Widget.Label({ className: 'dyn-island-prayer-date', xalign: 0 });
+    const nextName = Widget.Label({
+        className: 'dyn-island-prayer-next',
+        xalign: 0,
+        truncate: 'end',
+        maxWidthChars: 18,
+    });
+    const countdown = tabular(Widget.Label({
+        className: 'dyn-island-prayer-count',
+        xalign: 0,
+    }));
     const city = Widget.Label({
         className: 'dyn-island-prayer-city',
         xalign: 0,
         truncate: 'end',
-        maxWidthChars: 24,
+        maxWidthChars: 26,
     });
-    const nextName = Widget.Label({ className: 'dyn-island-prayer-next', xalign: 0 });
-    const countdown = tabular(Widget.Label({ className: 'dyn-island-prayer-count', xalign: 0 }));
-    // Jam berjalan sebagai pembanding hitungan mundur di sebelah kiri.
-    const clock = tabular(Widget.Label({ className: 'dyn-island-prayer-clock', xalign: 1 }));
-
-    const arc = SkyArc();
-    // Label waktu = baris rata 5 kolom. Posisi waktu asli tidak dipakai di sini:
-    // jarak Subuh->Dzuhur 50% lebar sementara Ashar->Magrib 24%, sehingga label
-    // jadi renggang-sempit dan Magrib/Isya bertumpuk. Busur tetap menunjukkan
-    // posisi matahari yang sebenarnya.
-    const timesBox = Widget.Box({
-        className: 'dyn-island-prayer-times',
-        spacing: 0,
-        homogeneous: true,
-    });
-    timesBox.set_size_request(ARC_W, -1);
-    const columns = new Map();
-    let builtMode = '';
-
-    const buildTimes = (state, night) => {
-        columns.clear();
-
-        let items = state.times;
-        if (night) {
-            // Baris malam hanya memuat waktu yang relevan: Magrib, Isya, Subuh
-            // (Subuh besok bila sekarang sudah lewat Magrib).
-            const nowM = minutesNow();
-            const fajr = nowM >= state.times[3].minutes ? fajrTomorrow(state) : state.times[0].minutes;
-            items = [
-                state.times[3],
-                state.times[4],
-                { key: 'fajr', name: 'Subuh', minutes: fajr, label: formatMinutes(fajr) },
-            ];
-        }
-
-        timesBox.children = items.map(time => {
-            const box = Widget.Box({
-                className: 'dyn-island-prayer-time',
-                vertical: true,
-                children: [
-                    Widget.Label({
-                        className: 'dyn-island-prayer-time-name',
-                        label: time.name,
-                        xalign: 0.5,
-                    }),
-                    tabular(Widget.Label({
-                        className: 'dyn-island-prayer-time-value',
-                        label: time.label,
-                        xalign: 0.5,
-                    })),
-                ],
-            });
-            columns.set(time.key, box);
-            return box;
-        });
-        city.label = `${state.city} · ${state.method}`;
-    };
-
-    const startSweep = () => {
-        sweep.from = 0;
-        sweep.start = nowMs();
-        sweep.active = true;
-    };
-
-    const sweepFrame = () => {
-        if (!sweep.active) return GLib.SOURCE_REMOVE;
-        arc.queue_draw();
-        return GLib.SOURCE_CONTINUE;
-    };
-
-    // Picu animasi tepat saat halaman prayer aktif. `globalThis.dynIsland`
-    // belum ada saat modul ini dievaluasi, jadi hook dipasang dari tick()
-    // (idempoten) begitu variabelnya tersedia.
-    let hookedPage = null;
-    const hookPage = () => {
-        const page = globalThis.dynIsland?.page;
-        if (!page || page === hookedPage) return;
-        hookedPage = page;
-        page.connect('changed', () => {
-            if (page.value !== 'prayer') return;
-            startSweep();
-            GLib.timeout_add(GLib.PRIORITY_DEFAULT, 16, sweepFrame);
-        });
-    };
-
-    const tick = self => {
-        hookPage();
-
-        const now = new Date();
-        clock.label = `sekarang ${pad2(now.getHours())}:${pad2(now.getMinutes())}:${pad2(now.getSeconds())}`;
-
-        const state = prayer.value;
-        if (!state?.times?.length) return;
-        const night = isNightNow(state);
-        const mode = `${state.date}:${night ? 'night' : 'day'}`;
-        if (mode !== builtMode) {
-            builtMode = mode;
-            buildTimes(state, night);
-        }
-
-        const next = nextPrayer(state) ?? state.next;
-        if (next) {
-            nextName.label = next.tomorrow ? `Besok ${next.name}` : next.name;
-            countdown.label = formatCountdown(next.timestamp - Date.now());
-            for (const [key, box] of columns)
-                box.toggleClassName('on', key === next.key);
-        }
-        arc.queue_draw();
-    };
 
     const info = Widget.Box({
         className: 'dyn-island-prayer-info',
         vertical: true,
         spacing: 0,
         widthRequest: 150,
-        children: [city, nextName, countdown],
+        valign: Gtk.Align.CENTER,
+        children: [date, nextName, countdown, city],
     });
 
-    const clockRow = Widget.Box({
-        className: 'dyn-island-prayer-clockrow',
-        hexpand: true,
-        halign: Gtk.Align.END,
-        children: [clock],
-    });
+    const chart = SkyChart();
 
-    const right = Widget.Box({
-        className: 'dyn-island-prayer-right',
-        vertical: true,
-        spacing: 2,
-        children: [clockRow, arc, timesBox],
-    });
+    const tick = self => {
+        const now = overrideDate();
+        date.label = dateLabel(now);
+        const state = prayer.value;
+        if (!state?.times?.length) {
+            nextName.label = '—';
+            countdown.label = '—';
+            city.label = state?.error || 'Lokasi belum siap';
+            chart.queue_draw();
+            return;
+        }
+
+        city.label = `${state.city} · ${state.method}`;
+        const next = nextPrayer(state, now);
+        if (next) {
+            nextName.label = next.tomorrow ? `Besok ${next.name}` : next.name;
+            countdown.label = formatCountdown(next.timestamp - now.getTime());
+        } else {
+            nextName.label = '—';
+            countdown.label = '—';
+        }
+        chart.queue_draw();
+    };
 
     return Widget.Box({
         className: 'dyn-island-prayer',
         spacing: 14,
         halign: Gtk.Align.CENTER,
         valign: Gtk.Align.CENTER,
-        children: [info, right],
+        children: [info, chart],
         setup: self => {
             tick(self);
             self.hook(prayer, () => tick(self));

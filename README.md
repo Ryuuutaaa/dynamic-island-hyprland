@@ -75,7 +75,7 @@ frame 2,98–3,02 sepanjang 420×140 → 150×50.
 | `standup` | ringkasan daily standup (`Tersimpan · kemarin 2 · hari ini 1 · blocker 1`) + pill **Isi/Lihat** yang membuka popup tiga daftar |
 | `shelf` | drop zone putus-putus + kartu file (thumbnail, nama, ukuran) |
 | `bluetooth` | info device tersambung (ikon, nama, tipe, alamat, baterai) + slider volume + tombol bisu |
-| `prayer` | jadwal sholat: busur **terbit→terbenam** dengan matahari beranimasi + label 5 waktu rata (siang) atau Magrib·Isya·Subuh + bulan (malam) + countdown; background langit mengikuti fase |
+| `prayer` | jadwal sholat: timeline 24 jam dengan label waktu di posisi aslinya, busur matahari terbit→terbenam, bulan saat malam, tanggal + countdown + kota; background langit mengikuti fase |
 | `chat` | riwayat chat Gemini + tombol **Tanya Gemini** (input rofi) + Hapus/Ulangi; halaman sticky saat dipilih |
 | `volume` / `brightness` | ikon + bar (Cairo) + persen, **bar bisa diklik/digeser** untuk mengatur nilainya |
 | `notify` | ikon + `Judul · isi` |
@@ -256,16 +256,18 @@ prayer: {
 - **Validasi** terhadap Aladhan (Denpasar, 28-10-2026, method 20/Kemenag):
   referensi `04:31 12:03 15:15 18:15 19:27`; hasil lokal
   `04:32 12:03 15:15 18:15 19:27` (selisih maks 1 menit, Fajr +1 ihtiyat).
-- **Tampilan** (`modules/prayer-page.js`): busur **terbit→terbenam** dengan
-  puncak di Dzuhur. Matahari hanya digambar di antara sunrise dan sunset, dan
-  melakukan **sweep 1,8 detik** (ease-in-out; 60 fps hanya selama animasi) saat
-  halaman dibuka, lalu bergerak mengikuti jam tiap detik. Label waktu disusun
-  **rata 5 kolom** — bukan mengikuti posisi jam — karena dulu Subuh→Dzuhur
-  mendapat 50% lebar sementara Ashar→Magrib hanya 24% sehingga Magrib/Isya
-  saling menempel. Saat malam, baris label berganti ke **Magrib · Isya ·
-  Subuh** dan penanda **bulan sabit** (crescent, even-odd fill + glow) berjalan
-  di sumbu malam Magrib→Subuh. Kiri: `kota · metode`, nama sholat berikutnya,
-  countdown `HH:MM:SS`, dan jam berjalan `sekarang HH:MM:SS` sebagai pembanding.
+- **Tampilan** (`modules/prayer-page.js`): **timeline 24 jam**. Label 5 waktu
+  diletakkan pada posisi jam sebenarnya (bukan 5 kolom rata), sehingga matahari
+  di puncak busur benar-benar berada di atas Dzuhur dan Ashar di sisi turun.
+  Busur hanya digambar dari sunrise ke sunset; saat malam diganti **bulan
+  sabit** (even-odd fill + glow) di posisi jam sekarang. Label Magrib/Isya yang
+  berdekatan digeser dengan connector tipis supaya tidak bertumpuk; label yang
+  sudah lewat diredupkan, yang berikutnya diberi aksen. Setelah Isya, kolom
+  Subuh menampilkan waktu **besok** dan label `Subuh besok`. Kiri: tanggal,
+  nama sholat berikutnya, countdown `HH:MM:SS`, dan `kota · metode`.
+  Tidak ada animasi sweep; penanda bergerak halus mengikuti tick 1 detik.
+  Tinggi chart 82px memberi jarak ±9px ke nav (sebelumnya label waktu hanya
+  2px dari nav).
 - **Pengingat:** saat masuk waktu, `notify-send -a Notch "Waktunya <nama>"
   "<jam> · <kota>"`; `modules/notify.js` menampilkan popup kanan atas + halaman
   transient di island. `catchUpMinutes` menangani AGS yang baru hidup beberapa
@@ -287,7 +289,8 @@ prayer: {
   mengirim notifikasi uji, `ags -r "JSON.stringify(globalThis.dynIsland.prayer.value)"`
   untuk melihat jadwal + `next`, dan
   `ags -r "globalThis.__prayerNowMinutes = 720"` untuk memaksa posisi matahari
-  di jam 12:00 saat menguji animasi siang (hapus dengan `= undefined`).
+  di jam 12:00 (atau `= 1200` untuk state malam); hapus dengan `= undefined`.
+  Override ini juga dipakai `nextPrayer` sehingga label `Besok Subuh` konsisten.
   Untuk background: set `__prayerNowMinutes` lalu
   `ags -r "globalThis.dynIsland.skyRefresh()"`.
 
