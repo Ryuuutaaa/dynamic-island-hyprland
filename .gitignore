@@ -19,5 +19,8 @@
 .env.*
 !.env.example
 
+# URL iCal pribadi (secret). File asli ada di ~/.config/dynamic-iland/calendar.url
+calendar.url
+
 # OS / editor
 .DS_Store

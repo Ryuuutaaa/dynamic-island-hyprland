@@ -466,6 +466,11 @@ address") atau path file `.ics` lokal. Feed di-refresh tiap
 `~/.local/share/dynamic-iland/calendar.json`, dan pengingat dikirim 10 menit
 sebelum acara (bukan all-day).
 
+URL **secret** pribadi tidak boleh ditaruh di `config.js` yang di-commit.
+Simpan di **`~/.config/dynamic-iland/calendar.url`** dengan `chmod 600`;
+`modules/calendar.js` membaca file itu lebih dulu (menang atas `icsUrl`) dan
+file tersebut tidak masuk repo.
+
 **Parser** (`modules/calendar.js`): `DTSTART`/`DTEND`/`SUMMARY`/`UID`, tanggal
 all-day, `TZID` (lewat `Intl.DateTimeFormat`), `RRULE` untuk
 DAILY/WEEKLY/MONTHLY/YEARLY dengan `INTERVAL`, `COUNT`, `UNTIL`, `BYDAY`,
