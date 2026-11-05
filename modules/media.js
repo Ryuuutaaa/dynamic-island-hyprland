@@ -78,7 +78,13 @@ export default () => {
         updateCoverColor(player?.cover_path ?? '');
         cover.setGlow(glowEnabled.value ? coverColor.value : null);
         title.label = player ? (player.track_title || 'Judul tidak diketahui') : 'Tidak ada yang diputar';
-        artist.label = player ? (player.track_artists || []).join(', ') : '';
+        artist.label = player
+            ? (player.track_artists || []).join(', ')
+            : 'Putar musik untuk memulai';
+        title.tooltipText = title.label;
+        artist.tooltipText = artist.label;
+        progress.visible = !!player;
+        controls.visible = !!player;
         playGlyph.label = player?.play_back_status === 'Playing' ? '\uf04c' : '\uf04b';
         refreshTimes();
     };
@@ -91,6 +97,30 @@ export default () => {
             const player = activePlayer();
             if (player) action(player);
         },
+    });
+
+    const controls = Widget.Box({
+        className: 'dyn-island-media-ctls',
+        spacing: 2,
+        valign: Gtk.Align.CENTER,
+        children: [
+            control('\uf048', player => player.previous(), 'Sebelumnya'),
+            Widget.Button({
+                className: 'dyn-island-ctl',
+                tooltipText: 'Putar atau jeda',
+                child: playGlyph,
+                onClicked: () => activePlayer()?.playPause(),
+            }),
+            control('\uf051', player => player.next(), 'Berikutnya'),
+            // masuk tampilan lirik: sub-bagian dari kartu media, bukan
+            // halaman nav tersendiri (dot tetap di "media")
+            Widget.Button({
+                className: 'dyn-island-ctl',
+                tooltipText: 'Tampilkan lirik',
+                child: Widget.Label({ className: 'dyn-island-ctl-icon', label: '\uf075' }),
+                onClicked: () => { mediaView.value = 'lyrics'; },
+            }),
+        ],
     });
 
     return Widget.Box({
@@ -106,29 +136,7 @@ export default () => {
                 spacing: 6,
                 children: [title, artist, progress, timeRow],
             }),
-            Widget.Box({
-                className: 'dyn-island-media-ctls',
-                spacing: 2,
-                valign: Gtk.Align.CENTER,
-                children: [
-                    control('\uf048', player => player.previous(), 'Sebelumnya'),
-                    Widget.Button({
-                        className: 'dyn-island-ctl',
-                        tooltipText: 'Putar atau jeda',
-                        child: playGlyph,
-                        onClicked: () => activePlayer()?.playPause(),
-                    }),
-                    control('\uf051', player => player.next(), 'Berikutnya'),
-                    // masuk tampilan lirik: sub-bagian dari kartu media, bukan
-                    // halaman nav tersendiri (dot tetap di "media")
-                    Widget.Button({
-                        className: 'dyn-island-ctl',
-                        tooltipText: 'Tampilkan lirik',
-                        child: Widget.Label({ className: 'dyn-island-ctl-icon', label: '\uf075' }),
-                        onClicked: () => { mediaView.value = 'lyrics'; },
-                    }),
-                ],
-            }),
+            controls,
         ],
         setup: self => {
             refresh();
