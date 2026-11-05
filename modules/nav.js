@@ -32,6 +32,7 @@ const ICONS = {
     bluetooth: '\uf293',
     prayer: '\uf02d',
     chat: '\uf075',
+    settings: '\uf013',
 };
 
 const LABELS = {
@@ -49,6 +50,7 @@ const LABELS = {
     bluetooth: 'Bluetooth',
     prayer: 'Sholat',
     chat: 'Chat',
+    settings: 'Pengaturan',
 };
 
 const DOTS_WIDTH = DOT * (PAGE_ORDER.length - 1)

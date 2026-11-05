@@ -10,7 +10,7 @@ import CONFIG from './config.js';
 // Urutan kanonik seluruh halaman. Halaman yang dimatikan lewat
 // CONFIG.modules tidak masuk PAGE_ORDER sehingga dot/panah tidak bertambah;
 // halaman tetap ada di Stack (bisa dipanggil showTransient(name, ms)).
-const ALL_PAGES = ['idle', 'media', 'weather', 'calendar', 'pomodoro', 'timer', 'stats', 'water', 'todo', 'standup', 'shelf', 'bluetooth', 'prayer', 'chat'];
+const ALL_PAGES = ['idle', 'media', 'weather', 'calendar', 'pomodoro', 'timer', 'stats', 'water', 'todo', 'standup', 'shelf', 'bluetooth', 'prayer', 'chat', 'settings'];
 const ALWAYS_ON = ['idle', 'media'];
 
 export const PAGE_ORDER = ALL_PAGES.filter(name =>
@@ -46,7 +46,11 @@ export const isPlaying = () =>
 const hasActivePlayer = () =>
     Mpris.players.some(player => player.play_back_status !== 'Stopped');
 
-export const basePage = () => (hasActivePlayer() ? 'media' : 'idle');
+export const basePage = () => {
+    if (hasActivePlayer()) return 'media';
+    const fallback = CONFIG.defaultPage;
+    return fallback && PAGE_ORDER.includes(fallback) ? fallback : 'idle';
+};
 
 // Halaman tujuan saat tidak ada transient: pin manual menang.
 const restingPage = () => pinned ?? basePage();

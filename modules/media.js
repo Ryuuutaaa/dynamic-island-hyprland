@@ -7,6 +7,7 @@ import { mediaView } from '../state.js';
 import Progress, { activePlayer } from './progress.js';
 import Cover from './cover.js';
 import { updateCoverColor, coverColor } from './cover-color.js';
+import { glow as glowEnabled } from './settings.js';
 import { tabular } from './type.js';
 
 const formatTime = seconds => {
@@ -23,7 +24,7 @@ const formatTime = seconds => {
 
 export default () => {
     const cover = Cover({ size: 84, radius: 12 });
-    cover.setGlow(coverColor.value);
+    cover.setGlow(glowEnabled.value ? coverColor.value : null);
     const title = Widget.Label({
         className: 'dyn-island-media-title',
         xalign: 0,
@@ -75,7 +76,7 @@ export default () => {
         const player = activePlayer();
         cover.setPath(player?.cover_path ?? '');
         updateCoverColor(player?.cover_path ?? '');
-        cover.setGlow(coverColor.value);
+        cover.setGlow(glowEnabled.value ? coverColor.value : null);
         title.label = player ? (player.track_title || 'Judul tidak diketahui') : 'Tidak ada yang diputar';
         artist.label = player ? (player.track_artists || []).join(', ') : '';
         playGlyph.label = player?.play_back_status === 'Playing' ? '\uf04c' : '\uf04b';
@@ -133,7 +134,8 @@ export default () => {
             refresh();
             self.hook(Mpris, refresh, 'changed');
             self.hook(Mpris, refresh, 'player-changed');
-            self.hook(coverColor, () => cover.setGlow(coverColor.value));
+            self.hook(coverColor, () => cover.setGlow(glowEnabled.value ? coverColor.value : null));
+            self.hook(glowEnabled, () => cover.setGlow(glowEnabled.value ? coverColor.value : null));
             // posisi MPRIS ikut berjalan setiap detik, bukan hanya saat track
             // berganti; label elapsed diperbarui di sini.
             Utils.interval(1000, refreshTimes, self);

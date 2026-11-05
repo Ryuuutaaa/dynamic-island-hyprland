@@ -170,7 +170,8 @@ export default () => {
         halign: Gtk.Align.CENTER,
         valign: Gtk.Align.END,
         setup: self => {
-            self.set_size_request(124, 2);
+            // lebar mengikuti geometry closed (compact/large)
+            self.set_size_request(Math.max(80, (CONFIG.geometry.closed.w ?? 150) - 26), 2);
             self.active = false;
             self.fraction = 0;
             self.setProgress = (active, fraction) => {

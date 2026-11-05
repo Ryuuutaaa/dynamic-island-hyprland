@@ -5,6 +5,9 @@ import App from 'resource:///com/github/Aylur/ags/app.js';
 import Widget from 'resource:///com/github/Aylur/ags/widget.js';
 import * as Utils from 'resource:///com/github/Aylur/ags/utils.js';
 import CONFIG from './config.js';
+// Side effect: baca ~/.config/dynamic-iland/settings.json dan terapkan ke
+// CONFIG sebelum state/nav/halaman dievaluasi.
+import { glow as glowEnabled } from './modules/settings.js';
 import {
     page, hovered, isTransientActive, watchMpris, showTransient, refreshBase,
     stepPage, pinPage, PAGE_ORDER, isPinned, mediaView, inLyricsView,
@@ -64,6 +67,7 @@ import { timer as timerState, restoreTimer, applyPreset as timerPreset, toggleRu
 import StandupWindow from './modules/standup-window.js';
 import { scheduleStandupReminder, titleForDay as standupTitle, addItem as standupAdd, removeItem as standupRemove, saveStandup as standupSave, loadStandup as standupLoad, remindNow as standupRemind, standup as standupStore } from './modules/standup.js';
 import GeminiChat from './modules/chat-window.js';
+import SettingsPage from './modules/settings-page.js';
 
 const STYLE_PATH = `${App.configDir}/dynamic-iland/style.css`;
 
@@ -96,6 +100,12 @@ function patchMonitor(window) {
     // `id` monitor — bukan namespace yang sama. followFocused mencocokkan
     // keduanya lewat geometri (lihat modules/monitor.js) dan melepas state
     // hover saat window benar-benar pindah monitor.
+    if (CONFIG.notch?.followFocus === false) {
+        // Pengaturan "Tetap": pasang sekali ke monitor fokus saat dibuat,
+        // jangan ikut pindah saat fokus berpindah.
+        applyFocused(window, () => { hovered.value = false; }).catch(() => { });
+        return;
+    }
     followFocused(window, () => { hovered.value = false; });
 }
 
@@ -209,12 +219,13 @@ function DynamicIsland() {
             self.get_allocated_height(),
             self.skyRadius,
             sky.value,
-            coverColor.value,
+            glowEnabled.value ? coverColor.value : null,
         );
         return false;
     });
 
     notch.hook(coverColor, () => notch.queue_draw());
+    notch.hook(glowEnabled, () => notch.queue_draw());
 
     const stack = Widget.Stack({
         children: {
@@ -234,6 +245,7 @@ function DynamicIsland() {
             bluetooth: BluetoothPage(),
             prayer: PrayerPage(),
             chat: ChatPage(),
+            settings: SettingsPage(),
             volume: VolumeOsd(),
             brightness: BrightnessOsd(),
             notify: Notify(),
@@ -476,7 +488,7 @@ function DynamicIsland() {
     // jalan keluar, tapi pill-nya tidak pernah muncul.
     const navVisibleFor = next =>
         next === GEO.expanded || next === GEO.lyrics || next === GEO.prayer
-        || next === GEO.chat;
+        || next === GEO.chat || next === GEO.settings;
 
     const applyGeometry = () => {
         const w = Math.max(1, Math.round(geo.w));
@@ -512,6 +524,8 @@ function DynamicIsland() {
             if (page.value === 'prayer' && GEO.prayer) return GEO.prayer;
             // chat: riwayat + input butuh kartu lebih tinggi
             if (page.value === 'chat' && GEO.chat) return GEO.chat;
+            // settings: daftar pengaturan yang bisa di-scroll
+            if (page.value === 'settings' && GEO.settings) return GEO.settings;
             return GEO.expanded;
         }
         return GEO.closed;
@@ -880,7 +894,7 @@ function DynamicIsland() {
     // sendiri agar daftar di dalamnya tetap bisa digulir.
     island.connect('scroll-event', (_self, event) => {
         if (!hovered.value || !navActive) return false;
-        if (['chat', 'todo', 'shelf'].includes(page.value) || inLyricsView()) return false;
+        if (['chat', 'todo', 'shelf', 'settings'].includes(page.value) || inLyricsView()) return false;
         let delta = 0;
         try {
             const deltas = event.get_scroll_deltas?.();

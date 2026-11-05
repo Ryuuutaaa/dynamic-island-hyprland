@@ -83,6 +83,7 @@ frame 2,98–3,02 sepanjang 420×140 → 150×50.
 | `bluetooth` | daftar semua device paired + toggle daya, device terpilih dengan tombol Sambung/Putus, slider volume + mute |
 | `prayer` | jadwal sholat: timeline 24 jam dengan label waktu di posisi aslinya, busur matahari terbit→terbenam, bulan saat malam, tanggal + countdown + kota; background langit mengikuti fase |
 | `chat` | riwayat chat Gemini dengan avatar + timestamp per pesan, tombol **Tanya Gemini** (input rofi) + Hapus/Ulangi; halaman sticky saat dipilih |
+| `settings` | Pengaturan: glow, ukuran notch tertutup, follow focus, halaman default, dan toggle 12 modul; disimpan ke `~/.config/dynamic-iland/settings.json` |
 | `volume` / `brightness` | ikon + bar (Cairo) + persen + nama device, **bar bisa diklik/digeser**; volume: klik ikon = mute, double-click = 100%; brightness: ikon 3 tingkat (bulan/bohlam/matahari) |
 | `notify` | ikon + `Judul · isi` |
 
@@ -681,6 +682,35 @@ Bar volume & brightness di OSD bukan lagi indikator pasif:
   bohlam (<70%), matahari (≥70%); nama backlight tampil di bawah bar.
 - Timer OSD tetap berlaku: notch menutup ~1,6 detik setelah drag dilepas.
 
+## Pengaturan
+
+Halaman `settings` (kartu **520×220**, tab gear paling kanan) berisi daftar
+baris 24px yang bisa di-scroll; wheel di atas halaman ini menggulir daftar,
+bukan pindah halaman.
+
+Disimpan di **`~/.config/dynamic-iland/settings.json`** dan dibaca sebelum
+modul lain dievaluasi (lihat urutan import `index.js`), sehingga override
+`CONFIG.modules`, geometry, `defaultPage`, dan `notch` sudah aktif saat state,
+nav, dan Stack dibangun. `settings.json` hanya berisi preferensi; API key tetap
+di `.env`/`gemini.json` dengan permission terpisah.
+
+| Baris | Nilai | Kapan berlaku |
+|---|---|---|
+| Glow cover | Aktif / Nonaktif | **langsung** — `glow` Variable; accent sky & border cover ikut mati |
+| Ukuran notch | Normal / Kecil / Besar (hanya state **closed**) | restart AGS |
+| Ikuti monitor fokus | Aktif / **Tetap** | restart AGS; "Tetap" memasang notch ke monitor saat dibuat, tidak ikut pindah |
+| Halaman default | Ringkasan / Cuaca / Statistik / Tugas | langsung pada `basePage()` berikutnya (media player tetap menang) |
+| 12 modul | Aktif / Nonaktif | restart AGS; halaman yang dimatikan hilang dari `PAGE_ORDER` |
+
+- Ukuran **Kecil** = 140×46 (ear 9), **Besar** = 170×56 (ear 11), **Normal**
+  = config 150×50. Progress hairline closed ikut lebar geometry.
+- Halaman `settings` sendiri selalu ada (tidak bisa dimatikan) supaya pengguna
+  tidak terkunci tanpa UI untuk mengaktifkan modul lagi.
+- Tombol/toggle memakai target 24px; header menampilkan catatan
+  `modul/ukuran: restart AGS`.
+- Uji: `cat ~/.config/dynamic-iland/settings.json`; ubah lewat halaman lalu
+  restart AGS.
+
 ## Shelf
 
 Halaman `shelf` (kartu 420×140): judul `Shelf` + jumlah item + chip
@@ -741,7 +771,7 @@ aktif (lirik bukan halaman nav).
 Kalau `PAGE_ORDER` lebih dari 7 halaman, baris titik 3px di bawah ikon menjadi
 indikator posisi (titik aktif memanjang & terang). Dengan modul bawaan, urutannya
 idle, media, weather, calendar, pomodoro, timer, stats, water, todo, standup,
-shelf, bluetooth, prayer, chat.
+shelf, bluetooth, prayer, chat, settings.
 
 Klik ikon memanggil `pinPage()`; `chat` bertahan sampai user pindah halaman,
 halaman lain di-pin selama `pinTimeout` (10s) lalu kembali ke `basePage()`.
@@ -755,8 +785,8 @@ dipotong dari tinggi isi konten (`stack.margin_bottom = NAV_SPACE = 34`) — lih
 bagian Motion. Target klik ikon dan panah 24px dan semuanya punya tooltip.
 Tab aktif memakai kapsul aksen + ring inset 1px sebagai indikator fokus.
 **Scroll wheel di atas notch** memanggil `stepPage(±1)`; halaman yang punya
-scroll internal (`chat`, `todo`, `shelf`, lirik) tidak ikut berpindah halaman
-agar wheel tetap menggulir isinya.
+scroll internal (`chat`, `todo`, `shelf`, `settings`, lirik) tidak ikut
+berpindah halaman agar wheel tetap menggulir isinya.
 
 **Panah aktif saat press, bukan release.** Nav di-anchor ke dasar notch,
 jadi selama notch membuka/menutup posisinya ikut bergerak (terukur: posisi nav
@@ -1001,12 +1031,18 @@ chmod 600 ~/.config/dynamic-iland/.env
 | `marginTop` | jarak dari tepi atas (0 = nempel) |
 | `geometry` | `closed` / `expanded` / `peek`: `{ w, h, r, ear }` |
 | `motion` | `reduced`, `sizeDuration`, `sizeCurve` |
+| `defaultPage` | halaman `basePage()` saat tidak ada media (default `idle`) |
+| `notch` | `{ size: 'normal'|'compact'|'large', followFocus: boolean }` |
+| `glow` | `false` untuk mematikan accent cover di sky/border cover |
 | `osdTimeout` / `notifyTimeout` | durasi peek (ms) |
 | `pinTimeout` | durasi halaman pilihan manual (ms) |
 | `contentDelay` / `contentFade` | jeda & durasi fade-in konten (ms) |
 | `mediaMaxChars` / `notifyMaxChars` | pemotongan teks |
 | `prayer` | `{ latitude, longitude, city, method, notify, catchUpMinutes }` — jadwal sholat lokal |
 | `chat` | `{ model, systemPrompt, maxTurns, maxOutputTokens, thinkingLevel, timeoutSec }` — Gemini; API key dari `GEMINI_API_KEY` / `~/.config/dynamic-iland/.env` |
+
+Nilai `modules`, `glow`, `defaultPage`, dan `notch` bisa ditimpa dari
+`~/.config/dynamic-iland/settings.json` lewat halaman **Pengaturan**.
 
 ### Warna
 

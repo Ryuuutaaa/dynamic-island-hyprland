@@ -24,6 +24,8 @@ export default {
         prayer: { w: 560, h: 140, r: 32, ear: 22 },
         // chat Gemini: riwayat pesan + baris input butuh kartu lebih tinggi
         chat: { w: 520, h: 220, r: 32, ear: 22 },
+        // settings: daftar baris yang bisa di-scroll
+        settings: { w: 520, h: 220, r: 32, ear: 22 },
     },
 
     // MOTION (Nusa): width/height .62s cubic-bezier(.34,1.32,.5,1).
