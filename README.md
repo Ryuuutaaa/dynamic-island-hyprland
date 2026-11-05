@@ -76,7 +76,7 @@ frame 2,98–3,02 sepanjang 420×140 → 150×50.
 | `todo` | checkmark hijau + strikethrough, counter `X/Y`, pill Tambah/Ubah |
 | `standup` | ringkasan daily standup (`Tersimpan · kemarin 2 · hari ini 1 · blocker 1`) + pill **Isi/Lihat** yang membuka popup tiga daftar |
 | `shelf` | drop zone putus-putus + kartu file (thumbnail, nama, ukuran) |
-| `bluetooth` | info device tersambung (ikon, nama, tipe, alamat, baterai) + slider volume + tombol bisu |
+| `bluetooth` | daftar semua device paired + toggle daya, device terpilih dengan tombol Sambung/Putus, slider volume + mute |
 | `prayer` | jadwal sholat: timeline 24 jam dengan label waktu di posisi aslinya, busur matahari terbit→terbenam, bulan saat malam, tanggal + countdown + kota; background langit mengikuti fase |
 | `chat` | riwayat chat Gemini + tombol **Tanya Gemini** (input rofi) + Hapus/Ulangi; halaman sticky saat dipilih |
 | `volume` / `brightness` | ikon + bar (Cairo) + persen + nama device, **bar bisa diklik/digeser**; volume: klik ikon = mute, double-click = 100%; brightness: ikon 3 tingkat (bulan/bohlam/matahari) |
@@ -196,18 +196,28 @@ memang berisi device (`Redmi Buds 6`, baterai 65%, sink
 idle tidak pernah ter-map (terukur `visible=true`, `mapped=false`). Selain itu
 barisnya hanya satu teks tanpa info device maupun pengaturan volume.
 
-Sekarang ada **halaman `bluetooth`** (tab nav ke-12) yang menampilkan:
+Sekarang ada **halaman `bluetooth`** (tab nav ke-12) dengan dua kolom:
 
-- ikon device, nama, tipe (Headset/Speaker/...), alamat, dan baterai;
-- slider volume Cairo (klik + drag) beserta persentase;
-- tombol bisu (glyph speaker berubah) yang men-toggle `sink.is_muted`.
+- kiri: chip **Aktif/Mati** (`Bluetooth.toggle()`) + daftar **semua device
+  paired** (bukan hanya yang terhubung) dalam pane 190×64; setiap baris 24px
+  berisi ikon, nama, dan status (`paired`/`aktif`/persen baterai/`…`);
+- kanan: device terpilih — ikon, nama, tipe · alamat (dipotong), tombol
+  **Sambung/Putus** (`device.setConnection`), dan slider volume Cairo + mute
+  saat device terhubung dan sink audio-nya tersedia;
+- klik baris hanya memilih device; koneksi tidak terjadi tanpa menekan tombol,
+  jadi memilih device tidak memicu pairing/connection tak sengaja.
+
+Pairing device baru masih lewat `bluetoothctl` (service AGS hanya mengekspos
+device paired/trusted; belum ada tombol scan).
 
 Baris ringkas di halaman idle tetap ada (hanya saat ada device) dan sekarang
 **bisa diklik** untuk membuka halaman detail. Baris memakai `EventBox` (bukan
 `Gtk.Button`) supaya tinggi/background bawaan tema tidak ikut berubah.
 
-- Sumber device: service Bluetooth AGS (BlueZ) → `Bluetooth.connected_devices`.
-  Tidak ada polling `bluetoothctl`: halaman ikut event `changed` service.
+- Sumber device: service Bluetooth AGS (BlueZ) → `Bluetooth.devices` (paired)
+  dan `connected_devices`; tidak ada polling `bluetoothctl`, halaman ikut event
+  `changed` service. Power/connect memakai API service (`toggle`,
+  `setConnection`).
 - Sumber volume: `Audio.speakers` (Gvc). Sink dicocokkan lewat **alamat device**
   (`bluez_output.64_8F_DB_52_8A_74.1`), bukan asal sink default — jadi volume
   yang diatur tetap milik headset meskipun output default berganti. Kalau sink
