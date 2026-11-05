@@ -177,7 +177,9 @@ export default () => {
             children: [
                 tabular(Widget.Label({
                     className: 'dyn-island-cal-row-time',
-                    label: `${shortDay(event.start, now)}${hhmm(event.start)}`,
+                    label: event.allDay
+                        ? (shortDay(event.start, now).trim() || 'Hari ini')
+                        : `${shortDay(event.start, now)}${hhmm(event.start)}`,
                 })),
                 Widget.Label({
                     className: 'dyn-island-cal-row-title',
