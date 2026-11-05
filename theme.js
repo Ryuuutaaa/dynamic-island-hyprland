@@ -74,19 +74,20 @@ export function buildCss(template) {
         __FG__: palette.fg,
         __ACCENT__: palette.accent,
         __ACCENT2__: palette.accent2,
-        __MUTED__: palette.muted,
+        // muted sesuai token 0.55-0.62; hover/strong tetap state, bukan surface.
+        __MUTED__: rgba(palette.muted, 0.62),
         __BG_SOLID__: rgba(NOTCH_COLOR, NOTCH_ALPHA),
         __ACCENT_SOFT__: rgba(palette.accent2, 0.18),
         // bubble user di halaman chat: lebih tegas dari surface biasa
         __CHAT_USER__: rgba(palette.accent2, 0.26),
-        // Permukaan (dulu rgba(255,255,255,...) hardcoded): ikut warna aksen
-        // supaya notch nyatu dengan palet wallust, bukan selalu abu netral.
-        __SURFACE_DIM__: rgba(palette.accent2, 0.05),
+        // Dua surface dasar: control 0.08 dan card 0.12. Hover/strong adalah
+        // state, bukan level permukaan baru.
+        __SURFACE_DIM__: rgba(palette.accent2, 0.08),
         __SURFACE__: rgba(palette.accent2, 0.12),
         __SURFACE_HOVER__: rgba(palette.accent2, 0.22),
         __SURFACE_STRONG__: rgba(palette.accent2, 0.26),
         __DANGER__: palette.danger,
-        __DANGER_SOFT__: rgba(palette.danger, 0.22),
+        __DANGER_SOFT__: rgba(palette.danger, 0.16),
         __OK__: palette.ok,
     };
     let css = template;

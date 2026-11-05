@@ -10,8 +10,8 @@ import { roundedRect } from '../draw.js';
 // jumlah halaman lebih dari 7. Tujuh slot menjaga lebar pill tetap ±230px di
 // kartu 420 tanpa mengubah tinggi nav (24 ikon + 1 + 3 titik = 28px).
 const SLOTS = 7;
-const DOT = 2;
-const DOT_ACTIVE = 7;
+const DOT = 3;
+const DOT_ACTIVE = 8;
 const DOT_GAP = 2;
 const DOTS_HEIGHT = 3;
 
