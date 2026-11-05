@@ -32,7 +32,7 @@ const scaleLabel = ml => (ml >= 1000 ? `${(ml / 1000).toFixed(ml % 1000 ? 1 : 0)
 const drawText = (cr, text, x, y, alpha, bold = false) => {
     const layout = PangoCairo.create_layout(cr);
     layout.set_font_description(
-        Pango.FontDescription.from_string(bold ? 'Sans Bold 6.5' : 'Sans 6.5'));
+        Pango.FontDescription.from_string(bold ? 'Sans Bold 9.5' : 'Sans 9.5'));
     layout.set_text(String(text), -1);
     cr.setSourceRGBA(FG[0], FG[1], FG[2], alpha);
     cr.moveTo(x, y);
@@ -58,7 +58,7 @@ const Chart = () => Widget.DrawingArea({
         const values = hours.map(key => state.log[key] || 0);
         const scaleMax = scaleFor(values);
         const plotW = width - GUTTER;
-        const plotH = height - 12;      // sisakan baris label jam di bawah
+        const plotH = height - 16;      // sisakan baris label jam 9.5px di bawah
         const baseline = plotH - 1;
         const slot = plotW / CHART_BARS;
 
@@ -88,8 +88,10 @@ const Chart = () => Widget.DrawingArea({
         hours.forEach((key, i) => {
             const cx = GUTTER + i * slot + slot / 2;
             const current = i === hours.length - 1;
-            // label digambar di dalam kotak (dulu height-8 -> turun 1px keluar)
-            drawText(cr, key, cx - 4, height - 9, current ? 0.92 : 0.4, current);
+            // 9.5px butuh ruang; label tiap 2 jam supaya tidak bertumpuk,
+            // tetapi jam terakhir (current) selalu tampil.
+            if (!current && i % 2 === 0) return;
+            drawText(cr, key, cx - 6, height - 12, current ? 0.92 : 0.4, current);
         });
     },
 });
