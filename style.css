@@ -1417,8 +1417,12 @@ tooltip > box {
 }
 
 /* ── Kalender ─────────────────────────────────────────────────── */
+.dyn-island-cal {
+    padding: 0 2px;
+}
+
 .dyn-island-cal-title {
-    font-size: 15px;
+    font-size: 13px;
     font-weight: 700;
     color: __FG__;
 }
@@ -1428,9 +1432,24 @@ tooltip > box {
     color: __ACCENT__;
 }
 
-.dyn-island-cal-hint {
+.dyn-island-cal-empty-icon {
+    font-size: 26px;
+    color: __MUTED__;
+}
+
+.dyn-island-cal-empty-title {
+    font-size: 13px;
+    font-weight: 700;
+    color: __FG__;
+}
+
+.dyn-island-cal-empty-hint {
     font-size: 11px;
     color: __MUTED__;
+}
+
+.dyn-island-cal-retry {
+    margin-top: 2px;
 }
 
 .dyn-island-cal-row-time {

@@ -418,6 +418,32 @@ bar 10px, bar 310×3 (selebar isi kartu), sisa bawah 11px. Lebar kartu dipatok
   `uninstall.sh` menghapusnya.
 - Uji: `./tools/test-popup.sh` (butuh sesi tidak terkunci).
 
+## Kalender (iCal)
+
+**Config**: `calendar.icsUrl` — satu URL iCal (Google/Outlook "secret
+address") atau path file `.ics` lokal. Feed di-refresh tiap
+`calendar.refreshMinutes` (default 30 menit), di-cache di
+`~/.local/share/dynamic-iland/calendar.json`, dan pengingat dikirim 10 menit
+sebelum acara (bukan all-day).
+
+**Parser** (`modules/calendar.js`): `DTSTART`/`DTEND`/`SUMMARY`/`UID`, tanggal
+all-day, `TZID` (lewat `Intl.DateTimeFormat`), `RRULE` untuk
+DAILY/WEEKLY/MONTHLY/YEARLY dengan `INTERVAL`, `COUNT`, `UNTIL`, `BYDAY`,
+`BYMONTH`, `BYMONTHDAY`, serta `EXDATE`. Occurrence diekspansi sampai 400 hari
+ke depan; single event yang lebih jauh tetap disimpan.
+
+**Halaman**: acara berikutnya menampilkan judul, hari (`Hari ini`/`Besok`/
+nama hari), jam, dan status (`dalam …`/`berakhir dalam …`). All-day memakai
+`sepanjang hari` + label hari. Countdown diperbarui tiap 30 detik dan otomatis
+pindah ke acara berikutnya. Empty state punya ikon, petunjuk config, dan tombol
+**Muat ulang** saat feed gagal; error mentah dipotong 90 karakter.
+
+Uji parser dengan file lokal:
+
+```bash
+ags -r "const d=globalThis.dynIsland; d.config.calendar.icsUrl='/tmp/feed.ics'; const v=await d.refreshCalendar(); return JSON.stringify(v.events.slice(0,3))"
+```
+
 ## Notifikasi WhatsApp Web (isi pesan tidak tampil)
 
 Gejala: notifikasi WA Web (PWA WhatsApp di Brave/Chrome) hanya menampilkan nama
