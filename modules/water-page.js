@@ -31,12 +31,13 @@ const scaleLabel = ml => (ml >= 1000 ? `${(ml / 1000).toFixed(ml % 1000 ? 1 : 0)
 
 const drawText = (cr, text, x, y, alpha, bold = false) => {
     const layout = PangoCairo.create_layout(cr);
-    layout.set_font_description(
-        Pango.FontDescription.from_string(bold ? 'Sans Bold 9.5' : 'Sans 9.5'));
+    layout.set_font_description(Pango.FontDescription.from_string(
+        bold ? 'Ubuntu Bold 9.5' : 'Ubuntu 9.5'));
     layout.set_text(String(text), -1);
     cr.setSourceRGBA(FG[0], FG[1], FG[2], alpha);
     cr.moveTo(x, y);
     PangoCairo.show_layout(cr, layout);
+    return layout.get_pixel_size()[0];
 };
 
 // Grafik per jam: 8 jam terakhir, gridline putus-putus 400/200/0 ml
@@ -70,7 +71,7 @@ const Chart = () => Widget.DrawingArea({
             cr.moveTo(GUTTER, y);
             cr.lineTo(width, y);
             cr.stroke();
-            drawText(cr, scaleLabel(ml), 0, Math.max(6, y - 4), 0.45);
+            drawText(cr, scaleLabel(ml), 0, Math.max(6, y - 4), 0.62);
         }
         cr.setDash([], 0);
 
@@ -91,8 +92,14 @@ const Chart = () => Widget.DrawingArea({
             // 9.5px butuh ruang; label tiap 2 jam supaya tidak bertumpuk,
             // tetapi jam terakhir (current) selalu tampil.
             if (!current && i % 2 === 0) return;
-            drawText(cr, key, cx - 6, height - 12, current ? 0.92 : 0.4, current);
+            drawText(cr, key, cx - 6, height - 12, current ? 0.92 : 0.62, current);
         });
+
+        if (total(state) <= 0) {
+            const text = 'Belum minum';
+            const textWidth = drawText(cr, text, 0, 0, 0, true);
+            drawText(cr, text, (width - textWidth) / 2, height / 2 - 2, 0.62, true);
+        }
     },
 });
 
@@ -160,10 +167,13 @@ export default () => {
         const used = total(state);
         const left = Math.max(0, state.goal - used);
         const pct = percent(state);
+        const amount = value => value >= 1000
+            ? `${liters(value)} L`
+            : `${value} ml`;
         volume.label = liters(used);
         goal.label = `/ ${liters(state.goal)} L`;
         status.label = left > 0
-            ? `${pct}% · ${left} ml lagi`
+            ? `${pct}% · ${amount(left)} lagi`
             : `${pct}% · target tercapai`;
     };
 

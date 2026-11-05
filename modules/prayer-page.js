@@ -221,7 +221,7 @@ const SkyChart = () => {
 
             for (const item of items) {
                 const color = item.isNext ? ACCENT : item.isPast ? MUTED : FG;
-                const alpha = item.isNext ? 1 : item.isPast ? 0.38 : 0.82;
+                const alpha = item.isNext ? 1 : item.isPast ? 0.62 : 0.82;
 
                 cr.setLineWidth(item.isNext ? 2 : 1);
                 cr.setSourceRGBA(color[0], color[1], color[2], item.isNext ? 1 : 0.34);
