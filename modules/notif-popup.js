@@ -30,7 +30,10 @@ import { eventButton, rootX, rootY } from './pointer.js';
 
 const W = 340;            // lebar kartu
 const PAD = 14;           // padding kiri/kanan kartu (sama dengan CSS)
-const INSET = 12;         // jarak kartu dari tepi atas/kanan layar
+const INSET = 12;         // jarak kartu dari tepi kanan layar
+// Di bawah waybar (47px) dan notch closed (50px); 64 dipakai juga oleh
+// window chat/standup supaya semua overlay punya garis atas yang sama.
+const TOP_INSET = 64;
 const FULL = W + 2 * PAD;      // window = kartu + padding 10 kiri/kanan
 const CONTENT = W - 2 * PAD - 2; // isi kartu (dikurangi border 1px)
 const DURATION = 5000;    // loading bar = sisa waktu tampil (ms)
@@ -540,7 +543,7 @@ export default () => {
             // ScrolledWindow menambah ~8px di kanan; kurangi margin layer
             // supaya inset kanan kartu sama dengan inset atas (12px)
             const extra = Math.max(0, page - FULL);
-            win.margins = [INSET, Math.max(0, INSET - extra), 0, 0];
+            win.margins = [TOP_INSET, Math.max(0, INSET - extra), 0, 0];
             // tunggu layout selesai: sebelum itu adj.upper masih 0 sehingga
             // nilai scroll ter-clamp ke 0 dan animasi tidak bergerak
             GLib.timeout_add(GLib.PRIORITY_DEFAULT, 80, () => {

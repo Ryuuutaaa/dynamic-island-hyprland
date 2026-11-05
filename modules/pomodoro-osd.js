@@ -1,5 +1,6 @@
 import GLib from 'gi://GLib';
 import Widget from 'resource:///com/github/Aylur/ags/widget.js';
+import * as Utils from 'resource:///com/github/Aylur/ags/utils.js';
 import { applyFocused } from './monitor.js';
 import { MODES, pomodoro, pomodoroOsd, reset, setMode, toggleRunning } from './pomodoro.js';
 
@@ -85,11 +86,29 @@ export default () => {
         anchor: ['top', 'right'],
         exclusivity: 'ignore',
         keymode: 'none',
-        // 110 = margin 12 + tinggi popup notifikasi 90 + jarak 8
+        // default saat tidak ada notifikasi: 12 + 90 + 8
         margins: [110, 12, 0, 0],
         visible: false,
         child: card,
     });
+
+    // Stack notifikasi bisa 1..3 kartu (tinggi berubah); taruh kartu pomodoro
+    // di bawah stack, bukan menimpa kartu notifikasi.
+    const NOTIF_TOP = 64;
+    const NOTIF_GAP = 8;
+    const BASE_TOP = 110;
+    const place = () => {
+        const popup = globalThis.dynIsland?.notifPopup;
+        let top = BASE_TOP;
+        if (popup?.visible) {
+            const height = Number(popup.get_allocated_height()) || 0;
+            if (height > 20) top = Math.max(BASE_TOP, NOTIF_TOP + height + NOTIF_GAP);
+        }
+        if (win.margins[0] !== top)
+            win.margins = [top, win.margins[1] ?? 12, 0, 0];
+    };
+    Utils.interval(300, place, win);
+    place();
 
     // pasang sekali ke monitor yang aktif sekarang; sengaja bukan followFocused
     // supaya kartu tidak melompat pindah monitor saat kursor berpindah
