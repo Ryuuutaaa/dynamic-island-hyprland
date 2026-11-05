@@ -75,7 +75,7 @@ frame 2,98–3,02 sepanjang 420×140 → 150×50.
 | `stats` | kartu CPU / RAM / suhu dengan bar, detail per kartu, dan footer **disk / + swap** terpisah |
 | `water` | volume harian, progress, switch pengingat, grafik ml per jam dengan label 9.5px (tiap 2 jam agar tidak bertumpuk) |
 | `todo` | checkmark hijau + strikethrough, counter `X/Y`, pill Tambah/Ubah |
-| `standup` | ringkasan daily standup (`Tersimpan · kemarin 2 · hari ini 1 · blocker 1`) + pill **Isi/Lihat** yang membuka popup tiga daftar |
+| `standup` | tanggal + status tersimpan, tiga chip **Kemarin/Hari ini/Blocker** (centang hijau, warning merah untuk blocker) + pill **Isi/Lihat** |
 | `shelf` | drop zone putus-putus + kartu file (thumbnail, nama, ukuran) |
 | `bluetooth` | daftar semua device paired + toggle daya, device terpilih dengan tombol Sambung/Putus, slider volume + mute |
 | `prayer` | jadwal sholat: timeline 24 jam dengan label waktu di posisi aslinya, busur matahari terbit→terbenam, bulan saat malam, tanggal + countdown + kota; background langit mengikuti fase |
@@ -568,7 +568,9 @@ ada).
 ## Daily Standup
 
 Halaman `standup` di island + popup (`modules/standup-window.js`, 560px) berisi
-tiga **daftar** yang diisi tiap hari kerja:
+tiga **daftar** yang diisi tiap hari kerja. Halaman ringkasnya menampilkan tiga
+chip 24px — **Kemarin N**, **Hari ini N**, **Blocker N** — dengan centang hijau
+untuk bagian terisi (blocker 0 juga centang) dan warning merah saat ada blocker.
 
 | Bagian | Judul |
 |---|---|

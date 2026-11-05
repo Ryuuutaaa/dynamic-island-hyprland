@@ -1267,6 +1267,31 @@ tooltip > box {
     color: __MUTED__;
 }
 
+.dyn-island-standup-chip {
+    min-height: 24px;
+    padding: 0px 8px;
+    border-radius: 8px;
+    background: __SURFACE_DIM__;
+}
+
+.dyn-island-standup-chip-icon {
+    font-size: 11px;
+    color: __MUTED__;
+}
+
+.dyn-island-standup-chip-icon.done {
+    color: __OK__;
+}
+
+.dyn-island-standup-chip-icon.warn {
+    color: __DANGER__;
+}
+
+.dyn-island-standup-chip-label {
+    font-size: 11px;
+    color: __FG__;
+}
+
 /* ── Cuaca v3 ─────────────────────────────────────────────────── */
 .dyn-island-weather {
     padding: 0 2px;
