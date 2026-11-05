@@ -1,7 +1,7 @@
 import Gtk from 'gi://Gtk?version=3.0';
 import Widget from 'resource:///com/github/Aylur/ags/widget.js';
 import { page } from '../state.js';
-import { settings, saveSettings, OPTIONS } from './settings.js';
+import { settings, saveSettings, unmuteApp, OPTIONS } from './settings.js';
 
 const ROW_W = 480;
 const PANE_H = 148;
@@ -121,6 +121,20 @@ export default () => {
             const on = value.modules[name] !== false;
             rows.push(row(label, on ? 'Aktif' : 'Nonaktif',
                 () => saveSettings({ modules: { [name]: !on } }), on));
+        }
+
+        rows.push(section('NOTIFIKASI'));
+        const muted = value.mutedApps ?? [];
+        if (!muted.length) {
+            rows.push(Widget.Label({
+                className: 'dyn-island-settings-empty',
+                label: 'Tidak ada app dibisukan',
+                xalign: 0,
+            }));
+        } else {
+            for (const app of muted) {
+                rows.push(row(app, 'Bunyikan', () => unmuteApp(app), false));
+            }
         }
         list.children = rows;
     };

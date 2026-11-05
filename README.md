@@ -428,6 +428,11 @@ bar 10px, bar 310×3 (selebar isi kartu), sisa bawah 11px. Lebar kartu dipatok
   "klik untuk membuka island" pada notifikasi timer. `invokeAction(id, key, app)`
   menerima app dari kartu yang diklik, jadi aksi tidak salah sasaran saat
   tumpukan berisi beberapa aplikasi.
+- **Bisukan per app**: tombol lonceng-slash di setiap kartu menyimpan nama app
+  ke `settings.json → mutedApps`. `notify.js` melewati `current`/`latest` dan
+  transient island untuk app itu (popup island tidak muncul), tetapi swaync
+  tetap menerima notifikasinya. Daftar app dibisukan muncul di halaman
+  Pengaturan, lengkap dengan baris **Bunyikan** untuk mengaktifkan lagi.
 - **Tombol X** → `CloseNotification(<id>)` ke daemon (ikut hilang dari control
   center), kartu itu dibuang dari tumpukan; kartu di bawahnya naik jadi kartu
   terbaru dan timer dihitung ulang. Tumpukan kosong → slide keluar.
@@ -701,6 +706,7 @@ di `.env`/`gemini.json` dengan permission terpisah.
 | Ikuti monitor fokus | Aktif / **Tetap** | restart AGS; "Tetap" memasang notch ke monitor saat dibuat, tidak ikut pindah |
 | Halaman default | Ringkasan / Cuaca / Statistik / Tugas | langsung pada `basePage()` berikutnya (media player tetap menang) |
 | 12 modul | Aktif / Nonaktif | restart AGS; halaman yang dimatikan hilang dari `PAGE_ORDER` |
+| Notifikasi | daftar app yang dibisukan | langsung; baris **Bunyikan** mengaktifkan lagi |
 
 - Ukuran **Kecil** = 140×46 (ear 9), **Besar** = 170×56 (ear 11), **Normal**
   = config 150×50. Progress hairline closed ikut lebar geometry.
@@ -1041,8 +1047,8 @@ chmod 600 ~/.config/dynamic-iland/.env
 | `prayer` | `{ latitude, longitude, city, method, notify, catchUpMinutes }` — jadwal sholat lokal |
 | `chat` | `{ model, systemPrompt, maxTurns, maxOutputTokens, thinkingLevel, timeoutSec }` — Gemini; API key dari `GEMINI_API_KEY` / `~/.config/dynamic-iland/.env` |
 
-Nilai `modules`, `glow`, `defaultPage`, dan `notch` bisa ditimpa dari
-`~/.config/dynamic-iland/settings.json` lewat halaman **Pengaturan**.
+Nilai `modules`, `glow`, `defaultPage`, `notch`, dan `mutedApps` bisa ditimpa
+dari `~/.config/dynamic-iland/settings.json` lewat halaman **Pengaturan**.
 
 ### Warna
 

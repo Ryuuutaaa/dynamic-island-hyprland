@@ -738,12 +738,21 @@ tooltip > box {
     background: __SURFACE_HOVER__;
 }
 
-.dyn-island-popup-close {
+.dyn-island-popup-close,
+.dyn-island-popup-mute {
     background: transparent;
     padding: 1px 4px;
     min-width: 24px;
     min-height: 24px;
     color: __MUTED__;
+}
+
+.dyn-island-popup-mute:hover {
+    color: __FG__;
+}
+
+.dyn-island-popup-mute-icon {
+    font-size: 11px;
 }
 
 .dyn-island-popup-close:hover {
@@ -1664,4 +1673,10 @@ tooltip > box {
 
 .dyn-island-settings-value.on {
     color: __OK__;
+}
+
+.dyn-island-settings-empty {
+    font-size: 11px;
+    color: __MUTED__;
+    padding: 4px 6px;
 }

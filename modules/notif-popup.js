@@ -8,6 +8,7 @@ import { palette, hexToRgb } from '../theme.js';
 import { roundedRect } from '../draw.js';
 import { latest, invokeAction, closeNotification } from './notify.js';
 import { followFocused } from './monitor.js';
+import { muteApp } from './settings.js';
 
 // Popup notifikasi kanan atas, digambar sendiri (bukan swaync) supaya bisa:
 // slide masuk dari kanan, loading bar 5 detik, tombol X, klik -> buka aplikasi,
@@ -205,6 +206,20 @@ const buildCard = (item, index, { dismiss, open, close }) => {
         onClicked: () => close(item),
     });
 
+    const muteButton = Widget.Button({
+        className: 'dyn-island-popup-mute',
+        tooltipText: item.app ? `Bisukan ${item.app}` : 'Bisukan aplikasi ini',
+        valign: Gtk.Align.START,
+        widthRequest: 24,
+        heightRequest: 24,
+        visible: !!item.app,
+        child: Widget.Label({ className: 'dyn-island-popup-mute-icon', label: '\uf1f6' }),
+        onClicked: () => {
+            if (item.app) muteApp(item.app);
+            dismiss(item);
+        },
+    });
+
     const head = new Gtk.Box({ orientation: Gtk.Orientation.HORIZONTAL });
     head.get_style_context().add_class('dyn-island-popup-head');
     // lebar isi dikunci: kalau mengikuti natural teks, lebar kartu bergeser
@@ -212,6 +227,7 @@ const buildCard = (item, index, { dismiss, open, close }) => {
     head.set_size_request(CONTENT, -1);
     head.pack_start(clickArea, true, true, 0);
     head.pack_end(closeButton, false, false, 0);
+    head.pack_end(muteButton, false, false, 0);
 
     // margin di level widget: `margin-top` lewat CSS GTK tidak diterapkan pada
     // DrawingArea/Box di sini (terukur bar menempel ke konten)

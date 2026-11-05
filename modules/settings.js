@@ -36,6 +36,9 @@ const size = SIZES.includes(saved.notch?.size) ? saved.notch.size : 'normal';
 const followFocus = saved.notch?.followFocus !== false;
 const glowEnabled = saved.glow !== false;
 const defaultPage = PAGE_OPTIONS.includes(saved.defaultPage) ? saved.defaultPage : DEFAULT_PAGE;
+const mutedApps = Array.isArray(saved.mutedApps)
+    ? saved.mutedApps.filter(name => typeof name === 'string' && name.trim())
+    : [];
 
 // Terapkan ke CONFIG sebelum modul lain dievaluasi.
 CONFIG.modules = modules;
@@ -52,7 +55,25 @@ export const settings = Variable({
     glow: glowEnabled,
     defaultPage,
     notch: { size, followFocus },
+    mutedApps,
 });
+
+const sameApp = (a, b) => String(a ?? '').toLowerCase() === String(b ?? '').toLowerCase();
+
+export const isMuted = app =>
+    !!(app && (settings.value.mutedApps ?? []).some(name => sameApp(name, app)));
+
+export function muteApp(app) {
+    const name = String(app ?? '').trim();
+    if (!name || isMuted(name)) return;
+    saveSettings({ mutedApps: [...(settings.value.mutedApps ?? []), name] });
+}
+
+export function unmuteApp(app) {
+    saveSettings({
+        mutedApps: (settings.value.mutedApps ?? []).filter(name => !sameApp(name, app)),
+    });
+}
 
 const write = value => {
     try {
@@ -70,6 +91,7 @@ export function saveSettings(patch = {}) {
         ...patch,
         notch: { ...current.notch, ...(patch.notch ?? {}) },
         modules: { ...current.modules, ...(patch.modules ?? {}) },
+        mutedApps: patch.mutedApps ?? current.mutedApps ?? [],
     };
     settings.value = next;
 

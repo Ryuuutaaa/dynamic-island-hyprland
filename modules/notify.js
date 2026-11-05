@@ -7,6 +7,7 @@ import * as Utils from 'resource:///com/github/Aylur/ags/utils.js';
 import Hyprland from 'resource:///com/github/Aylur/ags/service/hyprland.js';
 import CONFIG from '../config.js';
 import { showTransient } from '../state.js';
+import { isMuted } from './settings.js';
 
 // Ringkasan untuk halaman notify di notch.
 export const current = Variable({ app: '', summary: '', body: '' });
@@ -56,6 +57,9 @@ const describe = () => {
 
 let seq = 0;
 let pendingExpire = -1;
+// Method return untuk notifikasi yang dibisukan tidak boleh menimpa id
+// notifikasi lain yang sedang tampil.
+let suppressNextId = false;
 
 // Provider dikenal lewat app_name + hints.desktop-entry. Glyph Nerd Font
 // (brand): WhatsApp, Telegram, Discord. Selain ini popup memakai lonceng.
@@ -119,6 +123,10 @@ const detectProvider = (haystack) => {
 // id datang belakangan (method return). seq dipakai popup untuk mengenali
 // notifikasi yang sama, supaya update id tidak memicu popup tampil ulang.
 const latestWithId = (id) => {
+    if (suppressNextId) {
+        suppressNextId = false;
+        return;
+    }
     const item = latest.value;
     if (!item || item.id) return;
     latest.value = { ...item, id };
@@ -219,6 +227,11 @@ const flush = () => {
         + (hint ? ` webHint=${JSON.stringify(hint.slice(0, 60))}` : ''));
 
     const shownActions = isBrowser ? dropBrowserSettings(acts) : acts;
+    if (isMuted(app)) {
+        console.log(`[dyn-island] notif dibisukan app=${JSON.stringify(app)}`);
+        suppressNextId = true;
+        return;
+    }
     current.value = { app, summary, body: text, provider };
     showTransient('notify', CONFIG.notifyTimeout);
     latest.value = { app, icon, iconLocal, summary, body: text, actions: shownActions, provider, expire, id: 0, seq: ++seq };
