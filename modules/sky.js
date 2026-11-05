@@ -141,8 +141,10 @@ export const drawSky = (cr, width, height, radius, state, accent = null) => {
         const [gr, gg, gb] = state.glow;
         const grad = new Cairo.LinearGradient(0, 0, 0, height);
         grad.addColorStopRGBA(0, gr / 255, gg / 255, gb / 255, 0);
-        grad.addColorStopRGBA(0.45, gr / 255, gg / 255, gb / 255, state.alpha * 0.30);
-        grad.addColorStopRGBA(1, gr / 255, gg / 255, gb / 255, state.alpha);
+        // glow ambient dibuat lebih tipis; kartu tetap hitam dan teks tidak
+        // tenggelam di warna fajar/sunset.
+        grad.addColorStopRGBA(0.45, gr / 255, gg / 255, gb / 255, state.alpha * 0.16);
+        grad.addColorStopRGBA(1, gr / 255, gg / 255, gb / 255, state.alpha * 0.55);
         cr.setSource(grad);
         cr.paint();
     }

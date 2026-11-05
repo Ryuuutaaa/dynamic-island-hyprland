@@ -66,7 +66,7 @@ const card = (title, width) => {
     const widget = Widget.Box({
         className: 'dyn-island-stats-card',
         vertical: true,
-        spacing: 3,
+        spacing: 2,
         hexpand: true,
         children: [
             Widget.Label({ className: 'dyn-island-stats-label', label: title, xalign: 0 }),
@@ -150,16 +150,20 @@ export default () => {
             : degrees >= 85 ? 'panas' : degrees >= 70 ? 'hangat' : 'normal';
 
         const disk = value.disk ?? {};
-        diskLabel.label = `disk / ${disk.root?.pct ?? 0}%`;
+        const diskPct = disk.root?.pct ?? 0;
+        diskLabel.label = `\uf0a0 disk ${diskPct}%`;
+        diskLabel.tooltipText = `Disk root ${diskPct}% terpakai`;
         const swapUsed = Number(swap.used) || 0;
-        swapLabel.label = swapUsed > 0 ? `swap ${gb(swapUsed).toFixed(1)}` : '';
+        swapLabel.label = swapUsed > 0 ? `\uf0aa swap ${gb(swapUsed).toFixed(1)} GB` : '';
+        swapLabel.tooltipText = `Swap ${gb(swapUsed).toFixed(1)} GB terpakai`;
         swapLabel.visible = swapUsed > 0;
     };
 
     return Widget.Box({
         className: 'dyn-island-stats-root',
         vertical: true,
-        spacing: 4,
+        // footer 11px perlu ruang; 4px membuat window 145.
+        spacing: 0,
         halign: Gtk.Align.CENTER,
         valign: Gtk.Align.CENTER,
         children: [cards, footer],
