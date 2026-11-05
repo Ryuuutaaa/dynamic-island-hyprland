@@ -23,6 +23,7 @@ export default function Cover({ size = 72, radius = 10 } = {}) {
     let pixbuf = null;
     let retryTimer = 0;
     let attempts = 0;
+    let glow = null;
 
     // Cover MPRIS dicache AGS secara ASYNC: event metadata pertama datang
     // sebelum file cover selesai dicopy (`Gio.File.copy_async`). Percobaan
@@ -91,6 +92,16 @@ export default function Cover({ size = 72, radius = 10 } = {}) {
                 (box - pixbuf.get_height()) / 2,
             );
             cr.paint();
+
+            // Border tipis dari warna dominan cover (data cover-color.js).
+            // Digambar di dalam clip supaya sudutnya tetap mengikuti radius.
+            if (glow) {
+                cr.setLineWidth(1.5);
+                cr.setSourceRGBA(glow[0], glow[1], glow[2], 0.9);
+                roundedRect(cr, 0.75, 0.75, box - 1.5, box - 1.5,
+                    Math.max(1, radius - 0.75));
+                cr.stroke();
+            }
         },
     });
 
@@ -121,6 +132,11 @@ export default function Cover({ size = 72, radius = 10 } = {}) {
         }
         if (reload()) return;
         scheduleRetry();
+    };
+
+    area.setGlow = value => {
+        glow = Array.isArray(value) ? value : null;
+        if (!area.is_destroyed) area.queue_draw();
     };
 
     // untuk diagnostik di `ags -r`
