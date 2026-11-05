@@ -101,9 +101,11 @@ kebocorannya. Saat tidak ada musik, barnya jadi stub redup dan timernya mati.
 
 Lirik adalah **sub-tampilan dari kartu media**, bukan halaman tersendiri: tidak
 punya dot dan tidak ada di `PAGE_ORDER`. Tombol 💬 di kartu media mengubah
-`mediaView` jadi `'lyrics'` → notch melebar ke **520×140** dan kontennya
+`mediaView` jadi `'lyrics'` → notch melebar ke **520×156** dan kontennya
 **terbelah dua**: kiri album art + judul + progress + kontrol, kanan daftar
-lirik. Dot tetap menandai `media`, dan panah tetap di tengah bawah.
+lirik. Tinggi 156 memberi progress bar area klik 24px (bar tetap 4px) tanpa
+memotong kontrol; baris lirik juga minimal 24px. Dot tetap menandai `media`,
+dan panah tetap di tengah bawah.
 
 - Sumber: **LRCLIB** (`/api/get?artist_name=&track_name=`), diambil saat track
   berubah; hasil di-cache per `artis - judul`. `syncedLyrics` (format LRC

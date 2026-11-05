@@ -17,8 +17,9 @@ export default {
         expanded: { w: 420, h: 140, r: 32, ear: 22 },
         // 240x80 = 3:1 supaya transisi closed <-> peek juga seragam.
         peek: { w: 240, h: 80, r: 20, ear: 13 },
-        // halaman lirik lebih lebar (Nusa: 520) karena terbelah dua
-        lyrics: { w: 520, h: 140, r: 32, ear: 22 },
+        // halaman lirik lebih lebar (Nusa: 520) karena terbelah dua; tinggi
+        // 156 memberi ruang progress bar 24px tanpa memotong kontrol
+        lyrics: { w: 520, h: 156, r: 32, ear: 22 },
         // jadwal sholat: busur matahari + 5 waktu sholat butuh ruang lebih
         prayer: { w: 560, h: 140, r: 32, ear: 22 },
         // chat Gemini: riwayat pesan + baris input butuh kartu lebih tinggi

@@ -24,7 +24,8 @@ export default function Progress(width = 150) {
     return Widget.DrawingArea({
         className: 'dyn-island-progress',
         setup: self => {
-            self.set_size_request(width, 4);
+            // Area klik/seek 24px; bar tetap digambar 4px di tengah.
+            self.set_size_request(width, 24);
             self.tooltipText = 'Klik untuk melompat ke posisi itu';
             // DrawingArea tidak meminta event tombol secara default — tanpa ini
             // handler button-press-event tidak pernah dipanggil
