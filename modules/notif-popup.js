@@ -42,7 +42,7 @@ const DURATION_MAX = 15000;
 const NEVER_EXPIRE_MS = 12000;
 const STACK_SIZE = 3;
 const STACK_GAP = 6;
-const OPACITY = [1, 0.72, 0.45]; // terbaru -> tertua
+const OPACITY = [1, 0.78, 0.62]; // terbaru -> tertua; minimal terbaca
 
 // expire_time dari pengirim: -1 = default server, 0 = tidak pernah
 // kedaluwarsa, >0 = durasi yang diminta. Dibatasi supaya popup tidak
@@ -136,12 +136,22 @@ const buildCard = (item, index, { dismiss, open, close, dragMove, dragEnd }) => 
     const photo = Gtk.Image.new();
     photo.set_size_request(26, 26);
 
+    const appLabel = Widget.Label({
+        className: 'dyn-island-popup-app',
+        xalign: 0,
+        truncate: 'end',
+        maxWidthChars: 28,
+        label: truncate(item.app || '', 28),
+        tooltipText: item.app || '',
+        visible: !!item.app,
+    });
     const summary = Widget.Label({
         className: 'dyn-island-popup-title',
         xalign: 0,
         truncate: 'end',
         maxWidthChars: 30,
         label: truncate(item.summary || '(notifikasi)', MAX_SUMMARY),
+        tooltipText: item.summary || '',
     });
     const body = Widget.Label({
         className: 'dyn-island-popup-body',
@@ -149,6 +159,7 @@ const buildCard = (item, index, { dismiss, open, close, dragMove, dragEnd }) => 
         wrap: true,
         maxWidthChars: 40,
         label: truncate(item.body || '', MAX_BODY),
+        tooltipText: item.body || '',
     });
     body.visible = !!item.body;
 
@@ -200,7 +211,7 @@ const buildCard = (item, index, { dismiss, open, close, dragMove, dragEnd }) => 
                     className: 'dyn-island-popup-text',
                     vertical: true,
                     spacing: 2,
-                    children: [summary, body],
+                    children: [appLabel, summary, body],
                 }),
             ],
         }),

@@ -702,7 +702,7 @@ tooltip > box {
 }
 
 .dyn-island-popup-pad {
-    padding: 10px;
+    padding: 14px;
 }
 
 .dyn-island-popup {
@@ -712,6 +712,11 @@ tooltip > box {
     padding: 12px 14px 10px 14px;
     box-shadow: 0 8px 24px rgba(0, 0, 0, 0.45);
     font-family: "Ubuntu", "Noto Sans", "DejaVu Sans", sans-serif;
+}
+
+.dyn-island-popup-app {
+    color: __MUTED__;
+    font-size: 9.5px;
 }
 
 .dyn-island-popup-title {
