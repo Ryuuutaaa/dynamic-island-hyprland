@@ -17,3 +17,30 @@ export const eventX = event => {
     } catch (_) { }
     return typeof event.x === 'number' ? event.x : 0;
 };
+
+export const eventY = event => {
+    try {
+        const result = event.get_coords?.();
+        if (Array.isArray(result) && result[0]) return result[2];
+    } catch (_) { }
+    return typeof event.y === 'number' ? event.y : 0;
+};
+
+// Koordinat root tidak ikut bergeser saat kartu digeser; dipakai untuk
+// gesture drag supaya ambang 60px mengukur gerakan pointer, bukan gerakan
+// kartu yang mengikuti pointer.
+export const rootX = event => {
+    try {
+        const result = event.get_root_coords?.();
+        if (Array.isArray(result) && result[0]) return result[1];
+    } catch (_) { }
+    return eventX(event);
+};
+
+export const rootY = event => {
+    try {
+        const result = event.get_root_coords?.();
+        if (Array.isArray(result) && result[0]) return result[2];
+    } catch (_) { }
+    return eventY(event);
+};

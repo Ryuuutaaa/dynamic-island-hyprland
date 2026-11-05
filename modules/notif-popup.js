@@ -1,4 +1,5 @@
 import Gtk from 'gi://Gtk?version=3.0';
+import Gdk from 'gi://Gdk?version=3.0';
 import GdkPixbuf from 'gi://GdkPixbuf?version=2.0';
 import GLib from 'gi://GLib';
 import Widget from 'resource:///com/github/Aylur/ags/widget.js';
@@ -9,6 +10,7 @@ import { roundedRect } from '../draw.js';
 import { latest, invokeAction, closeNotification } from './notify.js';
 import { followFocused } from './monitor.js';
 import { muteApp } from './settings.js';
+import { eventButton, rootX, rootY } from './pointer.js';
 
 // Popup notifikasi kanan atas, digambar sendiri (bukan swaync) supaya bisa:
 // slide masuk dari kanan, loading bar 5 detik, tombol X, klik -> buka aplikasi,
@@ -51,9 +53,21 @@ const durationFor = item => {
 };
 const HOVER_MAX = 15000;  // batas hover: leave-notify bisa tidak terkirim
 const SLIDE = 240;        // durasi animasi masuk/keluar (ms)
+const DRAG_CLOSE = 60;    // px ke kanan -> tutup
+const DRAG_SNOOZE = 24;   // px ke atas -> tunda (clickArea hanya 32px tinggi)
+const SNOOZE_MS = 5 * 60 * 1000;
+const snoozeDuration = () => {
+    const override = Number(globalThis.__notifSnoozeMs);
+    return Number.isFinite(override) && override > 0 ? override : SNOOZE_MS;
+};
 
 const ACCENT = hexToRgb(palette.accent2);
 const FG = hexToRgb(palette.fg);
+
+// Sesi drag aktif. Release bisa jatuh di luar clickArea (drag ke atas) atau
+// bahkan di luar surface; window-level release memakai sesi ini sebagai
+// fallback supaya gesture tidak menggantung.
+let activeDrag = null;
 
 const isInstall = text => /install|instal|update|upgrade|unduh|pasang|download/i.test(text);
 const MAX_BODY = 140;
@@ -112,7 +126,7 @@ const addActions = (item, actionRow, dismiss) => {
     actionRow.visible = pairs.length > 0;
 };
 
-const buildCard = (item, index, { dismiss, open, close }) => {
+const buildCard = (item, index, { dismiss, open, close, dragMove, dragEnd }) => {
     const icon = Widget.Icon({ className: 'dyn-island-popup-icon', size: 26 });
     const glyph = Widget.Label({ className: 'dyn-island-popup-glyph', label: '\uf0f3' });
     // Ikon situs (Chromium) yang sudah disalin ke cache oleh notify.js.
@@ -188,8 +202,38 @@ const buildCard = (item, index, { dismiss, open, close }) => {
             ],
         }),
         setup: self => {
-            self.connect('button-press-event', () => {
-                open(item);
+            let pressed = false;
+            let dragging = false;
+            let startX = 0;
+            let startY = 0;
+            self.add_events(Gdk.EventMask.BUTTON1_MOTION_MASK | Gdk.EventMask.BUTTON_RELEASE_MASK);
+            self.connect('button-press-event', (_w, event) => {
+                if (eventButton(event) !== 1) return false;
+                pressed = true;
+                dragging = false;
+                startX = rootX(event);
+                startY = rootY(event);
+                activeDrag = { item, card: self.dragCard, startX, startY };
+                return true;
+            });
+            self.connect('motion-notify-event', (_w, event) => {
+                if (!pressed) return false;
+                const dx = rootX(event) - startX;
+                const dy = rootY(event) - startY;
+                if (!dragging && (Math.abs(dx) > 4 || Math.abs(dy) > 4)) dragging = true;
+                if (dragging) dragMove(dx, dy, self.dragCard);
+                return true;
+            });
+            self.connect('button-release-event', (_w, event) => {
+                if (!pressed) return false;
+                pressed = false;
+                const dx = rootX(event) - startX;
+                const dy = rootY(event) - startY;
+                const wasDragging = dragging;
+                dragging = false;
+                activeDrag = null;
+                if (wasDragging) dragEnd(dx, dy, item, self.dragCard, close);
+                else open(item);
                 return true;
             });
         },
@@ -252,12 +296,14 @@ const buildCard = (item, index, { dismiss, open, close }) => {
     });
     inner.set_opacity(OPACITY[index] ?? OPACITY[OPACITY.length - 1]);
 
-    return Widget.Box({
+    const card = Widget.Box({
         className: 'dyn-island-popup',
         vertical: true,
         widthRequest: W,
         children: [inner],
     });
+    clickArea.dragCard = card;
+    return card;
 };
 
 export default () => {
@@ -311,7 +357,7 @@ export default () => {
             return;
         }
         hiding = true;
-        slideTo(Math.round(adj.page_size) || FULL, 0, () => {
+        slideTo(adj.value, 0, () => {
             // notifikasi baru bisa membatalkan exit (lihat show)
             if (!hiding) return;
             hiding = false;
@@ -360,6 +406,9 @@ export default () => {
             return;
         }
         render();
+        // drag kanan bisa menyisakan offset; tampilkan kartu baru di posisi normal
+        const page = Math.round(adj.page_size) || FULL;
+        adj.value = Math.min(page, Math.max(0, adj.upper - adj.page_size));
         startTimer(durationFor(items[0]));
     };
 
@@ -395,10 +444,14 @@ export default () => {
         widthRequest: W,
     });
 
+    // diisi setelah adj/show siap; render memanggilnya saat event
+    let dragMove = () => { };
+    let dragEnd = () => { };
+
     const render = () => {
         items.forEach(item => { item.bar = null; });
         stack.children = items.map((item, index) =>
-            buildCard(item, index, { dismiss, open, close }));
+            buildCard(item, index, { dismiss, open, close, dragMove, dragEnd }));
     };
 
     // Hover menahan countdown supaya notifikasi bisa dibaca/diklik.
@@ -459,6 +512,17 @@ export default () => {
     win.hidePopup = () => hide();   // untuk pengujian (ags -r)
     win.stackItems = () => items.length;
     win.dismissTop = () => { if (items[0]) dismiss(items[0]); };
+    // fallback: drag ke atas meninggalkan clickArea/window sebelum release
+    win.connect('button-release-event', (_w, event) => {
+        if (!activeDrag) return false;
+        const { item, card, startX, startY } = activeDrag;
+        activeDrag = null;
+        const dx = rootX(event) - startX;
+        const dy = rootY(event) - startY;
+        if (Math.abs(dx) > 4 || Math.abs(dy) > 4) dragEnd(dx, dy, item, card, close);
+        else open(item);
+        return true;
+    });
 
     // ikuti monitor yang sedang fokus (sama seperti island). Pemetaannya lewat
     // modules/monitor.js: id Hyprland bukan index GdkMonitor.
@@ -491,6 +555,46 @@ export default () => {
             slideTo(adj.value, Math.round(adj.page_size) || FULL);
         }
         startTimer(durationFor(item));
+    };
+
+    const snooze = item => {
+        const copy = { ...item };
+        dismiss(item);
+        GLib.timeout_add(GLib.PRIORITY_DEFAULT, snoozeDuration(), () => {
+            if (!items.some(entry => entry.seq === copy.seq)) {
+                const revived = { ...copy, bar: null };
+                items.unshift(revived);
+                items = items.slice(0, STACK_SIZE);
+                render();
+                show(revived);
+            }
+            return GLib.SOURCE_REMOVE;
+        });
+    };
+
+    dragMove = (dx, dy, card) => {
+        if (slideTween) {
+            slideTween.stop();
+            slideTween = null;
+        }
+        const page = Math.round(adj.page_size) || FULL;
+        const max = Math.max(0, adj.upper - adj.page_size);
+        adj.value = Math.max(0, Math.min(max, page - dx));
+        if (card) card.set_opacity(dy < 0 ? Math.max(0.25, 1 + dy / 120) : 1);
+    };
+
+    dragEnd = (dx, dy, item, card, closeItem) => {
+        if (card) card.set_opacity(1);
+        if (dx >= DRAG_CLOSE) {
+            closeItem(item);
+            return;
+        }
+        if (dy <= -DRAG_SNOOZE) {
+            snooze(item);
+            return;
+        }
+        const page = Math.round(adj.page_size) || FULL;
+        if (Math.abs(adj.value - page) > 1) slideTo(adj.value, page);
     };
 
     latest.connect('changed', () => {

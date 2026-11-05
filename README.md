@@ -433,6 +433,14 @@ bar 10px, bar 310×3 (selebar isi kartu), sisa bawah 11px. Lebar kartu dipatok
   transient island untuk app itu (popup island tidak muncul), tetapi swaync
   tetap menerima notifikasinya. Daftar app dibisukan muncul di halaman
   Pengaturan, lengkap dengan baris **Bunyikan** untuk mengaktifkan lagi.
+- **Gesture kartu**: drag ke **kanan ≥60px** = tutup (sama dengan X, ikut
+  `CloseNotification`); drag ke **atas ≥24px** = snooze **5 menit** — kartu
+  hilang lalu muncul kembali. Kartu mengikuti pointer saat drag horizontal dan
+  memudar saat drag vertikal; ambang diukur dari koordinat root supaya kartu
+  yang bergerak tidak mengubah jarak pointer. Release di luar clickArea
+  ditangkap fallback window. Klik badan baru membuka pada **release**, bukan
+  press, jadi drag tidak memicu aksi default. Untuk uji cepat snooze:
+  `ags -r "globalThis.__notifSnoozeMs = 1200"` (default 300000).
 - **Tombol X** → `CloseNotification(<id>)` ke daemon (ikut hilang dari control
   center), kartu itu dibuang dari tumpukan; kartu di bawahnya naik jadi kartu
   terbaru dan timer dihitung ulang. Tumpukan kosong → slide keluar.
