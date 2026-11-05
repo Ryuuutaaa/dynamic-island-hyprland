@@ -72,7 +72,7 @@ frame 2,98–3,02 sepanjang 420×140 → 150×50.
 | `weather` | cuaca Open-Meteo: kondisi sekarang, strip 3 jam ke depan, + 3 hari; saat feed gagal muncul tombol **Muat ulang** di kanan |
 | `pomodoro` | ring merah 88px menyusut + countdown 38px + pill (mode berikutnya, play, reset); umpan balik aksi muncul sebagai **kartu OSD kanan atas**, bukan mengembangkan notch |
 | `timer` | timer bebas (preset 1–60 menit + stepper ±1 menit 1–90) + stopwatch: waktu besar, mode, preset, play/pause, reset |
-| `stats` | kartu CPU / RAM / suhu dengan bar, detail per kartu, dan footer **disk / + swap** terpisah |
+| `stats` | kartu CPU / RAM / suhu dengan **sparkline 30 detik**, detail per kartu, dan footer **disk / + swap** terpisah |
 | `water` | volume harian, progress, switch pengingat, grafik ml per jam dengan label 9.5px (tiap 2 jam agar tidak bertumpuk) |
 | `todo` | checkmark hijau + strikethrough, counter `X/Y`, pill Tambah/Ubah |
 | `standup` | tanggal + status tersimpan, tiga chip **Kemarin/Hari ini/Blocker** (centang hijau, warning merah untuk blocker) + pill **Isi/Lihat** |
@@ -655,8 +655,9 @@ fork):
 | Load & uptime | `/proc/loadavg`, `/proc/uptime` |
 | Disk `/` dan `/home` | `statvfs` (libc), bukan `df` |
 
-- Tampilan: tiga kolom (CPU / RAM / SUHU) dengan bar tipis — aksen normal,
-  warna bahaya di atas 80% — dan dua baris footer redup untuk detail.
+- Tampilan: tiga kartu (CPU / RAM / SUHU) dengan **sparkline 13px** berisi 15
+  sampel terakhir (±30 detik; sampel pertama mengisi garis datar) — aksen
+  normal, warna bahaya di atas 80% — plus footer redup `disk / …` dan `swap …`.
 - `modules/sysstats.js` **hanya polling 2 detik saat halaman terbuka**; pindah
   halaman langsung menghentikan timer, jadi tidak ada proses yang jalan di
   latar belakang.

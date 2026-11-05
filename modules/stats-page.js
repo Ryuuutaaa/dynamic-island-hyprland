@@ -14,32 +14,45 @@ const ACCENT = hexToRgb(palette.accent2);
 const DANGER = hexToRgb(palette.danger ?? palette.accent);
 const WARN_AT = 80;
 
-const gauge = width => {
-    let fraction = 0;
+const sparkline = width => {
+    let values = [];
     let warn = false;
 
     return Widget.DrawingArea({
-        className: 'dyn-island-stats-bar',
+        className: 'dyn-island-stats-sparkline',
         setup: self => {
-            self.set_size_request(width, 6);
-            self.setValue = (value, isWarn) => {
-                const next = Math.max(0, Math.min(1, Number(value) || 0));
-                if (next === fraction && isWarn === warn) return;
-                fraction = next;
+            self.set_size_request(width, 13);
+            self.setValues = (next, isWarn) => {
+                values = (next ?? []).slice(-15);
                 warn = isWarn;
                 self.queue_draw();
             };
         },
         drawFn: (self, cr, w, height) => {
-            const barH = 6;
-            const y = (height - barH) / 2;
-            cr.setSourceRGBA(FG[0], FG[1], FG[2], 0.14);
-            roundedRect(cr, 0, y, w, barH, barH / 2);
-            cr.fill();
-            if (fraction <= 0) return;
-            const [r, g, b] = warn ? DANGER : ACCENT;
-            cr.setSourceRGBA(r, g, b, 1);
-            roundedRect(cr, 0, y, Math.max(barH, w * fraction), barH, barH / 2);
+            cr.setLineWidth(1);
+            cr.setSourceRGBA(FG[0], FG[1], FG[2], 0.12);
+            cr.moveTo(0, height - 1);
+            cr.lineTo(w, height - 1);
+            cr.stroke();
+            if (values.length < 2) return;
+
+            const color = warn ? DANGER : ACCENT;
+            const step = w / Math.max(1, values.length - 1);
+            const point = (value, index) => [
+                index * step,
+                height - 2 - Math.max(0, Math.min(1, value / 100)) * (height - 4),
+            ];
+            cr.setLineWidth(1.4);
+            cr.setSourceRGBA(color[0], color[1], color[2], 0.9);
+            const [x0, y0] = point(values[0], 0);
+            cr.moveTo(x0, y0);
+            for (let i = 1; i < values.length; i++)
+                cr.lineTo(...point(values[i], i));
+            cr.stroke();
+
+            const [x, y] = point(values[values.length - 1], values.length - 1);
+            cr.setSourceRGBA(color[0], color[1], color[2], 1);
+            cr.arc(x, y, 1.8, 0, Math.PI * 2);
             cr.fill();
         },
     });
@@ -48,7 +61,7 @@ const gauge = width => {
 const card = (title, width) => {
     const value = tabular(Widget.Label({ className: 'dyn-island-stats-value', xalign: 0 }));
     const detail = Widget.Label({ className: 'dyn-island-stats-detail', xalign: 0 });
-    const bar = gauge(width);
+    const spark = sparkline(width);
 
     const widget = Widget.Box({
         className: 'dyn-island-stats-card',
@@ -58,12 +71,12 @@ const card = (title, width) => {
         children: [
             Widget.Label({ className: 'dyn-island-stats-label', label: title, xalign: 0 }),
             value,
-            bar,
+            spark,
             detail,
         ],
     });
 
-    return { widget, value, detail, bar };
+    return { widget, value, detail, spark };
 };
 
 const gb = mb => (Number(mb) || 0) / 1024;
@@ -72,6 +85,17 @@ export default () => {
     const cpu = card('CPU', 100);
     const ram = card('RAM', 100);
     const temp = card('SUHU', 100);
+    const history = { cpu: [], ram: [], temp: [] };
+    const push = (key, value) => {
+        const list = history[key];
+        const next = Math.max(0, Math.min(100, Number(value) || 0));
+        if (!list.length) {
+            for (let i = 0; i < 15; i++) list.push(next);
+            return;
+        }
+        list.push(next);
+        if (list.length > 15) list.shift();
+    };
     const diskLabel = Widget.Label({ className: 'dyn-island-stats-footer', xalign: 0 });
     const swapLabel = Widget.Label({ className: 'dyn-island-stats-footer', xalign: 0 });
 
@@ -108,16 +132,19 @@ export default () => {
         const load = Number(value.load?.[0]) || 0;
 
         cpu.value.label = `${cpuPercent.toFixed(cpuPercent < 10 ? 1 : 0)}%`;
-        cpu.bar.setValue(cpuPercent / 100, cpuPercent >= WARN_AT);
+        push('cpu', cpuPercent);
+        cpu.spark.setValues(history.cpu, cpuPercent >= WARN_AT);
         cpu.detail.label = `load ${load.toFixed(2)}`;
 
         const memPercent = Number(mem.pct) || 0;
         ram.value.label = `${memPercent}%`;
-        ram.bar.setValue(memPercent / 100, memPercent >= WARN_AT);
+        push('ram', memPercent);
+        ram.spark.setValues(history.ram, memPercent >= WARN_AT);
         ram.detail.label = `${gb(mem.used).toFixed(1)} / ${gb(mem.total).toFixed(1)} GB`;
 
         temp.value.label = Number.isFinite(degrees) ? `${Math.round(degrees)}°` : '—';
-        temp.bar.setValue(Number.isFinite(degrees) ? Math.min(1, degrees / 100) : 0, degrees >= 85);
+        push('temp', Number.isFinite(degrees) ? degrees : 0);
+        temp.spark.setValues(history.temp, degrees >= 85);
         temp.detail.label = !Number.isFinite(degrees)
             ? ''
             : degrees >= 85 ? 'panas' : degrees >= 70 ? 'hangat' : 'normal';
@@ -133,6 +160,7 @@ export default () => {
         className: 'dyn-island-stats-root',
         vertical: true,
         spacing: 4,
+        halign: Gtk.Align.CENTER,
         valign: Gtk.Align.CENTER,
         children: [cards, footer],
         setup: self => {
