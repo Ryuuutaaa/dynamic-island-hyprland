@@ -5,6 +5,7 @@ import Audio from 'resource:///com/github/Aylur/ags/service/audio.js';
 import Bluetooth from 'resource:///com/github/Aylur/ags/service/bluetooth.js';
 import { glyphFor, primaryDevice } from './bluetooth.js';
 import { eventButton, eventX } from './pointer.js';
+import { page } from '../state.js';
 import { palette, hexToRgb } from '../theme.js';
 import { roundedRect } from '../draw.js';
 import { tabular } from './type.js';
@@ -171,6 +172,22 @@ export default () => {
     });
     pane.child = list;
     pane.set_size_request(LIST_W, LIST_H);
+
+    const scrollPane = event => {
+        let dy = 0;
+        try {
+            const deltas = event.get_scroll_deltas?.();
+            if (Array.isArray(deltas) && deltas[0]) dy = Number(deltas[2]) || 0;
+        } catch (_) { }
+        if (!dy) return false;
+        const adjustment = pane.get_vadjustment();
+        if (!adjustment) return false;
+        const max = Math.max(0, adjustment.upper - adjustment.page_size);
+        if (max <= 0) return false;
+        adjustment.value = Math.max(0, Math.min(max, adjustment.value + dy * 36));
+        return true;
+    };
+    pane.connect('scroll-event', (_self, event) => scrollPane(event));
 
     const powerLabel = Widget.Label({ className: 'dyn-island-chip-label', label: 'Aktif' });
     const power = Widget.Button({
@@ -352,6 +369,15 @@ export default () => {
             refresh();
             self.hook(Bluetooth, refresh);
             self.hook(Audio, refresh);
+            self.connect('map', () => {
+                const top = self.get_toplevel();
+                if (!top || top.__btScrollHooked) return;
+                top.__btScrollHooked = true;
+                top.connect('scroll-event', (_w, event) => {
+                    if (page.value !== 'bluetooth' || !pane.get_mapped()) return false;
+                    return scrollPane(event);
+                });
+            });
         },
     });
 };

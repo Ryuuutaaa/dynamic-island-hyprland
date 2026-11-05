@@ -2,6 +2,7 @@ import Gtk from 'gi://Gtk?version=3.0';
 import Widget from 'resource:///com/github/Aylur/ags/widget.js';
 import * as Utils from 'resource:///com/github/Aylur/ags/utils.js';
 import { palette, hexToRgb } from '../theme.js';
+import { page } from '../state.js';
 import { todo, addTask, toggleTask, removeTask, doneCount, totalCount } from './todo.js';
 import { tabular } from './type.js';
 
@@ -115,6 +116,22 @@ export default () => {
     pane.child = list;
     pane.set_size_request(LIST_W, LIST_H);
 
+    const scrollPane = event => {
+        let dy = 0;
+        try {
+            const deltas = event.get_scroll_deltas?.();
+            if (Array.isArray(deltas) && deltas[0]) dy = Number(deltas[2]) || 0;
+        } catch (_) { }
+        if (!dy) return false;
+        const adjustment = pane.get_vadjustment();
+        if (!adjustment) return false;
+        const max = Math.max(0, adjustment.upper - adjustment.page_size);
+        if (max <= 0) return false;
+        adjustment.value = Math.max(0, Math.min(max, adjustment.value + dy * 36));
+        return true;
+    };
+    pane.connect('scroll-event', (_self, event) => scrollPane(event));
+
     const rebuild = () => {
         const state = todo.value;
         count.label = `${doneCount(state)}/${totalCount(state)}`;
@@ -190,6 +207,17 @@ export default () => {
         setup: self => {
             rebuild();
             self.hook(todo, () => rebuild());
+            // inner clip menelan wheel; handler toplevel menjaga pane tetap
+            // bisa digulir walau pointer berada di atas daftar.
+            self.connect('map', () => {
+                const top = self.get_toplevel();
+                if (!top || top.__todoScrollHooked) return;
+                top.__todoScrollHooked = true;
+                top.connect('scroll-event', (_w, event) => {
+                    if (page.value !== 'todo' || !pane.get_mapped()) return false;
+                    return scrollPane(event);
+                });
+            });
         },
     });
 };

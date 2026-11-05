@@ -895,7 +895,7 @@ function DynamicIsland() {
     // sendiri agar daftar di dalamnya tetap bisa digulir.
     island.connect('scroll-event', (_self, event) => {
         if (!hovered.value || !navActive) return false;
-        if (['chat', 'todo', 'shelf', 'settings'].includes(page.value) || inLyricsView()) return false;
+        if (['chat', 'todo', 'shelf', 'settings', 'bluetooth'].includes(page.value) || inLyricsView()) return false;
         let delta = 0;
         try {
             const deltas = event.get_scroll_deltas?.();
