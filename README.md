@@ -712,6 +712,7 @@ di `.env`/`gemini.json` dengan permission terpisah.
 | Glow cover | Aktif / Nonaktif | **langsung** — `glow` Variable; accent sky & border cover ikut mati |
 | Ukuran notch | Normal / Kecil / Besar (hanya state **closed**) | restart AGS |
 | Ikuti monitor fokus | Aktif / **Tetap** | restart AGS; "Tetap" memasang notch ke monitor saat dibuat, tidak ikut pindah |
+| Notch di semua monitor | Aktif / Nonaktif | restart AGS; mirror closed-only di monitor lain, bukan island interaktif kedua |
 | Halaman default | Ringkasan / Cuaca / Statistik / Tugas | langsung pada `basePage()` berikutnya (media player tetap menang) |
 | 12 modul | Aktif / Nonaktif | restart AGS; halaman yang dimatikan hilang dari `PAGE_ORDER` |
 | Indikator notch | urutan naik/turun; atas = prioritas | restart AGS |
@@ -721,6 +722,19 @@ di `.env`/`gemini.json` dengan permission terpisah.
   = config 150×50. Progress hairline closed ikut lebar geometry.
 - Halaman `settings` sendiri selalu ada (tidak bisa dimatikan) supaya pengguna
   tidak terkunci tanpa UI untuk mengaktifkan modul lagi.
+- Tujuh indikator (`musik`, `pomodoro`, `timer`, `tugas`, `air`, `cuaca`,
+  `tanggal`) semuanya tetap ada; tombol naik/turun hanya mengubah urutan.
+  Indikator pertama yang punya nilai yang dipakai notch tertutup, jadi
+  menaikkan `Cuaca` ke atas membuat suhu mengalahkan tanggal.
+- **Notch di semua monitor** membuat mirror **closed-only** di setiap monitor
+  selain monitor island interaktif. Island interaktif tetap satu (mengikuti
+  fokus atau tetap), jadi nav/page/state tidak diduplikasi. Mirror memakai
+  `Closed()` + sky/ear yang sama, ikut compact/normal/large dan glow, tidak
+  menerima input, dan disembunyikan otomatis di monitor island. Saat monitor
+  ditambah/dicabut, mirror dibangun ulang lewat sinyal Gdk; pada satu monitor
+  tidak ada mirror yang terlihat (monitor primary).
+- `closedIndicators` ikut disimpan; config.js tetap menjadi default saat file
+  belum punya array tersebut.
 - Tombol/toggle memakai target 24px; header menampilkan catatan
   `modul/ukuran: restart AGS`.
 - Uji: `cat ~/.config/dynamic-iland/settings.json`; ubah lewat halaman lalu

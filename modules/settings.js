@@ -35,6 +35,7 @@ const saved = readFile();
 const modules = { ...(CONFIG.modules ?? {}), ...(saved.modules ?? {}) };
 const size = SIZES.includes(saved.notch?.size) ? saved.notch.size : 'normal';
 const followFocus = saved.notch?.followFocus !== false;
+const perMonitor = saved.notch?.perMonitor === true;
 const glowEnabled = saved.glow !== false;
 const defaultPage = PAGE_OPTIONS.includes(saved.defaultPage) ? saved.defaultPage : DEFAULT_PAGE;
 const mutedApps = Array.isArray(saved.mutedApps)
@@ -55,7 +56,7 @@ const closedIndicators = [...new Set([
 CONFIG.modules = modules;
 CONFIG.glow = glowEnabled;
 CONFIG.defaultPage = defaultPage;
-CONFIG.notch = { size, followFocus };
+CONFIG.notch = { size, followFocus, perMonitor };
 CONFIG.closedIndicators = closedIndicators;
 if (size !== 'normal' && CLOSED_SIZES[size])
     CONFIG.geometry.closed = { ...CLOSED_SIZES[size] };
@@ -66,7 +67,7 @@ export const settings = Variable({
     modules: { ...modules },
     glow: glowEnabled,
     defaultPage,
-    notch: { size, followFocus },
+    notch: { size, followFocus, perMonitor },
     mutedApps,
     closedIndicators,
 });

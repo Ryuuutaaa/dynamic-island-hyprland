@@ -1,6 +1,7 @@
 import GLib from 'gi://GLib';
 import Gdk from 'gi://Gdk?version=3.0';
 import Gtk from 'gi://Gtk?version=3.0';
+import Cairo from 'gi://cairo?version=1.0';
 import App from 'resource:///com/github/Aylur/ags/app.js';
 import Widget from 'resource:///com/github/Aylur/ags/widget.js';
 import * as Utils from 'resource:///com/github/Aylur/ags/utils.js';
@@ -990,6 +991,8 @@ globalThis.dynIsland = dyn;
 let island = null;
 let mounting = false;
 let rebuildTimer = 0;
+// Mirror closed-only di monitor lain (opsi "Notch di semua monitor").
+let mirrors = [];
 
 const publishIsland = win => {
     dyn.window = win;
@@ -1061,11 +1064,15 @@ function mountIsland() {
         App.addWindow(win);
         island = win;
         publishIsland(win);
+        // mirror harus tahu monitor island berubah (ikuti fokus / tetap)
+        win.connect('notify::monitor', () => syncMirrors());
+        syncMirrors();
         console.log('[dyn-island] window dipasang');
 
         win.connect('destroy', () => {
             if (mounting) return;
             island = null;
+            syncMirrors();
             // compositor menutup layer surface: bangun ulang setelah event loop
             // selesai, jangan dari dalam sinyal destroy
             if (rebuildTimer) return;
@@ -1083,9 +1090,108 @@ function mountIsland() {
     return island;
 }
 
+// ── mirror closed-only untuk mode "Notch di semua monitor" ───────────────
+// Island interaktif tetap satu (mengikuti fokus atau tetap di monitor awal).
+// Monitor lain mendapat notch closed yang menampilkan data yang sama, sehingga
+// tidak perlu menduplikasi state/nav/page. Mirror tidak menerima input.
+function buildMirror(index) {
+    const closed = CONFIG.geometry.closed;
+    const notch = Widget.Box({ className: 'dyn-island-notch' });
+    notch.skyRadius = closed.r;
+    notch.css = `border-radius: 0px 0px ${closed.r}px ${closed.r}px;`;
+    notch.set_size_request(closed.w, closed.h);
+    notch.connect('draw', (self, cr) => {
+        drawSky(
+            cr,
+            self.get_allocated_width(),
+            self.get_allocated_height(),
+            self.skyRadius,
+            sky.value,
+            glowEnabled.value ? coverColor.value : null,
+        );
+        return false;
+    });
+    notch.hook(sky, () => notch.queue_draw());
+    notch.hook(coverColor, () => notch.queue_draw());
+    notch.hook(glowEnabled, () => notch.queue_draw());
+    notch.child = Closed();
+
+    const leftEar = Ear('left');
+    const rightEar = Ear('right');
+    leftEar.setSize(closed.ear);
+    rightEar.setSize(closed.ear);
+    const frame = Widget.Box({
+        className: 'dyn-island-frame',
+        children: [leftEar.widget, notch, rightEar.widget],
+    });
+    const win = Widget.Window({
+        name: `dynamic-island-mirror-${index}`,
+        className: 'dyn-island-window',
+        layer: 'top',
+        anchor: ['top'],
+        exclusivity: 'ignore',
+        keymode: 'none',
+        monitor: index,
+        margins: [CONFIG.marginTop, 0, 0, 0],
+        visible: false,
+        child: frame,
+    });
+    win.connect('map', () => {
+        try {
+            const region = new Cairo.Region();
+            win.get_window()?.input_shape_combine_region(region, 0, 0);
+        } catch (_) { }
+    });
+    return win;
+}
+
+function destroyMirrors() {
+    for (const win of mirrors) {
+        try {
+            if (!win.is_destroyed) App.removeWindow(win);
+        } catch (_) { }
+        try {
+            if (!win.is_destroyed) win.destroy();
+        } catch (_) { }
+    }
+    mirrors = [];
+}
+
+function mountMirrors() {
+    destroyMirrors();
+    if (!CONFIG.notch?.perMonitor) return;
+    const display = Gdk.Display.get_default();
+    if (!display) return;
+    for (let i = 0; i < display.get_n_monitors(); i++) {
+        const win = buildMirror(i);
+        App.addWindow(win);
+        mirrors.push(win);
+    }
+    syncMirrors();
+}
+
+function syncMirrors() {
+    const primary = island && !island.is_destroyed
+        ? (Number.isInteger(island.monitor) ? island.monitor : 0)
+        : -1;
+    mirrors.forEach((win, index) => {
+        if (win.is_destroyed) return;
+        win.visible = primary >= 0 && index !== primary;
+    });
+}
+
+dyn.mirrorWindows = () => mirrors;
+dyn.mountMirrors = mountMirrors;
+dyn.syncMirrors = syncMirrors;
+
 try {
     watchMpris();
     watchNotifications();
+    const gdkDisplay = Gdk.Display.get_default();
+    if (gdkDisplay) {
+        gdkDisplay.connect('monitor-added', () => mountMirrors());
+        gdkDisplay.connect('monitor-removed', () => mountMirrors());
+    }
 // Layer transparan yang menutup island saat klik di luar notch. Dibuat
 // sebelum window lain supaya tetap di bawah popup/island bila stacking layer
 // mengikuti urutan pembuatan.
@@ -1148,6 +1254,7 @@ dyn.standupApi = {
     watchSky();
     App.connect('config-parsed', applyStyle);
     mountIsland();
+    mountMirrors();
 } catch (error) {
     console.error('[dyn-island] gagal inisialisasi:', error);
 }
