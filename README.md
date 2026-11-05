@@ -27,7 +27,8 @@ fallback tanpa ikon. Semua memakai satu label aktivitas, jadi natural width
 tidak menjumlahkan lima label saat window dihitung. Prinsipnya "kaya tapi
 tenang": menambah modul tidak menumpuk isi notch.
 
-**Glow album art:** saat musik diputar, notch mengambil **warna dominan cover**
+**Glow album art:** saat musik diputar, cover 84px diberi border tipis dari
+warna dominan cover, dan notch mengambil **warna dominan cover**
 (`modules/cover-color.js`: sampel 24×24, bobot saturasi, buang piksel hampir
 hitam/putih) dan menggambar glow radial dari bawah lewat `drawSky(..., accent)`.
 Glow hilang sendiri saat tidak ada lagu; tidak ada timer, hanya hook Variable.
@@ -64,9 +65,9 @@ frame 2,98–3,02 sepanjang 420×140 → 150×50.
 
 | Page | Isi |
 |---|---|
-| `closed` | ring baterai (Cairo) + jam + satu activity strip: equalizer saat musik, atau ikon + teks (tanggal, sisa pomodoro, tugas, air, timer, suhu); hairline 2px di dasar notch untuk pomodoro/timer |
+| `closed` | ring baterai (Cairo) + jam + satu activity strip: equalizer saat musik, atau ikon + teks (tanggal, sisa pomodoro, tugas, air, timer, suhu) dengan fade 180ms saat berganti; hairline 2px di dasar notch untuk pomodoro/timer |
 | `idle` | **jam besar + tanggal** + kolom ringkas: baterai, `X/Y tugas`, `ml / goal L`, dan bar Bluetooth (hanya saat ada device terhubung; **klik untuk buka halaman bluetooth**) |
-| `media` | album art 72px + judul + artis + progress bar (area seek 24px) + elapsed/total + nama app sumber + prev/play/next + tombol lirik |
+| `media` | album art 84px dengan border warna dominan cover + judul + artis + progress bar (area seek 24px) + elapsed/total + nama app sumber + prev/play/next + tombol lirik |
 | `media` → lirik | **sub-tampilan** (bukan halaman nav): kiri album art + judul + progress + kontrol, kanan daftar lirik sinkron |
 | `weather` | cuaca Open-Meteo: kondisi sekarang + 3 hari ke depan; saat feed gagal muncul tombol **Muat ulang** di kanan |
 | `pomodoro` | ring merah 88px menyusut + countdown 38px + pill (mode berikutnya, play, reset); umpan balik aksi muncul sebagai **kartu OSD kanan atas**, bukan mengembangkan notch |
