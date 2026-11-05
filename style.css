@@ -1356,7 +1356,7 @@ tooltip > box {
 
 /* ── Cuaca v3 ─────────────────────────────────────────────────── */
 .dyn-island-weather {
-    padding: 0 2px;
+    padding: 4px 6px;
 }
 
 .dyn-island-weather-glyph {

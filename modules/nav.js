@@ -125,7 +125,11 @@ const navigate = name => {
 // tidak dibuat ulang supaya tidak ada alokasi/reparent per pindah halaman.
 const TabSlot = () => {
     let name = null;
-    const icon = Widget.Label({ className: 'dyn-island-nav-icon' });
+    const icon = Widget.Label({
+        className: 'dyn-island-nav-icon',
+        xalign: 0.5,
+        yalign: 0.5,
+    });
     const button = Widget.Button({
         className: 'dyn-island-nav-tab',
         child: icon,
@@ -159,13 +163,13 @@ export default () => {
     const slots = Array.from({ length: SLOTS }, () => TabSlot());
     const tabs = Widget.Box({
         className: 'dyn-island-nav-tabs',
-        spacing: 2,
+        spacing: 4,
         children: slots.map(slot => slot.button),
     });
 
     const row = Widget.Box({
         className: 'dyn-island-nav-row',
-        spacing: 6,
+        spacing: 8,
         halign: Gtk.Align.CENTER,
         children: [
             Arrow('\uf053', -1, 'Halaman sebelumnya'),

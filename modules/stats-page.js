@@ -66,7 +66,7 @@ const card = (title, width) => {
     const widget = Widget.Box({
         className: 'dyn-island-stats-card',
         vertical: true,
-        spacing: 3,
+        spacing: 4,
         hexpand: true,
         children: [
             Widget.Label({ className: 'dyn-island-stats-label', label: title, xalign: 0 }),
@@ -162,7 +162,7 @@ export default () => {
     return Widget.Box({
         className: 'dyn-island-stats-root',
         vertical: true,
-        spacing: 4,
+        spacing: 8,
         halign: Gtk.Align.CENTER,
         valign: Gtk.Align.CENTER,
         children: [cards, footer],

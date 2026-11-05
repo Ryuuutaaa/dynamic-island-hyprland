@@ -73,10 +73,10 @@ export default () => {
     const temp = tabular(Widget.Label({ className: 'dyn-island-weather-temp' }));
     const condition = Widget.Label({ className: 'dyn-island-weather-condition', xalign: 0 });
     const place = Widget.Label({ className: 'dyn-island-weather-place', xalign: 0 });
-    const days = Widget.Box({ className: 'dyn-island-weather-days', spacing: 6 });
+    const days = Widget.Box({ className: 'dyn-island-weather-days', spacing: 8 });
     const hours = Widget.Box({
         className: 'dyn-island-weather-hours',
-        spacing: 6,
+        spacing: 8,
         halign: Gtk.Align.CENTER,
         visible: false,
     });
@@ -127,7 +127,7 @@ export default () => {
 
     const main = Widget.Box({
         className: 'dyn-island-weather-main',
-        spacing: 14,
+        spacing: 16,
         valign: Gtk.Align.CENTER,
         children: [
             Widget.Box({
@@ -155,7 +155,7 @@ export default () => {
     return Widget.Box({
         className: 'dyn-island-weather',
         vertical: true,
-        spacing: 3,
+        spacing: 8,
         valign: Gtk.Align.CENTER,
         children: [main, hours],
         setup: self => {
