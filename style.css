@@ -731,7 +731,8 @@ tooltip > box {
 
 .dyn-island-popup-glyph {
     color: __FG__;
-    font-size: 22px;
+    /* ikon, bukan angka: samakan dengan ikon provider 26px */
+    font-size: 26px;
 }
 
 .dyn-island-popup-action {

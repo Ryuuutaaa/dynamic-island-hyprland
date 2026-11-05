@@ -37,7 +37,8 @@ export default {
         // overshoot) dan fade konten 120ms. Berguna saat fokus/aksesibilitas
         // lebih penting daripada efek.
         reduced: false,
-        sizeDuration: 620,
+        // 320ms: sesuai token motion 260-320; 620ms terasa lambat.
+        sizeDuration: 320,
         sizeCurve: [0.34, 1.32, 0.5, 1],
     },
 
