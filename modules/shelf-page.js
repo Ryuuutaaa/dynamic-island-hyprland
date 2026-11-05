@@ -3,6 +3,7 @@ import Gdk from 'gi://Gdk?version=3.0';
 import Widget from 'resource:///com/github/Aylur/ags/widget.js';
 import * as Utils from 'resource:///com/github/Aylur/ags/utils.js';
 import { shelf, shelfDragOver, shelfUndo, removeItem, clearShelf, undoLast, formatSize } from './shelf.js';
+import { page } from '../state.js';
 import { eventButton } from './pointer.js';
 
 const CARD_W = 76;
@@ -40,8 +41,11 @@ const Card = item => Widget.Button({
             Widget.Label({
                 className: 'dyn-island-shelf-name',
                 label: item.name,
-                truncate: 'middle',
-                maxWidthChars: 12,
+                // middle truncation menyembunyikan nomor/pembeda di tengah;
+                // end truncation mempertahankan prefix yang membedakan file.
+                truncate: 'end',
+                maxWidthChars: 13,
+                tooltipText: item.name,
                 xalign: 0.5,
             }),
             Widget.Label({
@@ -166,16 +170,37 @@ export default () => {
             className: 'dyn-island-shelf-pane',
             hscroll: 'external',
             vscroll: 'never',
+            // hscroll:never mengikuti lebar 6 kartu (window 556px); external
+            // mengunci pane ke 380px. Scroll digerakkan manual lewat wheel.
+            propagateNaturalWidth: false,
         });
         pane.child = list;
-        pane.set_size_request(ZONE_W, CARD_H + 4);
+        // external Scrollbar tetap memesan 4px tinggi; request 66 -> alokasi 70.
+        pane.set_size_request(ZONE_W, CARD_H - 4);
+        const scrollPane = event => {
+            let dy = 0;
+            try {
+                const deltas = event.get_scroll_deltas?.();
+                if (Array.isArray(deltas) && deltas[0]) dy = Number(deltas[2]) || 0;
+            } catch (_) { }
+            if (!dy) return false;
+            const adjustment = pane.get_hadjustment();
+            if (!adjustment) return false;
+            const max = Math.max(0, adjustment.upper - adjustment.page_size);
+            if (max <= 0) return false;
+            adjustment.value = Math.max(0, Math.min(max, adjustment.value + dy * 36));
+            return true;
+        };
+        pane.connect('scroll-event', (_self, event) => scrollPane(event));
         content.children = [pane];
     };
 
     return Widget.Box({
         className: 'dyn-island-shelf',
         vertical: true,
-        spacing: 4,
+        // head + card pane harus muat di konten 100px; 4px/2px membuat
+        // window 146/142.
+        spacing: 0,
         halign: Gtk.Align.CENTER,
         valign: Gtk.Align.CENTER,
         children: [
@@ -195,6 +220,31 @@ export default () => {
             rebuild();
             self.hook(shelf, () => rebuild());
             self.hook(shelfDragOver, () => rebuild());
+            self.connect('map', () => {
+                const top = self.get_toplevel();
+                if (!top || top.__shelfScrollHooked) return;
+                top.__shelfScrollHooked = true;
+                top.connect('scroll-event', (_w, event) => {
+                    if (page.value !== 'shelf') return false;
+                    const pane = self.get_children?.()
+                        ?.find?.(child => String(child.className || '').includes('dyn-island-shelf-content'))
+                        ?.get_children?.()
+                        ?.find?.(child => String(child.className || '').includes('dyn-island-shelf-pane'));
+                    if (!pane) return false;
+                    const adjustment = pane.get_hadjustment?.();
+                    if (!adjustment) return false;
+                    let dy = 0;
+                    try {
+                        const deltas = event.get_scroll_deltas?.();
+                        if (Array.isArray(deltas) && deltas[0]) dy = Number(deltas[2]) || 0;
+                    } catch (_) { }
+                    if (!dy) return false;
+                    const max = Math.max(0, adjustment.upper - adjustment.page_size);
+                    if (max <= 0) return false;
+                    adjustment.value = Math.max(0, Math.min(max, adjustment.value + dy * 36));
+                    return true;
+                });
+            });
         },
     });
 };

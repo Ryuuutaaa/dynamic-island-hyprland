@@ -583,6 +583,9 @@ tooltip > box {
     font-weight: 700;
     color: __FG__;
 }
+.dyn-island-shelf-head .dyn-island-chip {
+    padding: 0px 9px;
+}
 .dyn-island-shelf-count {
     font-size: 11px;
     color: __MUTED__;
@@ -629,7 +632,7 @@ tooltip > box {
 }
 .dyn-island-shelf-card {
     padding: 4px 2px;
-    border-radius: 8px;
+    border-radius: 12px;
     background-color: __SURFACE_DIM__;
     transition: 140ms ease-out;
 }
