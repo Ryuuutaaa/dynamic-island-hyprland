@@ -12,6 +12,10 @@ import CONFIG from './config.js';
 // halaman tetap ada di Stack (bisa dipanggil showTransient(name, ms)).
 const ALL_PAGES = ['idle', 'media', 'weather', 'calendar', 'pomodoro', 'timer', 'stats', 'water', 'todo', 'standup', 'shelf', 'bluetooth', 'prayer', 'chat', 'settings'];
 const ALWAYS_ON = ['idle', 'media'];
+// Halaman dengan interaksi panjang bertahan sampai user pindah halaman;
+// halaman read-only tetap kembali setelah pinTimeout.
+const STICKY_PAGES = new Set(['chat', 'settings', 'todo', 'shelf', 'bluetooth']);
+export const isStickyPage = name => STICKY_PAGES.has(name);
 
 export const PAGE_ORDER = ALL_PAGES.filter(name =>
     ALWAYS_ON.includes(name) || CONFIG.modules?.[name] !== false);
@@ -117,9 +121,9 @@ export function stepPage(delta) {
     const next = PAGE_ORDER[(index + delta + PAGE_ORDER.length) % PAGE_ORDER.length];
     // sub-tampilan tidak ikut terbawa saat pindah halaman
     if (next !== 'media') mediaView.value = 'main';
-    // halaman chat bertahan sampai user pindah halaman; pin 10 detik akan
-    // memutus percakapan di tengah saat menunggu jawaban Gemini.
-    pinPage(next, { sticky: next === 'chat' });
+    // halaman interaktif bertahan sampai user pindah halaman; pin 10 detik
+    // akan memutus percakapan/pengeditan di tengah.
+    pinPage(next, { sticky: isStickyPage(next) });
 }
 
 export function watchMpris() {

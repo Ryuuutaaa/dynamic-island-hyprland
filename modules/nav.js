@@ -1,7 +1,7 @@
 import GLib from 'gi://GLib';
 import Gtk from 'gi://Gtk?version=3.0';
 import Widget from 'resource:///com/github/Aylur/ags/widget.js';
-import { page, stepPage, pinPage, mediaView, PAGE_ORDER } from '../state.js';
+import { page, stepPage, pinPage, mediaView, PAGE_ORDER, isStickyPage } from '../state.js';
 import { palette, hexToRgb } from '../theme.js';
 import { roundedRect } from '../draw.js';
 
@@ -116,9 +116,9 @@ const Arrow = (glyph, delta, tooltip) => {
 
 const navigate = name => {
     if (name !== 'media') mediaView.value = 'main';
-    // chat bertahan sampai user pindah halaman; halaman lain kembali ke base
-    // setelah pinTimeout supaya notifikasi/OSD tidak tertahan.
-    pinPage(name, { sticky: name === 'chat' });
+    // Halaman interaktif bertahan sampai user pindah halaman; halaman
+    // read-only kembali ke base setelah pinTimeout.
+    pinPage(name, { sticky: isStickyPage(name) });
 };
 
 // Satu slot bisa berganti halaman saat jendela 7 ikon bergeser; widget-nya
