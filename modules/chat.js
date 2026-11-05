@@ -213,7 +213,8 @@ const request = async () => {
         if (reply.error) throw new Error(reply.error);
         if (my !== requestSerial) return;
 
-        const messages = [...chat.value.messages, { role: 'model', text: reply.text }]
+        const messages = [...chat.value.messages,
+            { role: 'model', text: reply.text, at: Date.now() }]
             .slice(-MAX_HISTORY);
         const latencyMs = Math.round(GLib.get_monotonic_time() / 1000 - started);
         set({ status: 'ready', messages, error: '', latencyMs });
@@ -236,7 +237,8 @@ export function send(text) {
         status: 'idle',
         error: '',
         latencyMs: 0,
-        messages: [...chat.value.messages, { role: 'user', text: value }].slice(-MAX_HISTORY),
+        messages: [...chat.value.messages,
+            { role: 'user', text: value, at: Date.now() }].slice(-MAX_HISTORY),
     };
     request();
     return true;

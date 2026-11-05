@@ -82,7 +82,7 @@ frame 2,98–3,02 sepanjang 420×140 → 150×50.
 | `shelf` | drop zone putus-putus + kartu file (thumbnail, nama, ukuran) |
 | `bluetooth` | daftar semua device paired + toggle daya, device terpilih dengan tombol Sambung/Putus, slider volume + mute |
 | `prayer` | jadwal sholat: timeline 24 jam dengan label waktu di posisi aslinya, busur matahari terbit→terbenam, bulan saat malam, tanggal + countdown + kota; background langit mengikuti fase |
-| `chat` | riwayat chat Gemini + tombol **Tanya Gemini** (input rofi) + Hapus/Ulangi; halaman sticky saat dipilih |
+| `chat` | riwayat chat Gemini dengan avatar + timestamp per pesan, tombol **Tanya Gemini** (input rofi) + Hapus/Ulangi; halaman sticky saat dipilih |
 | `volume` / `brightness` | ikon + bar (Cairo) + persen + nama device, **bar bisa diklik/digeser**; volume: klik ikon = mute, double-click = 100%; brightness: ikon 3 tingkat (bulan/bohlam/matahari) |
 | `notify` | ikon + `Judul · isi` |
 
@@ -962,9 +962,10 @@ Halaman `chat` memakai Gemini API **non-streaming** dan input teks lewat
 **rofi** (window island memakai `keymode: 'none'`, jadi tidak mengambil fokus
 keyboard). Klik **Tanya Gemini** → rofi muncul → ketik pertanyaan → Enter.
 Jawaban tampil di kartu; selama menunggu ada teks "Gemini sedang mengetik…".
-Tombol **Hapus** membersihkan riwayat, **Ulangi** mengirim ulang pesan terakhir
-saat terjadi error. Halaman chat bersifat sticky — tidak reset setelah 10 detik
-seperti halaman lain.
+Tiap pesan punya avatar (user/Gemini) dan timestamp `HH:MM` di dalam bubble
+(pesan lama tanpa `at` tidak menampilkan waktu). Tombol **Hapus** membersihkan
+riwayat, **Ulangi** mengirim ulang pesan terakhir saat terjadi error. Halaman
+chat bersifat sticky — tidak reset setelah 10 detik seperti halaman lain.
 
 Persiapan:
 

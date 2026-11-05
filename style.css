@@ -803,6 +803,20 @@ tooltip > box {
     font-size: 11px;
     color: __FG__;
 }
+.dyn-island-chat-time {
+    font-size: 9.5px;
+    color: __MUTED__;
+}
+.dyn-island-chat-avatar {
+    font-size: 11px;
+    color: __MUTED__;
+}
+.dyn-island-chat-avatar.model {
+    color: __ACCENT2__;
+}
+.dyn-island-chat-avatar.user {
+    color: __ACCENT__;
+}
 .dyn-island-chat-empty {
     font-size: 9.5px;
     color: __MUTED__;

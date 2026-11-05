@@ -11,24 +11,53 @@ const PANE_H = 108;
 
 const modelLabel = () => String(CONFIG.chat?.model ?? 'gemini-3.5-flash-lite');
 
-const bubble = msg => Widget.Box({
-    className: `dyn-island-chat-row ${msg.role}`,
-    halign: msg.role === 'user' ? Gtk.Align.END : Gtk.Align.START,
-    children: [
-        Widget.Box({
-            className: `dyn-island-chat-bubble ${msg.role}`,
-            children: [
-                Widget.Label({
-                    className: 'dyn-island-chat-text',
-                    label: msg.text,
-                    wrap: true,
-                    xalign: 0,
-                    maxWidthChars: BODY_CHARS,
-                }),
-            ],
-        }),
-    ],
-});
+const hhmm = epoch => {
+    if (!Number.isFinite(epoch)) return '';
+    const date = new Date(epoch);
+    return `${String(date.getHours()).padStart(2, '0')}:${String(date.getMinutes()).padStart(2, '0')}`;
+};
+
+const bubble = msg => {
+    const isUser = msg.role === 'user';
+    const time = Widget.Label({
+        className: 'dyn-island-chat-time',
+        label: hhmm(msg.at),
+        xalign: isUser ? 1 : 0,
+        visible: Number.isFinite(msg.at),
+    });
+    const content = Widget.Box({
+        className: 'dyn-island-chat-stack',
+        vertical: true,
+        spacing: 2,
+        children: [
+            Widget.Label({
+                className: 'dyn-island-chat-text',
+                label: msg.text,
+                wrap: true,
+                xalign: 0,
+                maxWidthChars: BODY_CHARS,
+            }),
+            time,
+        ],
+    });
+    const avatar = Widget.Label({
+        className: `dyn-island-chat-avatar ${msg.role}`,
+        label: isUser ? '\uf007' : '\uf0d0',
+        valign: Gtk.Align.START,
+    });
+    return Widget.Box({
+        className: `dyn-island-chat-row ${msg.role}`,
+        halign: isUser ? Gtk.Align.END : Gtk.Align.START,
+        spacing: 6,
+        children: isUser ? [
+            Widget.Box({ className: `dyn-island-chat-bubble ${msg.role}`, children: [content] }),
+            avatar,
+        ] : [
+            avatar,
+            Widget.Box({ className: `dyn-island-chat-bubble ${msg.role}`, children: [content] }),
+        ],
+    });
+};
 
 export default () => {
     // vscroll automatic + propagateNatural* false: tinggi pane tetap 108px,

@@ -17,6 +17,12 @@ const BODY_CHARS = 54;
 
 const modelLabel = () => String(CONFIG.chat?.model ?? 'gemini-3.5-flash-lite');
 
+const hhmm = epoch => {
+    if (!Number.isFinite(epoch)) return '';
+    const date = new Date(epoch);
+    return `${String(date.getHours()).padStart(2, '0')}:${String(date.getMinutes()).padStart(2, '0')}`;
+};
+
 export default () => {
     // ── daftar pesan ────────────────────────────────────────────────
     const list = Widget.Box({ className: 'gemini-chat-list', vertical: true, spacing: 8 });
@@ -30,25 +36,47 @@ export default () => {
     });
     scroll.child = list;
 
-    const bubble = msg => Widget.Box({
-        className: `dyn-island-chat-row ${msg.role}`,
-        halign: msg.role === 'user' ? Gtk.Align.END : Gtk.Align.START,
-        children: [
-            Widget.Box({
-                className: `dyn-island-chat-bubble ${msg.role}`,
-                children: [
-                    Widget.Label({
-                        className: 'dyn-island-chat-text',
-                        label: msg.text,
-                        wrap: true,
-                        selectable: true,
-                        xalign: 0,
-                        maxWidthChars: BODY_CHARS,
-                    }),
-                ],
-            }),
-        ],
-    });
+    const bubble = msg => {
+        const isUser = msg.role === 'user';
+        const content = Widget.Box({
+            className: 'dyn-island-chat-stack',
+            vertical: true,
+            spacing: 2,
+            children: [
+                Widget.Label({
+                    className: 'dyn-island-chat-text',
+                    label: msg.text,
+                    wrap: true,
+                    selectable: true,
+                    xalign: 0,
+                    maxWidthChars: BODY_CHARS,
+                }),
+                Widget.Label({
+                    className: 'dyn-island-chat-time',
+                    label: hhmm(msg.at),
+                    xalign: isUser ? 1 : 0,
+                    visible: Number.isFinite(msg.at),
+                }),
+            ],
+        });
+        const avatar = Widget.Label({
+            className: `dyn-island-chat-avatar ${msg.role}`,
+            label: isUser ? '\uf007' : '\uf0d0',
+            valign: Gtk.Align.START,
+        });
+        return Widget.Box({
+            className: `dyn-island-chat-row ${msg.role}`,
+            halign: isUser ? Gtk.Align.END : Gtk.Align.START,
+            spacing: 6,
+            children: isUser ? [
+                Widget.Box({ className: `dyn-island-chat-bubble ${msg.role}`, children: [content] }),
+                avatar,
+            ] : [
+                avatar,
+                Widget.Box({ className: `dyn-island-chat-bubble ${msg.role}`, children: [content] }),
+            ],
+        });
+    };
 
     // ── empty state (di tengah area pesan) ──────────────────────────
     const emptyBox = Widget.Box({
