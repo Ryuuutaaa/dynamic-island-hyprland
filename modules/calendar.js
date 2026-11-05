@@ -20,7 +20,19 @@ const DAY_INDEX = { SU: 0, MO: 1, TU: 2, WE: 3, TH: 4, FR: 5, SA: 6 };
 export const calendar = Variable({ events: [], next: null, updatedAt: 0, error: '' });
 
 const cfg = () => CONFIG.calendar ?? {};
-const source = () => String(cfg().icsUrl ?? '').trim();
+const LOCAL_URL = `${GLib.get_user_config_dir()}/dynamic-iland/calendar.url`;
+const localSource = () => {
+    try {
+        const [ok, bytes] = GLib.file_get_contents(LOCAL_URL);
+        if (!ok) return '';
+        return new TextDecoder().decode(bytes).trim();
+    } catch (_) {
+        return '';
+    }
+};
+// URL secret pribadi tidak boleh masuk repo; file lokal (mode 600)
+// menang atas config.js.
+const source = () => localSource() || String(cfg().icsUrl ?? '').trim();
 
 const readCache = () => {
     try {
