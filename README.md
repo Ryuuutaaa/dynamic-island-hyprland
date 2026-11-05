@@ -741,6 +741,10 @@ lanjut ke halaman berikutnya; pindah halaman selalu menutup sub-tampilan lirik.
 Nav adalah `Gtk.Overlay` sehingga **tidak menambah ukuran** notch, tapi ruangnya
 dipotong dari tinggi isi konten (`stack.margin_bottom = NAV_SPACE = 34`) — lihat
 bagian Motion. Target klik ikon dan panah 24px dan semuanya punya tooltip.
+Tab aktif memakai kapsul aksen + ring inset 1px sebagai indikator fokus.
+**Scroll wheel di atas notch** memanggil `stepPage(±1)`; halaman yang punya
+scroll internal (`chat`, `todo`, `shelf`, lirik) tidak ikut berpindah halaman
+agar wheel tetap menggulir isinya.
 
 **Panah aktif saat press, bukan release.** Nav di-anchor ke dasar notch,
 jadi selama notch membuka/menutup posisinya ikut bergerak (terukur: posisi nav

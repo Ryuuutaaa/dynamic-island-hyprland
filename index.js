@@ -869,6 +869,21 @@ function DynamicIsland() {
     // (lihat onIslandEnter/onIslandLeave).
     island.connect('enter-notify-event', onIslandEnter);
     island.connect('leave-notify-event', onIslandLeave);
+    // Wheel di atas notch = halaman berikut/sebelumnya. Halaman yang punya
+    // scroll internal (chat, todo, shelf, lirik) dibiarkan menangani wheel
+    // sendiri agar daftar di dalamnya tetap bisa digulir.
+    island.connect('scroll-event', (_self, event) => {
+        if (!hovered.value || !navActive) return false;
+        if (['chat', 'todo', 'shelf'].includes(page.value) || inLyricsView()) return false;
+        let delta = 0;
+        try {
+            const deltas = event.get_scroll_deltas?.();
+            if (Array.isArray(deltas) && deltas[0]) delta = Number(deltas[2]) || 0;
+        } catch (_) { }
+        if (!delta) return false;
+        stepPage(delta > 0 ? 1 : -1);
+        return true;
+    });
     // jangan biarkan nav nyangkut setelah window dipindah / di-map ulang
     nav.visible = false;
     // sekaligus membersihkan submap `island` yang mungkin tertinggal kalau AGS

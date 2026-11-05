@@ -146,6 +146,8 @@ tooltip > box {
 }
 .dyn-island-nav-tab.is-active {
     background-color: __ACCENT_SOFT__;
+    /* ring fokus untuk tab aktif (keyboard submap maupun klik) */
+    box-shadow: inset 0 0 0 1px __SURFACE_STRONG__;
 }
 .dyn-island-nav-icon {
     font-size: 11px;
