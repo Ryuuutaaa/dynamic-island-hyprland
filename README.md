@@ -69,7 +69,7 @@ frame 2,98–3,02 sepanjang 420×140 → 150×50.
 | `idle` | **jam besar + tanggal** + kolom ringkas: baterai, `X/Y tugas`, `ml / goal L`, dan bar Bluetooth (hanya saat ada device terhubung; **klik untuk buka halaman bluetooth**) |
 | `media` | album art 84px dengan border warna dominan cover + judul + artis + progress bar (area seek 24px) + elapsed/total + nama app sumber + prev/play/next + tombol lirik |
 | `media` → lirik | **sub-tampilan** (bukan halaman nav): kiri album art + judul + progress + kontrol, kanan daftar lirik sinkron |
-| `weather` | cuaca Open-Meteo: kondisi sekarang + 3 hari ke depan; saat feed gagal muncul tombol **Muat ulang** di kanan |
+| `weather` | cuaca Open-Meteo: kondisi sekarang, strip 3 jam ke depan, + 3 hari; saat feed gagal muncul tombol **Muat ulang** di kanan |
 | `pomodoro` | ring merah 88px menyusut + countdown 38px + pill (mode berikutnya, play, reset); umpan balik aksi muncul sebagai **kartu OSD kanan atas**, bukan mengembangkan notch |
 | `timer` | timer bebas (preset 1–60 menit + stepper ±1 menit 1–90) + stopwatch: waktu besar, mode, preset, play/pause, reset |
 | `stats` | kartu CPU / RAM / suhu dengan bar, detail per kartu, dan footer **disk / + swap** terpisah |
@@ -602,9 +602,12 @@ Halaman `weather` memakai **Open-Meteo** — gratis, tanpa API key/akun.
 - Koordinat & kota mengikuti blok `prayer` (`latitude`, `longitude`, `city`);
   bisa ditimpa lewat `config.weather`.
 - `modules/weather.js` mengambil kondisi sekarang (suhu, terasa, angin,
-  kelembapan, kode WMO) + 3 hari ke depan, menyimpan hasil terakhir ke
+  kelembapan, kode WMO), data **hourly** (suhu, kode, is_day) dan 3 hari ke
+  depan, menyimpan hasil terakhir ke
   `~/.local/share/dynamic-iland/weather.json` supaya tetap ada isi saat offline,
   dan refresh tiap **15 menit** — hanya kalau `modules.weather` aktif.
+- Halaman menampilkan **strip 3 jam ke depan** (jam, glyph, suhu) di bawah hero;
+  hourly lama tanpa `is_day` dianggap siang sampai refresh berikutnya.
 - Kode WMO dipetakan ke label Indonesia + glyph Nerd Font (matahari, bulan,
   awan, tetes, salju, petir); malam memakai glyph bulan.
 - `closedIndicators` menerima `weather` untuk menampilkan suhu di notch tertutup.
@@ -1110,7 +1113,7 @@ modules/chat-page.js   halaman chat: bubble riwayat, indikator mengetik, Hapus/U
 gemini.example.json   template fallback format JSON
 modules/pomodoro.js    timer fokus / istirahat / panjang, persistensi deadline + chime & notifikasi
 modules/weather.js     cuaca Open-Meteo + cache JSON + refresh 15 menit
-modules/weather-page.js halaman cuaca (sekarang + 3 hari)
+modules/weather-page.js halaman cuaca (sekarang + 3 jam + 3 hari)
 modules/timer.js       timer bebas & stopwatch, deadline + persistensi
 modules/timer-page.js  halaman timer (preset, play/pause, reset)
 modules/sysstats.js    polling `hypr-status stats` hanya saat halaman stats terbuka
