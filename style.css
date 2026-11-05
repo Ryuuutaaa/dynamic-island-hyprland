@@ -1462,6 +1462,11 @@ tooltip > box {
     color: __MUTED__;
 }
 
+.dyn-island-stats-footer {
+    font-size: 9.5px;
+    color: __MUTED__;
+}
+
 /* ── Kalender ─────────────────────────────────────────────────── */
 .dyn-island-cal {
     padding: 0 2px;

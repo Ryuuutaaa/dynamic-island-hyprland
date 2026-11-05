@@ -72,6 +72,22 @@ export default () => {
     const cpu = card('CPU', 100);
     const ram = card('RAM', 100);
     const temp = card('SUHU', 100);
+    const diskLabel = Widget.Label({ className: 'dyn-island-stats-footer', xalign: 0 });
+    const swapLabel = Widget.Label({ className: 'dyn-island-stats-footer', xalign: 0 });
+
+    const footer = Widget.Box({
+        className: 'dyn-island-stats-footer-row',
+        spacing: 12,
+        halign: Gtk.Align.CENTER,
+        children: [diskLabel, swapLabel],
+    });
+
+    const cards = Widget.Box({
+        className: 'dyn-island-stats',
+        spacing: 8,
+        valign: Gtk.Align.CENTER,
+        children: [cpu.widget, ram.widget, temp.widget],
+    });
 
     const sync = () => {
         const value = stats.value;
@@ -80,6 +96,8 @@ export default () => {
                 item.value.label = '—';
                 item.detail.label = '';
             }
+            diskLabel.label = '';
+            swapLabel.label = '';
             return;
         }
 
@@ -97,23 +115,26 @@ export default () => {
         ram.value.label = `${memPercent}%`;
         ram.bar.setValue(memPercent / 100, memPercent >= WARN_AT);
         ram.detail.label = `${gb(mem.used).toFixed(1)} / ${gb(mem.total).toFixed(1)} GB`;
-        if (Number(swap.used) > 0)
-            ram.detail.label += ` · swap ${gb(swap.used).toFixed(1)}`;
 
         temp.value.label = Number.isFinite(degrees) ? `${Math.round(degrees)}°` : '—';
         temp.bar.setValue(Number.isFinite(degrees) ? Math.min(1, degrees / 100) : 0, degrees >= 85);
+        temp.detail.label = !Number.isFinite(degrees)
+            ? ''
+            : degrees >= 85 ? 'panas' : degrees >= 70 ? 'hangat' : 'normal';
+
         const disk = value.disk ?? {};
-        // detail kartu suhu harus berbicara soal suhu dulu; disk ikut sebagai
-        // info sekunder supaya label kartu tidak menipu.
-        const state = !Number.isFinite(degrees) ? '' : degrees >= 85 ? 'panas' : degrees >= 70 ? 'hangat' : 'normal';
-        temp.detail.label = [state, `disk / ${disk.root?.pct ?? 0}%`].filter(Boolean).join(' · ');
+        diskLabel.label = `disk / ${disk.root?.pct ?? 0}%`;
+        const swapUsed = Number(swap.used) || 0;
+        swapLabel.label = swapUsed > 0 ? `swap ${gb(swapUsed).toFixed(1)}` : '';
+        swapLabel.visible = swapUsed > 0;
     };
 
     return Widget.Box({
-        className: 'dyn-island-stats',
-        spacing: 8,
+        className: 'dyn-island-stats-root',
+        vertical: true,
+        spacing: 4,
         valign: Gtk.Align.CENTER,
-        children: [cpu.widget, ram.widget, temp.widget],
+        children: [cards, footer],
         setup: self => {
             sync();
             self.hook(stats, sync);
