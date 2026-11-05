@@ -714,6 +714,7 @@ di `.env`/`gemini.json` dengan permission terpisah.
 | Ikuti monitor fokus | Aktif / **Tetap** | restart AGS; "Tetap" memasang notch ke monitor saat dibuat, tidak ikut pindah |
 | Halaman default | Ringkasan / Cuaca / Statistik / Tugas | langsung pada `basePage()` berikutnya (media player tetap menang) |
 | 12 modul | Aktif / Nonaktif | restart AGS; halaman yang dimatikan hilang dari `PAGE_ORDER` |
+| Indikator notch | urutan naik/turun; atas = prioritas | restart AGS |
 | Notifikasi | daftar app yang dibisukan | langsung; baris **Bunyikan** mengaktifkan lagi |
 
 - Ukuran **Kecil** = 140×46 (ear 9), **Besar** = 170×56 (ear 11), **Normal**
@@ -1055,8 +1056,9 @@ chmod 600 ~/.config/dynamic-iland/.env
 | `prayer` | `{ latitude, longitude, city, method, notify, catchUpMinutes }` — jadwal sholat lokal |
 | `chat` | `{ model, systemPrompt, maxTurns, maxOutputTokens, thinkingLevel, timeoutSec }` — Gemini; API key dari `GEMINI_API_KEY` / `~/.config/dynamic-iland/.env` |
 
-Nilai `modules`, `glow`, `defaultPage`, `notch`, dan `mutedApps` bisa ditimpa
-dari `~/.config/dynamic-iland/settings.json` lewat halaman **Pengaturan**.
+Nilai `modules`, `glow`, `defaultPage`, `notch`, `closedIndicators`, dan
+`mutedApps` bisa ditimpa dari `~/.config/dynamic-iland/settings.json` lewat
+halaman **Pengaturan**.
 
 ### Warna
 

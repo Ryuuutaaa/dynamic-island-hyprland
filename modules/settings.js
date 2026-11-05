@@ -14,6 +14,7 @@ const FILE = `${DIR}/settings.json`;
 const DEFAULT_PAGE = 'idle';
 const PAGE_OPTIONS = ['idle', 'weather', 'stats', 'todo'];
 const SIZES = ['normal', 'compact', 'large'];
+const INDICATOR_NAMES = ['music', 'pomodoro', 'timer', 'todo', 'water', 'weather', 'date'];
 const CLOSED_SIZES = {
     compact: { w: 140, h: 46, r: 14, ear: 9 },
     large: { w: 170, h: 56, r: 18, ear: 11 },
@@ -39,12 +40,23 @@ const defaultPage = PAGE_OPTIONS.includes(saved.defaultPage) ? saved.defaultPage
 const mutedApps = Array.isArray(saved.mutedApps)
     ? saved.mutedApps.filter(name => typeof name === 'string' && name.trim())
     : [];
+const validIndicators = list => (Array.isArray(list) ? list : [])
+    .filter(name => INDICATOR_NAMES.includes(name));
+const savedIndicators = validIndicators(saved.closedIndicators);
+const configuredIndicators = validIndicators(CONFIG.closedIndicators);
+// Semua indikator tetap ada; pengguna hanya mengubah prioritas. Nama yang
+// belum ada di file ditambahkan di belakang supaya UI tidak kehilangan baris.
+const closedIndicators = [...new Set([
+    ...(savedIndicators.length ? savedIndicators : configuredIndicators),
+    ...INDICATOR_NAMES,
+])];
 
 // Terapkan ke CONFIG sebelum modul lain dievaluasi.
 CONFIG.modules = modules;
 CONFIG.glow = glowEnabled;
 CONFIG.defaultPage = defaultPage;
 CONFIG.notch = { size, followFocus };
+CONFIG.closedIndicators = closedIndicators;
 if (size !== 'normal' && CLOSED_SIZES[size])
     CONFIG.geometry.closed = { ...CLOSED_SIZES[size] };
 
@@ -56,6 +68,7 @@ export const settings = Variable({
     defaultPage,
     notch: { size, followFocus },
     mutedApps,
+    closedIndicators,
 });
 
 const sameApp = (a, b) => String(a ?? '').toLowerCase() === String(b ?? '').toLowerCase();
@@ -92,6 +105,7 @@ export function saveSettings(patch = {}) {
         notch: { ...current.notch, ...(patch.notch ?? {}) },
         modules: { ...current.modules, ...(patch.modules ?? {}) },
         mutedApps: patch.mutedApps ?? current.mutedApps ?? [],
+        closedIndicators: patch.closedIndicators ?? current.closedIndicators ?? [],
     };
     settings.value = next;
 
@@ -99,6 +113,7 @@ export function saveSettings(patch = {}) {
     CONFIG.glow = next.glow !== false;
     CONFIG.defaultPage = next.defaultPage;
     CONFIG.notch = { ...next.notch };
+    CONFIG.closedIndicators = [...next.closedIndicators];
     glow.value = next.glow !== false;
 
     // Modul, ukuran notch tertutup, dan followFocus dibaca saat window

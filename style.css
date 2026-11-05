@@ -1680,3 +1680,29 @@ tooltip > box {
     color: __MUTED__;
     padding: 4px 6px;
 }
+
+.dyn-island-settings-indicator {
+    padding: 0px 2px 0px 6px;
+}
+
+.dyn-island-settings-reorder {
+    min-width: 24px;
+    min-height: 24px;
+    padding: 0px;
+    border: none;
+    box-shadow: none;
+    background-color: transparent;
+    color: __MUTED__;
+}
+
+.dyn-island-settings-reorder:hover {
+    color: __FG__;
+}
+
+.dyn-island-settings-reorder:disabled {
+    color: __SURFACE_STRONG__;
+}
+
+.dyn-island-settings-arrow {
+    font-size: 9.5px;
+}

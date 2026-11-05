@@ -28,6 +28,16 @@ const PAGE_LABELS = {
     todo: 'Tugas',
 };
 
+const INDICATOR_LABELS = {
+    music: 'Musik',
+    pomodoro: 'Pomodoro',
+    timer: 'Timer',
+    todo: 'Tugas',
+    water: 'Air',
+    weather: 'Cuaca',
+    date: 'Tanggal',
+};
+
 const section = text => Widget.Label({
     className: 'dyn-island-settings-section',
     label: text,
@@ -100,6 +110,46 @@ export default () => {
         saveSettings({ defaultPage: next });
     };
 
+    const moveIndicator = (index, delta) => {
+        const list = [...(settings.value.closedIndicators ?? [])];
+        const target = index + delta;
+        if (target < 0 || target >= list.length) return;
+        [list[index], list[target]] = [list[target], list[index]];
+        saveSettings({ closedIndicators: list });
+    };
+
+    const arrow = (glyph, enabled, tooltip, onClicked) => {
+        const button = Widget.Button({
+            className: 'dyn-island-settings-reorder',
+            tooltipText: tooltip,
+            sensitive: enabled,
+            child: Widget.Label({ className: 'dyn-island-settings-arrow', label: glyph }),
+            onClicked,
+        });
+        button.set_size_request(24, 24);
+        return button;
+    };
+
+    const indicatorRow = (name, index, total) => {
+        const label = Widget.Label({
+            className: 'dyn-island-settings-label',
+            label: INDICATOR_LABELS[name] ?? name,
+            xalign: 0,
+            hexpand: true,
+        });
+        const up = arrow('\uf077', index > 0, 'Naikkan prioritas',
+            () => moveIndicator(index, -1));
+        const down = arrow('\uf078', index < total - 1, 'Turunkan prioritas',
+            () => moveIndicator(index, 1));
+        const rowBox = Widget.Box({
+            className: 'dyn-island-settings-row dyn-island-settings-indicator',
+            spacing: 2,
+            children: [label, up, down],
+        });
+        rowBox.set_size_request(ROW_W, -1);
+        return rowBox;
+    };
+
     const rebuild = () => {
         const value = settings.value;
         const rows = [
@@ -114,8 +164,14 @@ export default () => {
             section('HALAMAN'),
             row('Halaman default', PAGE_LABELS[value.defaultPage] ?? 'Ringkasan',
                 cyclePage, false),
-            section('MODUL'),
+            section('INDIKATOR NOTCH — ATAS = PRIORITAS'),
         ];
+
+        const indicators = value.closedIndicators ?? [];
+        indicators.forEach((name, index) => {
+            rows.push(indicatorRow(name, index, indicators.length));
+        });
+        rows.push(section('MODUL'));
 
         for (const [name, label] of MODULE_LABELS) {
             const on = value.modules[name] !== false;
@@ -146,7 +202,7 @@ export default () => {
     });
     const note = Widget.Label({
         className: 'dyn-island-settings-note',
-        label: 'modul/ukuran/monitor: restart AGS',
+        label: 'restart: modul/ukuran/monitor/indikator',
         xalign: 1,
     });
     const header = Widget.Box({
