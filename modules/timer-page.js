@@ -58,7 +58,7 @@ export default () => {
     });
     const reset = Widget.Button({
         className: 'dyn-island-timer-reset',
-        child: Widget.Label({ label: '↻' }),
+        child: Widget.Label({ label: '\uf021' }),
         onClicked: () => resetTimer(),
     });
 
@@ -76,7 +76,7 @@ export default () => {
         sub.label = isTimer
             ? `${Math.round(value.total / 60)} menit${value.running ? '' : ' · jeda'}`
             : `Stopwatch${value.running ? ' · jalan' : ' · jeda'}`;
-        play.child.label = value.running ? '⏸  Jeda' : '▶  Mulai';
+        play.child.label = value.running ? '\uf04c  Jeda' : '\uf04b  Mulai';
         const totalMinutes = Math.round(value.total / 60);
         for (const item of buttons) {
             const active = isTimer && !value.running && item.minutes === totalMinutes;

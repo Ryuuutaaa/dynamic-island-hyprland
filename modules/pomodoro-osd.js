@@ -41,9 +41,9 @@ export default () => {
     const stateText = Widget.Label({ className: 'dyn-island-pomo-osd-state' });
     const bar = Widget.ProgressBar({ className: 'dyn-island-pomo-osd-bar', value: 0 });
 
-    const play = actionButton('⏸', () => toggleRunning(), 'Mulai / jeda');
+    const play = actionButton('\uf04c', () => toggleRunning(), 'Mulai / jeda');
     const skip = actionButton('Istirahat', () => setMode(NEXT_MODE[pomodoro.value.mode]), 'Mode berikutnya');
-    const redo = actionButton('↻', () => reset(), 'Reset');
+    const redo = actionButton('\uf021', () => reset(), 'Reset');
 
     const card = Widget.Box({
         className: 'dyn-island-pomo-osd',
@@ -139,7 +139,7 @@ export default () => {
         time.label = clock(current.remaining);
         modeText.label = MODES[current.mode]?.label ?? '';
         stateText.label = current.running ? 'berjalan' : 'dijeda';
-        play.child.label = current.running ? '⏸' : '▶';
+        play.child.label = current.running ? '\uf04c' : '\uf04b';
         skip.child.label = NEXT_LABEL[current.mode] ?? 'Mode';
         bar.value = current.running || current.remaining < total ? done : 0;
     };

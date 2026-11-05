@@ -76,7 +76,7 @@ export default () => {
                     }),
                     Widget.Button({
                         className: 'standup-remove',
-                        child: Widget.Label({ label: '×' }),
+                        child: Widget.Label({ label: '\uf00d' }),
                         onClicked: () => removeItem(key, index),
                     }),
                 ],
@@ -103,7 +103,7 @@ export default () => {
         child: Widget.Label({ label: 'Simpan' }),
         onClicked: () => {
             saveStandup();
-            status.label = 'Tersimpan ✓';
+            status.label = 'Tersimpan \uf00c';
             Utils.timeout(700, () => close());
         },
     });

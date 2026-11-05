@@ -126,7 +126,7 @@ export default () => {
         className: 'gemini-chat-icon-btn gemini-chat-close',
         valign: Gtk.Align.CENTER,
         tooltipText: 'Tutup (Esc)',
-        child: Widget.Label({ className: 'gemini-chat-icon-label', label: '✕' }),
+        child: Widget.Label({ className: 'gemini-chat-icon-label', label: '\uf00d' }),
         onClicked: () => close(),
     });
 
