@@ -1061,7 +1061,7 @@ chmod 600 ~/.config/dynamic-iland/.env
 | `geometry` | `closed` / `expanded` / `peek`: `{ w, h, r, ear }` |
 | `motion` | `reduced`, `sizeDuration`, `sizeCurve` |
 | `defaultPage` | halaman `basePage()` saat tidak ada media (default `idle`) |
-| `notch` | `{ size: 'normal'|'compact'|'large', followFocus: boolean }` |
+| `notch` | `{ size: 'normal'|'compact'|'large', followFocus: boolean, perMonitor: boolean }` |
 | `glow` | `false` untuk mematikan accent cover di sky/border cover |
 | `osdTimeout` / `notifyTimeout` | durasi peek (ms) |
 | `pinTimeout` | durasi halaman pilihan manual (ms) |
