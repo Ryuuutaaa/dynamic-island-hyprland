@@ -1,6 +1,6 @@
 import Gtk from 'gi://Gtk?version=3.0';
 import Widget from 'resource:///com/github/Aylur/ags/widget.js';
-import { weather, glyphFor, labelFor } from './weather.js';
+import { weather, glyphFor, labelFor, refreshWeather } from './weather.js';
 import { tabular } from './type.js';
 
 // Cuaca v3: hero di kiri (ikon + suhu sebaris, kondisi di bawahnya) dan tiga
@@ -46,6 +46,12 @@ export default () => {
     const condition = Widget.Label({ className: 'dyn-island-weather-condition', xalign: 0 });
     const place = Widget.Label({ className: 'dyn-island-weather-place', xalign: 0 });
     const days = Widget.Box({ className: 'dyn-island-weather-days', spacing: 6 });
+    const retry = Widget.Button({
+        className: 'dyn-island-chip dyn-island-weather-retry',
+        child: Widget.Label({ className: 'dyn-island-chip-label', label: 'Muat ulang' }),
+        onClicked: () => { refreshWeather(); },
+    });
+    retry.set_no_show_all(true);
 
     const sync = () => {
         const value = weather.value;
@@ -56,6 +62,13 @@ export default () => {
             ? `${labelFor(value.code)} · terasa ${value.feels}°`
             : (value.error ? 'Tidak ada data' : 'Memuat…');
         place.label = [value.city, clockOf(value.updatedAt)].filter(Boolean).join('  ·  ');
+
+        const showRetry = !has && !!value.error;
+        retry.visible = showRetry;
+        if (showRetry) {
+            retry.show();
+            retry.child.show();
+        }
 
         days.children = (value.daily || []).slice(1, 4).map(day => dayTile({
             day: dayName(day.date, value.daily.indexOf(day)),
@@ -88,6 +101,7 @@ export default () => {
             }),
             Widget.Box({ className: 'dyn-island-weather-spacer', hexpand: true }),
             days,
+            retry,
         ],
         setup: self => {
             sync();
