@@ -1637,15 +1637,15 @@ tooltip > box {
 .dyn-island-settings-pane scrollbar {
     background: transparent;
     border: none;
-    min-width: 4px;
+    min-width: 6px;
 }
 .dyn-island-settings-pane scrollbar trough {
     background: transparent;
     border: none;
 }
 .dyn-island-settings-pane scrollbar slider {
-    min-width: 4px;
-    border-radius: 2px;
+    min-width: 6px;
+    border-radius: 3px;
     background-color: __SURFACE_STRONG__;
 }
 

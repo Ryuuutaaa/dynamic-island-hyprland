@@ -3,7 +3,9 @@ import Widget from 'resource:///com/github/Aylur/ags/widget.js';
 import { page } from '../state.js';
 import { settings, saveSettings, unmuteApp, OPTIONS } from './settings.js';
 
-const ROW_W = 480;
+// Sisakan ruang untuk scrollbar; 480 membuat value kanan tertutup scrollbar.
+const ROW_W = 466;
+const PANE_W = 472;
 const PANE_H = 148;
 
 const MODULE_LABELS = [
@@ -75,10 +77,14 @@ export default () => {
     const pane = Widget.Scrollable({
         className: 'dyn-island-settings-pane',
         hscroll: 'never',
-        vscroll: 'external',
+        // visible scrollbar: daftar 24 baris hanya menampilkan ~5 baris
+        vscroll: 'automatic',
     });
     pane.child = list;
-    pane.set_size_request(ROW_W, PANE_H);
+    pane.set_size_request(PANE_W, PANE_H);
+    // Gtk overlay-scrolling menyembunyikan scrollbar sampai pointer menyentuh
+    // tepi; daftar 24 baris butuh indikator yang selalu terlihat.
+    pane.set_overlay_scrolling(false);
 
     const scrollPane = event => {
         let dy = 0;
