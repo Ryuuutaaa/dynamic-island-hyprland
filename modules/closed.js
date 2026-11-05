@@ -8,6 +8,7 @@ import CONFIG from '../config.js';
 import { isPlaying } from '../state.js';
 import { palette, hexToRgb } from '../theme.js';
 import { roundedRect } from '../draw.js';
+import { ramp } from '../spring.js';
 import { formatClock, formatDateShort, onMinute } from './timefmt.js';
 import { tabular } from './type.js';
 import { pomodoro } from './pomodoro.js';
@@ -137,6 +138,30 @@ export default () => {
         visible: false,
     });
     const eq = Equalizer();
+    let fade = null;
+    let lastChosen = '';
+    let dead = false;
+
+    // Saat indikator berganti, fade 180ms (bukan snap). Hanya label/ikon
+    // aktivitas yang memudar; jam/ring baterai tetap.
+    const fadeIn = widgets => {
+        if (dead || !widgets.length) return;
+        if (fade) fade.stop();
+        for (const widget of widgets) widget.set_opacity(0);
+        let current = null;
+        current = ramp({
+            duration: 180,
+            onFrame: value => {
+                if (dead) return;
+                for (const widget of widgets) widget.set_opacity(value);
+            },
+            onDone: () => {
+                if (fade === current) fade = null;
+            },
+        });
+        fade = current;
+        fade.start();
+    };
 
     // Garis progres 2px di dasar notch: hanya untuk sesi yang punya durasi
     // (pomodoro / timer), bukan stopwatch atau musik.
@@ -223,6 +248,14 @@ export default () => {
         activityIcon.label = icon;
         activityIcon.visible = !music && !!icon;
 
+        if (chosen !== lastChosen) {
+            lastChosen = chosen;
+            const widgets = music
+                ? [eq]
+                : [activityIcon, activity].filter(widget => widget.visible);
+            fadeIn(widgets);
+        }
+
         const pomodoroState = pomodoro.value;
         const timerValue = timerState.value;
         let barActive = false;
@@ -259,6 +292,13 @@ export default () => {
             self.hook(weather, syncMode);
             self.hook(timerState, syncMode);
             onMinute(syncClock, self);
+            self.connect('destroy', () => {
+                dead = true;
+                if (fade) {
+                    fade.stop();
+                    fade = null;
+                }
+            });
         },
     });
 };
