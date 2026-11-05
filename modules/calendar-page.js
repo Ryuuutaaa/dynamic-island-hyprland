@@ -126,8 +126,8 @@ export default () => {
             empty.show();
             const error = String(value.error ?? '');
             if (error === 'URL belum diisi') {
-                emptyTitle.label = 'Kalender belum siap';
-                emptyHint.label = 'Isi URL iCal di config.calendar.icsUrl.\nGoogle/Outlook: pakai secret address.';
+                emptyTitle.label = 'Kalender belum terhubung';
+                emptyHint.label = 'URL iCal: config.js → calendar.icsUrl.\nGoogle/Outlook: Secret Address.';
                 retry.visible = false;
             } else if (error) {
                 emptyTitle.label = 'Kalender gagal dimuat';
