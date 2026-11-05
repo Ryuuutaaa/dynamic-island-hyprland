@@ -1,11 +1,25 @@
 import Gtk from 'gi://Gtk?version=3.0';
 import Widget from 'resource:///com/github/Aylur/ags/widget.js';
 import Mpris from 'resource:///com/github/Aylur/ags/service/mpris.js';
+import * as Utils from 'resource:///com/github/Aylur/ags/utils.js';
 import CONFIG from '../config.js';
 import { mediaView } from '../state.js';
 import Progress, { activePlayer } from './progress.js';
 import Cover from './cover.js';
 import { updateCoverColor } from './cover-color.js';
+import { tabular } from './type.js';
+
+const formatTime = seconds => {
+    const value = Number(seconds);
+    if (!Number.isFinite(value) || value < 0) return '--:--';
+    const total = Math.floor(value);
+    const hours = Math.floor(total / 3600);
+    const minutes = Math.floor((total % 3600) / 60);
+    const rest = total % 60;
+    return hours > 0
+        ? `${hours}:${String(minutes).padStart(2, '0')}:${String(rest).padStart(2, '0')}`
+        : `${minutes}:${String(rest).padStart(2, '0')}`;
+};
 
 export default () => {
     const cover = Cover({ size: 72, radius: 10 });
@@ -23,14 +37,47 @@ export default () => {
     });
     const progress = Progress();
     const playGlyph = Widget.Label({ className: 'dyn-island-ctl-icon' });
+    const elapsed = tabular(Widget.Label({ className: 'dyn-island-media-time', xalign: 0 }));
+    const total = tabular(Widget.Label({ className: 'dyn-island-media-time', xalign: 1 }));
+    const source = Widget.Label({
+        className: 'dyn-island-media-source',
+        xalign: 1,
+        truncate: 'end',
+        maxWidthChars: 10,
+    });
+    const timeRow = Widget.CenterBox({
+        className: 'dyn-island-media-timerow',
+        startWidget: elapsed,
+        endWidget: Widget.Box({ spacing: 6, children: [total, source] }),
+    });
+
+    const refreshTimes = () => {
+        const player = activePlayer();
+        const length = Number(player?.length) || 0;
+        const position = Number(player?.position) || 0;
+        const known = length > 0;
+        const identity = player?.identity || player?.name || '';
+        // Stream/video tanpa length tetap menampilkan nama aplikasi sumber;
+        // elapsed/total hanya muncul kalau durasi benar-benar dilaporkan.
+        timeRow.visible = known || !!identity;
+        elapsed.visible = known;
+        total.visible = known;
+        if (known) {
+            elapsed.label = formatTime(position);
+            total.label = formatTime(length);
+        }
+        source.label = identity;
+        source.visible = !!identity;
+    };
 
     const refresh = () => {
         const player = activePlayer();
         cover.setPath(player?.cover_path ?? '');
-    updateCoverColor(player?.cover_path ?? '');
+        updateCoverColor(player?.cover_path ?? '');
         title.label = player ? (player.track_title || 'Judul tidak diketahui') : 'Tidak ada yang diputar';
         artist.label = player ? (player.track_artists || []).join(', ') : '';
         playGlyph.label = player?.play_back_status === 'Playing' ? '\uf04c' : '\uf04b';
+        refreshTimes();
     };
 
     const control = (glyph, action, tooltip) => Widget.Button({
@@ -54,7 +101,7 @@ export default () => {
                 className: 'dyn-island-media-text',
                 vertical: true,
                 spacing: 6,
-                children: [title, artist, progress],
+                children: [title, artist, progress, timeRow],
             }),
             Widget.Box({
                 className: 'dyn-island-media-ctls',
@@ -84,6 +131,9 @@ export default () => {
             refresh();
             self.hook(Mpris, refresh, 'changed');
             self.hook(Mpris, refresh, 'player-changed');
+            // posisi MPRIS ikut berjalan setiap detik, bukan hanya saat track
+            // berganti; label elapsed diperbarui di sini.
+            Utils.interval(1000, refreshTimes, self);
         },
     });
 };

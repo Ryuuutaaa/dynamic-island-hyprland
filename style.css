@@ -306,6 +306,14 @@ tooltip > box {
     font-size: 11px;
     color: __MUTED__;
 }
+.dyn-island-media-time {
+    font-size: 9.5px;
+    color: __MUTED__;
+}
+.dyn-island-media-source {
+    font-size: 9.5px;
+    color: __MUTED__;
+}
 .dyn-island-ctl {
     /* 24x24 = target klik, tanpa padding tambahan supaya baris media
        (cover + teks + 4 tombol) tetap muat di kartu 420 */

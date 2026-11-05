@@ -64,7 +64,7 @@ frame 2,98–3,02 sepanjang 420×140 → 150×50.
 |---|---|
 | `closed` | ring baterai (Cairo) + jam + **tanggal** (`19 Okt`) saat tidak ada musik, atau equalizer saat playing; kalau ada sesi pomodoro, notch menampilkan `HH:MM · MM:SS` (jam + sisa waktu) |
 | `idle` | **jam besar + tanggal** + kolom ringkas: baterai, `X/Y tugas`, `ml / goal L`, dan bar Bluetooth (hanya saat ada device terhubung; **klik untuk buka halaman bluetooth**) |
-| `media` | album art 72px + judul + artis + progress bar (bisa diklik untuk seek) + prev/play/next + tombol lirik |
+| `media` | album art 72px + judul + artis + progress bar (area seek 24px) + elapsed/total + nama app sumber + prev/play/next + tombol lirik |
 | `media` → lirik | **sub-tampilan** (bukan halaman nav): kiri album art + judul + progress + kontrol, kanan daftar lirik sinkron |
 | `weather` | cuaca Open-Meteo: kondisi sekarang (glyph, suhu, terasa, angin, kelembapan) + 3 hari ke depan |
 | `pomodoro` | ring merah 88px menyusut + countdown 32px + pill (mode berikutnya, play, reset); umpan balik aksi muncul sebagai **kartu OSD kanan atas**, bukan mengembangkan notch |
