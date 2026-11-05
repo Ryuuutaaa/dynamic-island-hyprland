@@ -156,6 +156,7 @@ export function VolumeOsd() {
         label.label = muted ? 'bisu' : `${Math.round(volume * 100)}%`;
         icon.label = muted ? '\uf026' : volume < 0.34 ? '\uf027' : '\uf028';
         device.label = speaker ? (speaker.description || speaker.name || 'Audio') : '';
+        device.tooltipText = device.label;
         device.visible = !!device.label;
     };
 

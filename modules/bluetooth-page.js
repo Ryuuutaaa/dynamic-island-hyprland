@@ -338,6 +338,8 @@ export default () => {
         const battery = Number(device.battery_percentage) || 0;
         meta.label = `${device.type || 'Bluetooth'} · ${device.address}`
             + (battery > 0 ? ` · ${battery}%` : '');
+        name.tooltipText = name.label;
+        meta.tooltipText = meta.label;
 
         action.visible = enabled;
         action.sensitive = !device.connecting;

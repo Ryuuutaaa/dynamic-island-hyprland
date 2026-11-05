@@ -290,9 +290,11 @@ export default () => {
         }
 
         city.label = `${state.city} · ${state.method}`;
+        city.tooltipText = city.label;
         const next = nextPrayer(state, now);
         if (next) {
             nextName.label = next.tomorrow ? `Besok ${next.name}` : next.name;
+            nextName.tooltipText = nextName.label;
             countdown.label = formatCountdown(next.timestamp - now.getTime());
         } else {
             nextName.label = '—';

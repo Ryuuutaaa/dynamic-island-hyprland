@@ -166,6 +166,7 @@ export default () => {
                 : `dalam ${formatDuration(next.start - now)}`;
             when.label = `${prefix}${hhmm(next.start)} – ${hhmm(next.end)} · ${status}`;
         }
+        when.tooltipText = when.label;
 
         const rest = (value.events || [])
             .filter(event => event.start > next.start && event.end > now)

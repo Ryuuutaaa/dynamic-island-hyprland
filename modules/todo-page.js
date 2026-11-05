@@ -66,7 +66,8 @@ const TaskRow = (task, editMode) => {
 
     const button = Widget.Button({
         className: 'dyn-island-todo-row',
-        tooltipText: task.done ? 'Tandai belum selesai' : 'Tandai selesai',
+        tooltipText: `${task.text}${task.due ? ` · ${task.due}` : ''}\n`
+            + (task.done ? 'Tandai belum selesai' : 'Tandai selesai'),
         child: Widget.Box({
             spacing: 6,
             valign: Gtk.Align.CENTER,
