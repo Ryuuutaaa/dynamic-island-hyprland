@@ -826,6 +826,7 @@ function DynamicIsland() {
         syncSubmap();
         if (next === target && tween && tween.running) return;
         animateTo(next);
+        syncContent();
     };
 
     // Dipakai modul chat saat rofi terbuka. true = lepas submap segera;
