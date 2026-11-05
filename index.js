@@ -487,9 +487,13 @@ function DynamicIsland() {
     // Nav tampil di semua state besar (expanded + lirik yang lebih lebar).
     // Tanpa ini halaman lirik jadi jalan buntu: tombol panah satu-satunya
     // jalan keluar, tapi pill-nya tidak pernah muncul.
+    // Halaman transient (volume/brightness/notify) memakai geometri expanded,
+    // tetapi bukan halaman nav. Tanpa cek PAGE_ORDER, OSD yang dibuka saat
+    // hover menampilkan nav dengan tab pertama (idle) aktif.
     const navVisibleFor = next =>
-        next === GEO.expanded || next === GEO.lyrics || next === GEO.prayer
-        || next === GEO.chat || next === GEO.settings;
+        PAGE_ORDER.includes(page.value)
+        && (next === GEO.expanded || next === GEO.lyrics || next === GEO.prayer
+            || next === GEO.chat || next === GEO.settings);
 
     const applyGeometry = () => {
         const w = Math.max(1, Math.round(geo.w));
@@ -649,10 +653,13 @@ function DynamicIsland() {
                 notch.skyRadius = next.r;
                 notch.css = `border-radius: 0px 0px ${next.r}px ${next.r}px;`;
                 notch.queue_draw();
-                stack.margin_bottom = nextNav ? NAV_SPACE : 0;
-                nav.visible = nextNav;
-                nav.set_opacity(nextNav ? 1 : 0);
-                nav.set_sensitive(true);
+                // page bisa berubah di tengah tween (mis. OSD muncul saat
+                // hover); jangan pakai nextNav yang sudah basi.
+                const navNow = navVisibleFor(target);
+                stack.margin_bottom = navNow ? NAV_SPACE : 0;
+                nav.visible = navNow;
+                nav.set_opacity(navNow ? 1 : 0);
+                nav.set_sensitive(navNow);
                 // nav.visible baru berubah di sini; tanpa sync ulang submap
                 // `island` tertinggal aktif setelah island tertutup
                 syncSubmap();
@@ -807,11 +814,18 @@ function DynamicIsland() {
     const sync = () => {
         if (dead) return;
         const next = targetFor();
-        navActive = !navSuppressed && navVisibleFor(next);
+        const navNow = navVisibleFor(next);
+        navActive = !navSuppressed && navNow;
+        // Transient OSD bisa muncul saat tween buka masih berjalan; jangan
+        // biarkan nav dari halaman sebelumnya tertinggal sampai onDone.
+        if (!navNow) {
+            nav.visible = false;
+            nav.set_opacity(0);
+            stack.margin_bottom = 0;
+        }
         syncSubmap();
         if (next === target && tween && tween.running) return;
         animateTo(next);
-        syncContent();
     };
 
     // Dipakai modul chat saat rofi terbuka. true = lepas submap segera;
