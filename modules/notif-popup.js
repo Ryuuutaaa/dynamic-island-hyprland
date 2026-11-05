@@ -41,7 +41,7 @@ const DURATION_MIN = 3000;
 const DURATION_MAX = 15000;
 const NEVER_EXPIRE_MS = 12000;
 const STACK_SIZE = 3;
-const STACK_GAP = 6;
+const STACK_GAP = 8;
 const OPACITY = [1, 0.78, 0.62]; // terbaru -> tertua; minimal terbaca
 
 // expire_time dari pengirim: -1 = default server, 0 = tidak pernah

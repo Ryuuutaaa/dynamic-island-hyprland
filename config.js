@@ -14,18 +14,20 @@ export default {
         // buka/tutup tidak mengubah aspek (dulu 150x30 = 5:1 -> terlihat
         // "stretch" saat menutup).
         closed: { w: 150, h: 50, r: 16, ear: 10 },
-        expanded: { w: 420, h: 140, r: 32, ear: 22 },
+        // 468x156: rasio 3:1 (sama dengan closed/peek) + ruang napas 16px
+        // vertikal/horizontal; konten kini 436x116, bukan 394x100.
+        expanded: { w: 468, h: 156, r: 32, ear: 22 },
         // 240x80 = 3:1 supaya transisi closed <-> peek juga seragam.
         peek: { w: 240, h: 80, r: 20, ear: 13 },
         // halaman lirik lebih lebar (Nusa: 520) karena terbelah dua; tinggi
         // 156 memberi ruang progress bar 24px tanpa memotong kontrol
         lyrics: { w: 520, h: 156, r: 32, ear: 22 },
         // jadwal sholat: busur matahari + 5 waktu sholat butuh ruang lebih
-        prayer: { w: 560, h: 140, r: 32, ear: 22 },
+        prayer: { w: 580, h: 156, r: 32, ear: 22 },
         // chat Gemini: riwayat pesan + baris input butuh kartu lebih tinggi
-        chat: { w: 520, h: 220, r: 32, ear: 22 },
+        chat: { w: 520, h: 232, r: 32, ear: 22 },
         // settings: daftar baris yang bisa di-scroll
-        settings: { w: 520, h: 220, r: 32, ear: 22 },
+        settings: { w: 520, h: 232, r: 32, ear: 22 },
     },
 
     // MOTION (Nusa): width/height .62s cubic-bezier(.34,1.32,.5,1).

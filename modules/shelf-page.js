@@ -198,9 +198,7 @@ export default () => {
     return Widget.Box({
         className: 'dyn-island-shelf',
         vertical: true,
-        // head + card pane harus muat di konten 100px; 4px/2px membuat
-        // window 146/142.
-        spacing: 0,
+        spacing: 4,
         halign: Gtk.Align.CENTER,
         valign: Gtk.Align.CENTER,
         children: [

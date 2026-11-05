@@ -10,7 +10,7 @@ hover**: sudut atas rata menempel layar, hanya sudut bawah melengkung, plus
 | State | Pemicu | Ukuran notch | Telinga | Isi |
 |---|---|---|---|---|
 | **closed** | default | **150×50** | 10 | ring baterai + jam + satu activity strip (equalizer/ikon+teks) + hairline progres pomodoro/timer |
-| **expanded** | pointer hover | **420×140** | 22 | halaman aktif sebagai kartu + navigasi |
+| **expanded** | pointer hover | **468×156** | 22 | halaman aktif sebagai kartu + navigasi |
 | **peek** | OSD / notifikasi | **240×80** | 13 | volume / brightness / notifikasi |
 
 Prioritas: `peek` (transient) menang atas `expanded`, `expanded` menang atas
@@ -34,10 +34,10 @@ hitam/putih) dan menggambar glow radial dari bawah lewat `drawSky(..., accent)`.
 Glow hilang sendiri saat tidak ada lagu; tidak ada timer, hanya hook Variable.
 
 **Rasio seragam 3:1** untuk `closed` (150×50), `peek` (240×80), dan `expanded`
-(420×140). Sebelumnya `closed` 150×30 = 5:1, sehingga saat menutup lebar dan
+(468×156). Sebelumnya `closed` 150×30 = 5:1, sehingga saat menutup lebar dan
 tinggi menyusut dengan persentase berbeda (w −64%, h −78%) dan kartu terlihat
 "stretch" melebar di tengah animasi. Terukur sesudah perubahan: rasio setiap
-frame 2,98–3,02 sepanjang 420×140 → 150×50.
+frame 2,98–3,02 sepanjang 468×156 → 150×50.
 
 ## Motion
 
@@ -149,7 +149,7 @@ dan panah tetap di tengah bawah.
 
 ## Pomodoro
 
-Halaman `pomodoro` (kartu 420×140): **ring merah** yang menyusut sesuai sisa
+Halaman `pomodoro` (kartu 468×156): **ring merah** yang menyusut sesuai sisa
 waktu, countdown `MM:SS` besar, label mode, dan tiga pill:
 **mode berikutnya** (memutar siklus), **play/pause**, dan **reset**.
 
@@ -252,7 +252,7 @@ Baris ringkas di halaman idle tetap ada (hanya saat ada device) dan sekarang
 
 ## Jadwal Sholat
 
-Halaman `prayer` (kartu **560×140**) menghitung waktu sholat **lokal tanpa
+Halaman `prayer` (kartu **580×156**) menghitung waktu sholat **lokal tanpa
 jaringan** dari koordinat di `config.js`:
 
 ```js
@@ -541,7 +541,7 @@ tetap memakai body terakhir yang tersimpan (maks 30 id).
 
 ## Water
 
-Halaman `water` (kartu 420×140): judul + **switch pengingat**, baris volume
+Halaman `water` (kartu 468×156): judul + **switch pengingat**, baris volume
 besar (`1.25 / 1.5 L`) dengan **status ringkas di kanan** (`83% · 250 ml lagi`,
 `CenterBox` — Grid tidak ada di AGS dan `hexpand` pada child Box diabaikan),
 progress bar, dan pill **[Minum] [target] [−] [+]**, plus **grafik ml per jam**
@@ -567,7 +567,7 @@ baris 8px supaya progress bar tidak menempel ke teks/pill di atas-bawahnya.
 
 ## Todo
 
-Halaman `todo` (kartu 420×140): judul `Todo List`, counter besar `1/2` +
+Halaman `todo` (kartu 468×156): judul `Todo List`, counter besar `1/2` +
 "Tugas selesai", pill **[+ Tambah] [Ubah]**, dan daftar tugas di kanan
 (checkbox bulat hijau + centang, teks dicoret kalau selesai, due time kalau
 ada).
@@ -702,7 +702,7 @@ Bar volume & brightness di OSD bukan lagi indikator pasif:
 
 ## Pengaturan
 
-Halaman `settings` (kartu **520×220**, tab gear paling kanan) berisi daftar
+Halaman `settings` (kartu **520×232**, tab gear paling kanan) berisi daftar
 baris 24px yang bisa di-scroll; wheel di atas halaman ini menggulir daftar,
 bukan pindah halaman.
 
@@ -747,7 +747,7 @@ di `.env`/`gemini.json` dengan permission terpisah.
 
 ## Shelf
 
-Halaman `shelf` (kartu 420×140): judul `Shelf` + jumlah item + chip
+Halaman `shelf` (kartu 468×156): judul `Shelf` + jumlah item + chip
 **Hapus semua**, dan isinya salah satu dari:
 
 - **Drop zone** (kotak garis putus-putus `380×54`): ikon tray +
@@ -952,7 +952,7 @@ Sampling 16ms selama buka/tutup menangkap empat hal yang lalu diperbaiki:
   watchdog 100ms berikutnya; delay itu yang membatasi.
 
 Interupsi juga diuji: buka 200ms lalu tutup (379×123 → … → 150×50 tanpa
-lompatan) dan tutup 200ms lalu buka lagi (191×47 → … → 420×140).
+lompatan) dan tutup 200ms lalu buka lagi (191×47 → … → 468×156).
 
 Catatan perilaku: **transient hanya memakai geometri peek saat notch tertutup**.
 Kalau pointer sedang hover, konten OSD/notifikasi ditampilkan di dalam kartu
@@ -1350,7 +1350,7 @@ modules/shelf-page.js  halaman shelf (drop zone, kartu file, drag out)
     disposed`) sehingga animasi hover window baru tidak pernah kebagian jalan.
   - Diverifikasi tanpa suspend: `ags -r "...window.close()"` (jalur yang sama
     dengan `gtk_window_close`) dan `...window.destroy()`. Layer kembali dalam
-    ≤200ms (destroy) / ≤2s (watchdog); hover 420x140 tetap bekerja setelah 3
+    ≤200ms (destroy) / ≤2s (watchdog); hover 468x156 tetap bekerja setelah 3
     siklus rebuild; 0 critical; daftar window App tidak dobel.
 - **Hyprland monitor `id` bukan index GdkMonitor.** AGS `Window.monitor`
   memakai index GdkMonitor. Dulu `patchMonitor` dan popup menulis id Hyprland

@@ -6,7 +6,7 @@ import { settings, saveSettings, unmuteApp, OPTIONS } from './settings.js';
 // Sisakan ruang untuk scrollbar; 480 membuat value kanan tertutup scrollbar.
 const ROW_W = 466;
 const PANE_W = 472;
-const PANE_H = 148;
+const PANE_H = 160;
 
 const MODULE_LABELS = [
     ['weather', 'Cuaca'],

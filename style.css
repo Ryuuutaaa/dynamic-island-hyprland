@@ -44,7 +44,7 @@
        apa pun yang digambar di luar kotak widget (shadow) ikut ter-clip.
        Kalau suatu saat mau shadow, beri padding transparan di
        .dyn-island-frame (>= blur) supaya ada ruang gambar. */
-    padding: 3px 12px;
+    padding: 3px 16px;
     /* ukuran (w/h) sepenuhnya diatur index.js lewat set_size_request sesuai
        CONFIG.geometry -> tidak ada min-height di sini. Tidak ada transition:
        GTK3 tidak menganimasikan width/height/border-radius, dan ukurannya
@@ -709,7 +709,7 @@ tooltip > box {
     background: __BG_SOLID__;
     border: 1px solid __SURFACE_STRONG__;
     border-radius: 16px;
-    padding: 12px 14px 10px 14px;
+    padding: 12px 14px 12px 14px;
     box-shadow: 0 8px 24px rgba(0, 0, 0, 0.45);
     font-family: "Ubuntu", "Noto Sans", "DejaVu Sans", sans-serif;
 }
@@ -1687,7 +1687,7 @@ tooltip > box {
 
 .dyn-island-settings-row {
     min-height: 24px;
-    padding: 0px 6px;
+    padding: 0px 8px;
     border-radius: 8px;
     background-color: transparent;
     background-image: none;
