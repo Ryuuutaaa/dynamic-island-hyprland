@@ -28,6 +28,21 @@ export default () => {
     const buildSection = ({ key, title, placeholder }) => {
         const titleLabel = Widget.Label({ className: 'standup-section-title', xalign: 0 });
         const items = Widget.Box({ className: 'standup-items', vertical: true, spacing: 4 });
+        const pane = Widget.Scrollable({
+            className: 'standup-list-pane',
+            hscroll: 'never',
+            vscroll: 'automatic',
+            propagateNaturalHeight: false,
+        });
+        pane.child = items;
+        pane.set_overlay_scrolling(false);
+        const syncPaneHeight = () => {
+            let natural = 0;
+            try { natural = items.get_preferred_height()[1]; } catch (_) { }
+            const height = Math.min(MAX_LIST_HEIGHT, Math.max(0, natural));
+            if (pane.get_allocated_height() !== height)
+                pane.set_size_request(-1, height);
+        };
 
         const entry = Widget.Entry({
             className: 'standup-entry',
@@ -53,7 +68,7 @@ export default () => {
             spacing: 6,
             children: [
                 titleLabel,
-                items,
+                pane,
                 Widget.Box({ className: 'standup-input-row', spacing: 6, children: [entry, add] }),
             ],
         });
@@ -81,6 +96,8 @@ export default () => {
                     }),
                 ],
             }));
+            pane.visible = list.length > 0;
+            Utils.idle(syncPaneHeight);
         };
 
         return { widget, rebuild, entry };
@@ -218,10 +235,8 @@ export default () => {
     });
     win.connect('unmap', () => clearFocusTimers());
 
-    // limit tinggi daftar supaya kartu tidak tumbuh tak terbatas
-    for (const section of sections) {
-        section.widget.set_size_request(-1, -1);
-    }
+    // limit tinggi daftar ditangani per-section oleh pane di buildSection;
+    // jangan set seluruh section ke -1 (itu no-op dan tidak membatasi apa pun).
 
     globalThis.standupWindow = {
         open,

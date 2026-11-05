@@ -1214,6 +1214,25 @@ tooltip > box {
     color: __FG__;
 }
 
+.standup-list-pane,
+.standup-list-pane viewport {
+    background: transparent;
+}
+.standup-list-pane scrollbar {
+    background: transparent;
+    border: none;
+    min-width: 6px;
+}
+.standup-list-pane scrollbar trough {
+    background: transparent;
+    border: none;
+}
+.standup-list-pane scrollbar slider {
+    min-width: 6px;
+    border-radius: 3px;
+    background-color: __SURFACE_STRONG__;
+}
+
 .standup-remove {
     background: transparent;
     border-radius: 6px;
