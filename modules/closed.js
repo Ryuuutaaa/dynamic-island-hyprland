@@ -25,6 +25,16 @@ const BAR_GAP = 2;
 const BARS_H = 14;
 const BARS_W = BARS * BAR_W + (BARS - 1) * BAR_GAP;
 
+// Ikon untuk indikator teks di notch tertutup. Musik memakai equalizer, jadi
+// tidak punya ikon terpisah; tanggal juga tidak perlu ikon.
+const ACTIVITY_ICONS = {
+    pomodoro: '\uf252',
+    todo: '\uf0ae',
+    water: '\uf043',
+    timer: '\uf2f2',
+    weather: '\uf0c2',
+};
+
 const FG = hexToRgb(palette.fg);
 const ACCENT = hexToRgb(palette.accent2);
 // saat mengisi daya busur memakai warna "ok" (bisa di-override wallust)
@@ -113,24 +123,52 @@ export default () => {
         className: 'dyn-island-closed-time',
         label: formatClock(),
     }));
-    // Saat tidak ada musik, equalizer cuma stub redup (tidak informatif), jadi
-    // ruangnya dipakai untuk tanggal — satu-satunya tempat tanggal tampil
-    // (modul clock waybar sudah dihapus untuk memberi ruang ke notch).
-    const date = Widget.Label({
-        className: 'dyn-island-closed-date',
-        label: formatDateShort(),
+    // Satu label aktivitas menggantikan lima label terpisah: hanya satu yang
+    // terlihat, dan natural width-nya tidak lagi menjumlahkan semua indikator
+    // (itu yang dulu membuat window closed melebar).
+    const activity = tabular(Widget.Label({
+        className: 'dyn-island-closed-activity',
+        visible: false,
+        truncate: 'end',
+        maxWidthChars: 10,
+    }));
+    const activityIcon = Widget.Label({
+        className: 'dyn-island-closed-activity-icon',
         visible: false,
     });
-    // Sisa waktu pomodoro: menggantikan tanggal saat sesi fokus/istirahat
-    // aktif (musik tetap prioritas tertinggi lewat equalizer).
-    const todoLabel = tabular(Widget.Label({ className: 'dyn-island-closed-pomo', visible: false }));
-    const waterLabel = tabular(Widget.Label({ className: 'dyn-island-closed-pomo', visible: false }));
-    const pomo = tabular(Widget.Label({
-        className: 'dyn-island-closed-pomo',
-        visible: false,
-        setup: self => self.set_no_show_all(true),
-    }));
     const eq = Equalizer();
+
+    // Garis progres 2px di dasar notch: hanya untuk sesi yang punya durasi
+    // (pomodoro / timer), bukan stopwatch atau musik.
+    const progress = Widget.DrawingArea({
+        className: 'dyn-island-closed-progress',
+        halign: Gtk.Align.CENTER,
+        valign: Gtk.Align.END,
+        setup: self => {
+            self.set_size_request(124, 2);
+            self.active = false;
+            self.fraction = 0;
+            self.setProgress = (active, fraction) => {
+                const next = Math.max(0, Math.min(1, Number(fraction) || 0));
+                if (self.active === active && Math.abs(self.fraction - next) < 0.001) return;
+                self.active = active;
+                self.fraction = next;
+                self.queue_draw();
+            };
+        },
+        drawFn: (self, cr, width, height) => {
+            if (!self.active) return;
+            const barHeight = Math.max(1, height);
+            const radius = barHeight / 2;
+            cr.setSourceRGBA(FG[0], FG[1], FG[2], 0.16);
+            roundedRect(cr, 0, 0, width, barHeight, radius);
+            cr.fill();
+            if (self.fraction <= 0) return;
+            cr.setSourceRGBA(ACCENT[0], ACCENT[1], ACCENT[2], 0.95);
+            roundedRect(cr, 0, 0, Math.max(barHeight, width * self.fraction), barHeight, radius);
+            cr.fill();
+        },
+    });
 
     const mmss = seconds => {
         const total = Math.max(0, Math.floor(Number(seconds) || 0));
@@ -151,13 +189,9 @@ export default () => {
     const INDICATORS = (CONFIG.closedIndicators ?? ['music', 'pomodoro', 'todo', 'date'])
         .filter(name => ['music', 'pomodoro', 'timer', 'todo', 'water', 'weather', 'date'].includes(name));
 
-    const syncPomo = () => {
-        pomo.label = mmss(pomodoro.value.remaining);
-    };
-
     const syncClock = () => {
         time.label = formatClock();
-        date.label = formatDateShort();
+        syncMode();
     };
 
     // Hanya SATU indikator kontekstual yang tampil (plus jam & ring baterai)
@@ -181,28 +215,45 @@ export default () => {
         for (const name of INDICATORS) {
             if (values[name]) { chosen = name; break; }
         }
-        eq.visible = chosen === 'music';
-        pomo.visible = chosen === 'pomodoro';
-        todoLabel.visible = chosen === 'todo';
-        waterLabel.visible = chosen === 'water';
-        date.visible = chosen === 'date';
-        if (chosen === 'pomodoro') syncPomo();
-        if (chosen === 'todo') todoLabel.label = values.todo;
-        if (chosen === 'water') waterLabel.label = values.water;
+        const music = chosen === 'music';
+        eq.visible = music;
+        activity.visible = !music;
+        activity.label = music ? '' : (values[chosen] || '');
+        const icon = ACTIVITY_ICONS[chosen] || '';
+        activityIcon.label = icon;
+        activityIcon.visible = !music && !!icon;
+
+        const pomodoroState = pomodoro.value;
+        const timerValue = timerState.value;
+        let barActive = false;
+        let fraction = 0;
+        if (chosen === 'pomodoro' && pomodoroState.total > 0) {
+            barActive = true;
+            fraction = pomodoroState.remaining / pomodoroState.total;
+        } else if (chosen === 'timer' && timerValue.mode === 'timer' && timerValue.total > 0) {
+            barActive = true;
+            fraction = timerValue.remaining / timerValue.total;
+        }
+        progress.setProgress(barActive, fraction);
     };
 
-    return Widget.Box({
+    const content = Widget.Box({
         className: 'dyn-island-closed',
-        spacing: 8,
+        spacing: 4,
         halign: Gtk.Align.CENTER,
         valign: Gtk.Align.CENTER,
-        children: [BatteryRing(), time, date, pomo, todoLabel, waterLabel, eq],
+        children: [BatteryRing(), time, activityIcon, activity, eq],
+    });
+
+    return Widget.Overlay({
+        child: content,
+        overlays: [progress],
         setup: self => {
             syncMode();
             self.hook(Mpris, syncMode, 'changed');
             self.hook(Mpris, syncMode, 'player-changed');
             // remaining dipublikasikan tiap detik oleh modul pomodoro
-            self.hook(pomodoro, () => { syncMode(); syncPomo(); });
+            self.hook(pomodoro, syncMode);
             self.hook(todo, syncMode);
             self.hook(water, syncMode);
             self.hook(weather, syncMode);

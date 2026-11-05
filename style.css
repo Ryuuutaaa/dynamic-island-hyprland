@@ -105,15 +105,15 @@ tooltip > box {
     font-weight: 600;
     color: __FG__;
 }
-/* tanggal kecil: tampil saat tidak ada musik, menggantikan equalizer yang
-   hanya berupa stub redup dan tidak informatif */
-.dyn-island-closed-pomo {
+/* satu-satunya teks aktivitas di samping jam (tanggal, sisa pomodoro,
+   jumlah tugas, air, timer, atau suhu) */
+.dyn-island-closed-activity {
     font-size: 11px;
     font-weight: 600;
     color: __MUTED__;
 }
 
-.dyn-island-closed-date {
+.dyn-island-closed-activity-icon {
     font-size: 11px;
     color: __MUTED__;
 }

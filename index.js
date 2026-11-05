@@ -242,6 +242,12 @@ function DynamicIsland() {
         },
     });
 
+    // AGS Stack bisa melewati `shown='closed'` di setup saat child-nya bukan
+    // Box biasa (Closed() sekarang Overlay untuk hairline progres), sehingga
+    // konten idle tampil di window 329x74. Setelah konstruksi, setter-nya
+    // terbukti bekerja; paksa state awal tertutup di sini.
+    stack.shown = 'closed';
+
     // Wadah clipping untuk width DAN height: propagate natural dimatikan
     // supaya ukuran notch bisa dianimasikan / lebih kecil dari konten
     // (kontennya dipotong, sama seperti notch asli).
@@ -655,6 +661,11 @@ function DynamicIsland() {
     };
 
     const syncContent = () => {
+        // Jangan restart fade-out close yang sedang berjalan. Sebelum ini,
+        // sync() yang datang beruntun (hover/page) menghapus swapTimer dan
+        // menghentikan ramp, sehingga Stack bisa tertahan di halaman terakhir
+        // dan window tidak kembali ke 170x50.
+        if (target === GEO.closed && fadeOut) return;
         if (swapTimer) {
             GLib.source_remove(swapTimer);
             swapTimer = 0;
@@ -872,6 +883,11 @@ function DynamicIsland() {
         nav.visible = false;
         navActive = false;
         syncSubmap();
+        // Setter `shown` di setup/konstruksi bisa diabaikan saat Stack
+        // di-realize dengan child Overlay; setelah map, setter terbukti
+        // bekerja. Ini mengembalikan window ke 170x50 saat start/rebuild.
+        stack.shown = 'closed';
+        stack.set_opacity(1);
     });
     // Teardown: lepas semua yang hidup di luar umur window (lihat bindVariable
     // dan komentar di atasnya), hentikan animasi/timer yang masih menunjuk

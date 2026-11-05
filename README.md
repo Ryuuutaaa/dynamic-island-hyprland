@@ -9,7 +9,7 @@ hover**: sudut atas rata menempel layar, hanya sudut bawah melengkung, plus
 
 | State | Pemicu | Ukuran notch | Telinga | Isi |
 |---|---|---|---|---|
-| **closed** | default | **150×50** | 10 | ring baterai + jam + equalizer 5 bar |
+| **closed** | default | **150×50** | 10 | ring baterai + jam + satu activity strip (equalizer/ikon+teks) + hairline progres pomodoro/timer |
 | **expanded** | pointer hover | **420×140** | 22 | halaman aktif sebagai kartu + navigasi |
 | **peek** | OSD / notifikasi | **240×80** | 13 | volume / brightness / notifikasi |
 
@@ -17,13 +17,15 @@ Prioritas: `peek` (transient) menang atas `expanded`, `expanded` menang atas
 `closed`. Semua angka itu ada di `config.js` → `geometry`.
 
 **Notch tertutup tenang:** di samping jam dan ring baterai hanya tampil **satu**
-indikator kontekstual. Urutannya di `config.js` → `closedIndicators`
+activity strip kontekstual. Urutannya di `config.js` → `closedIndicators`
 (default `['music', 'pomodoro', 'todo', 'date']`): indikator pertama yang aktif
-yang dipakai, sisanya disembunyikan. Pilihan: `music` (equalizer), `pomodoro`
-(sisa waktu), `todo` (hanya tugas yang punya jam — "hampir jatuh tempo"),
-`timer` (sisa timer/stopwatch), `water` (progres air), `weather` (suhu), dan
-`date` sebagai fallback. Prinsipnya "kaya tapi tenang": menambah modul tidak
-menumpuk isi notch.
+yang dipakai, sisanya tidak terlihat. Pilihan: `music` (equalizer), `pomodoro`
+(ikon hourglass + sisa waktu + hairline), `todo` (ikon daftar + jumlah tugas
+yang punya jam), `timer` (ikon stopwatch + sisa waktu + hairline), `water`
+(ikon droplet + progres air), `weather` (ikon cloud + suhu), dan `date` sebagai
+fallback tanpa ikon. Semua memakai satu label aktivitas, jadi natural width
+tidak menjumlahkan lima label saat window dihitung. Prinsipnya "kaya tapi
+tenang": menambah modul tidak menumpuk isi notch.
 
 **Glow album art:** saat musik diputar, notch mengambil **warna dominan cover**
 (`modules/cover-color.js`: sampel 24×24, bobot saturasi, buang piksel hampir
@@ -62,7 +64,7 @@ frame 2,98–3,02 sepanjang 420×140 → 150×50.
 
 | Page | Isi |
 |---|---|
-| `closed` | ring baterai (Cairo) + jam + **tanggal** (`19 Okt`) saat tidak ada musik, atau equalizer saat playing; kalau ada sesi pomodoro, notch menampilkan `HH:MM · MM:SS` (jam + sisa waktu) |
+| `closed` | ring baterai (Cairo) + jam + satu activity strip: equalizer saat musik, atau ikon + teks (tanggal, sisa pomodoro, tugas, air, timer, suhu); hairline 2px di dasar notch untuk pomodoro/timer |
 | `idle` | **jam besar + tanggal** + kolom ringkas: baterai, `X/Y tugas`, `ml / goal L`, dan bar Bluetooth (hanya saat ada device terhubung; **klik untuk buka halaman bluetooth**) |
 | `media` | album art 72px + judul + artis + progress bar (area seek 24px) + elapsed/total + nama app sumber + prev/play/next + tombol lirik |
 | `media` → lirik | **sub-tampilan** (bukan halaman nav): kiri album art + judul + progress + kontrol, kanan daftar lirik sinkron |
