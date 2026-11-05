@@ -106,7 +106,7 @@ const buildUrl = () => {
     return `${API}?latitude=${latitude}&longitude=${longitude}`
         + '&current=temperature_2m,apparent_temperature,is_day,weather_code,'
         + 'wind_speed_10m,relative_humidity_2m'
-        + '&hourly=temperature_2m,weather_code'
+        + '&hourly=temperature_2m,weather_code,is_day'
         + '&daily=weather_code,temperature_2m_max,temperature_2m_min'
         + '&timezone=auto&forecast_days=5'
         + `&temperature_unit=${unit}&wind_speed_unit=kmh`;
@@ -133,6 +133,7 @@ export async function refreshWeather() {
             time,
             temp: Math.round(data.hourly.temperature_2m?.[index] ?? 0),
             code: data.hourly.weather_code?.[index] ?? 0,
+            isDay: !!Number(data.hourly.is_day?.[index] ?? 1),
         }));
         const value = {
             ok: true,

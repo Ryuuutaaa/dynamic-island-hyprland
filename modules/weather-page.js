@@ -21,6 +21,34 @@ const clockOf = epoch => {
     return `${String(date.getHours()).padStart(2, '0')}:${String(date.getMinutes()).padStart(2, '0')}`;
 };
 
+const hourOf = iso => {
+    const date = new Date(iso);
+    return Number.isNaN(date.getTime())
+        ? ''
+        : `${String(date.getHours()).padStart(2, '0')}:00`;
+};
+
+const hourCell = hour => Widget.Box({
+    className: 'dyn-island-weather-hour',
+    spacing: 4,
+    halign: Gtk.Align.CENTER,
+    valign: Gtk.Align.CENTER,
+    children: [
+        Widget.Label({
+            className: 'dyn-island-weather-hour-time',
+            label: hourOf(hour.time),
+        }),
+        Widget.Label({
+            className: 'dyn-island-weather-hour-glyph',
+            label: glyphFor(hour.code, hour.isDay !== false),
+        }),
+        tabular(Widget.Label({
+            className: 'dyn-island-weather-hour-temp',
+            label: `${hour.temp}°`,
+        })),
+    ],
+});
+
 const dayTile = value => Widget.Box({
     className: 'dyn-island-weather-tile',
     vertical: true,
@@ -46,6 +74,12 @@ export default () => {
     const condition = Widget.Label({ className: 'dyn-island-weather-condition', xalign: 0 });
     const place = Widget.Label({ className: 'dyn-island-weather-place', xalign: 0 });
     const days = Widget.Box({ className: 'dyn-island-weather-days', spacing: 6 });
+    const hours = Widget.Box({
+        className: 'dyn-island-weather-hours',
+        spacing: 6,
+        halign: Gtk.Align.CENTER,
+        visible: false,
+    });
     const retry = Widget.Button({
         className: 'dyn-island-chip dyn-island-weather-retry',
         child: Widget.Label({ className: 'dyn-island-chip-label', label: 'Muat ulang' }),
@@ -76,10 +110,20 @@ export default () => {
             max: day.max,
             min: day.min,
         }));
+
+        const now = Date.now();
+        const upcoming = (value.hourly || [])
+            .filter(hour => {
+                const stamp = new Date(hour.time).getTime();
+                return Number.isFinite(stamp) && stamp > now;
+            })
+            .slice(0, 3);
+        hours.children = upcoming.map(hourCell);
+        hours.visible = has && upcoming.length > 0;
     };
 
-    return Widget.Box({
-        className: 'dyn-island-weather',
+    const main = Widget.Box({
+        className: 'dyn-island-weather-main',
         spacing: 14,
         valign: Gtk.Align.CENTER,
         children: [
@@ -103,6 +147,14 @@ export default () => {
             days,
             retry,
         ],
+    });
+
+    return Widget.Box({
+        className: 'dyn-island-weather',
+        vertical: true,
+        spacing: 3,
+        valign: Gtk.Align.CENTER,
+        children: [main, hours],
         setup: self => {
             sync();
             self.hook(weather, sync);

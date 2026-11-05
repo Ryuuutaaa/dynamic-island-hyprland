@@ -1300,6 +1300,30 @@ tooltip > box {
     padding-bottom: 1px;
 }
 
+.dyn-island-weather-hour {
+    min-height: 24px;
+    padding: 0px 8px;
+    border-radius: 8px;
+    background: __SURFACE_DIM__;
+}
+
+.dyn-island-weather-hour-time {
+    font-size: 9.5px;
+    color: __MUTED__;
+}
+
+.dyn-island-weather-hour-glyph {
+    font-family: "JetBrainsMono Nerd Font", "Ubuntu", sans-serif;
+    font-size: 13px;
+    color: __ACCENT__;
+}
+
+.dyn-island-weather-hour-temp {
+    font-size: 13px;
+    font-weight: 700;
+    color: __FG__;
+}
+
 .dyn-island-weather-tile {
     background: __SURFACE__;
     border-radius: 12px;
