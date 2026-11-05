@@ -181,7 +181,7 @@ tooltip > box {
 
 /* ── idle (jam besar + tanggal + ringkasan status) ───────────── */
 .dyn-island-idle-time {
-    font-size: 46px;
+    font-size: 38px;
     font-weight: 700;
     letter-spacing: 1px;
     color: __FG__;
@@ -343,7 +343,7 @@ tooltip > box {
     min-width: 176px;
 }
 .dyn-island-media-title {
-    font-size: 15px;
+    font-size: 13px;
     font-weight: 700;
     color: __FG__;
 }
@@ -445,7 +445,7 @@ tooltip > box {
     color: __MUTED__;
 }
 .dyn-island-pomo-time {
-    font-size: 32px;
+    font-size: 38px;
     font-weight: 700;
     color: __FG__;
 }
@@ -1032,7 +1032,7 @@ tooltip > box {
     padding: 7px 10px;
 }
 .gemini-chat .dyn-island-chat-text {
-    font-size: 12.5px;
+    font-size: 13px;
 }
 
 /* chip teks di dalam area pesan (mis. tombol Ulangi) */
@@ -1081,7 +1081,7 @@ tooltip > box {
 }
 
 .dyn-island-pomo-osd-time {
-    font-size: 28px;
+    font-size: 38px;
     font-weight: 700;
     color: __FG__;
     transition: color 260ms ease;
@@ -1136,7 +1136,7 @@ tooltip > box {
 }
 
 .standup-title {
-    font-size: 15px;
+    font-size: 13px;
     font-weight: 700;
     color: __FG__;
 }
@@ -1277,7 +1277,7 @@ tooltip > box {
 }
 
 .dyn-island-weather-temp {
-    font-size: 36px;
+    font-size: 38px;
     font-weight: 700;
     letter-spacing: -0.5px;
     color: __FG__;
@@ -1330,7 +1330,7 @@ tooltip > box {
 
 /* ── Timer v3 ─────────────────────────────────────────────────── */
 .dyn-island-timer-time {
-    font-size: 36px;
+    font-size: 38px;
     font-weight: 700;
     letter-spacing: -1px;
     color: __FG__;
@@ -1449,7 +1449,7 @@ tooltip > box {
 }
 
 .dyn-island-stats-value {
-    font-size: 24px;
+    font-size: 22px;
     font-weight: 700;
     letter-spacing: -0.4px;
     color: __FG__;
