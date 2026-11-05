@@ -68,11 +68,11 @@ frame 2,98–3,02 sepanjang 420×140 → 150×50.
 | `idle` | **jam besar + tanggal** + kolom ringkas: baterai, `X/Y tugas`, `ml / goal L`, dan bar Bluetooth (hanya saat ada device terhubung; **klik untuk buka halaman bluetooth**) |
 | `media` | album art 72px + judul + artis + progress bar (area seek 24px) + elapsed/total + nama app sumber + prev/play/next + tombol lirik |
 | `media` → lirik | **sub-tampilan** (bukan halaman nav): kiri album art + judul + progress + kontrol, kanan daftar lirik sinkron |
-| `weather` | cuaca Open-Meteo: kondisi sekarang (glyph, suhu, terasa, angin, kelembapan) + 3 hari ke depan |
-| `pomodoro` | ring merah 88px menyusut + countdown 32px + pill (mode berikutnya, play, reset); umpan balik aksi muncul sebagai **kartu OSD kanan atas**, bukan mengembangkan notch |
+| `weather` | cuaca Open-Meteo: kondisi sekarang + 3 hari ke depan; saat feed gagal muncul tombol **Muat ulang** di kanan |
+| `pomodoro` | ring merah 88px menyusut + countdown 38px + pill (mode berikutnya, play, reset); umpan balik aksi muncul sebagai **kartu OSD kanan atas**, bukan mengembangkan notch |
 | `timer` | timer bebas (preset 1–60 menit) + stopwatch: waktu besar, mode, preset, play/pause, reset |
-| `stats` | CPU / RAM / suhu dengan bar, plus footer memori, swap, load, uptime, dan disk `/` + `/home` |
-| `water` | volume harian, progress, switch pengingat, grafik ml per jam |
+| `stats` | kartu CPU / RAM / suhu dengan bar, detail per kartu, dan footer **disk / + swap** terpisah |
+| `water` | volume harian, progress, switch pengingat, grafik ml per jam dengan label 9.5px (tiap 2 jam agar tidak bertumpuk) |
 | `todo` | checkmark hijau + strikethrough, counter `X/Y`, pill Tambah/Ubah |
 | `standup` | ringkasan daily standup (`Tersimpan · kemarin 2 · hari ini 1 · blocker 1`) + pill **Isi/Lihat** yang membuka popup tiga daftar |
 | `shelf` | drop zone putus-putus + kartu file (thumbnail, nama, ukuran) |
