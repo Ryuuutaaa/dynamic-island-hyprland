@@ -104,7 +104,7 @@ const addActions = (item, actionRow, dismiss) => {
             label: isInstall(label) ? '\uf019' : truncate(label, 16),
         }),
         onClicked: () => {
-            if (item.id) invokeAction(item.id, key);
+            if (item.id) invokeAction(item.id, key, item.app);
             dismiss(item);
         },
     }));
@@ -354,7 +354,7 @@ export default () => {
 
     const open = item => {
         if (item.id) {
-            invokeAction(item.id, 'default');
+            invokeAction(item.id, 'default', item.app);
             dismiss(item);
             return;
         }

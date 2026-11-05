@@ -339,12 +339,14 @@ export function registerLocalAction(app, handler) {
     if (app && handler) localActions.set(app, handler);
 }
 
-export function invokeAction(id, key) {
+export function invokeAction(id, key, appHint = null) {
     if (!id || !key) return;
     // Aplikasi kita sendiri bisa punya beberapa aksi (mis. 'default' untuk
     // membuka, 'snooze' untuk menunda). Semua key diteruskan ke handler.
+    // `appHint` = app dari kartu yang diklik: dengan tumpukan notifikasi,
+    // `latest` bisa berasal dari aplikasi lain, jadi jangan memakai latest.
     {
-        const app = latest?.value?.app;
+        const app = appHint || latest?.value?.app;
         const handler = app ? localActions.get(app) : null;
         if (handler) {
             try { handler(key); } catch (error) { console.error('[dyn-island] aksi lokal gagal:', error); }

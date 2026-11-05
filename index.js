@@ -1069,6 +1069,10 @@ dyn.standupWindow = globalThis.standupWindow;
 registerLocalAction('Wellness', onWellnessAction);
 dyn.standupWinWidget = standupWin;
 registerLocalAction('Standup', () => globalThis.standupWindow?.toggle?.());
+// Notifikasi timer/pomodoro/water/prayer/calendar memakai app "Notch" dan
+// sebagian menulis "klik untuk membuka island"; registry ini yang menjalankan
+// janji tersebut (default action-nya membuka paksa island).
+registerLocalAction('Notch', () => toggleOpen(true));
 scheduleStandupReminder();
 // Cuaca hanya di-poll kalau modulnya aktif (prinsip: tanpa request diam-diam).
 if (CONFIG.modules?.weather !== false) watchWeather();

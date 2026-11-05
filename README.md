@@ -406,6 +406,11 @@ bar 10px, bar 310×3 (selebar isi kartu), sisa bawah 11px. Lebar kartu dipatok
 - **Klik badan** → sinyal `ActionInvoked(<id>, "default")` (dikirim lewat
   `gdbus emit`), jadi aplikasi sumber melakukan aksinya — WhatsApp membuka
   chat, dsb. Tanpa id → fallback fokus window aplikasi berdasarkan app name.
+- **Notifikasi `Notch`** (timer/pomodoro/water/prayer/calendar) memakai
+  `registerLocalAction('Notch', ...)`; klik badan membuka island, sesuai teks
+  "klik untuk membuka island" pada notifikasi timer. `invokeAction(id, key, app)`
+  menerima app dari kartu yang diklik, jadi aksi tidak salah sasaran saat
+  tumpukan berisi beberapa aplikasi.
 - **Tombol X** → `CloseNotification(<id>)` ke daemon (ikut hilang dari control
   center), kartu itu dibuang dari tumpukan; kartu di bawahnya naik jadi kartu
   terbaru dan timer dihitung ulang. Tumpukan kosong → slide keluar.
