@@ -114,12 +114,34 @@ export default () => {
     // Tombol header mengikuti pola baku: ikon persegi 26px, tanpa latar sampai
     // hover. Aksi destruktif (hapus riwayat) dipisah dari tombol tutup dan
     // hanya ditampilkan bila memang ada riwayat untuk dihapus.
+    let clearArmed = false;
+    let clearTimer = 0;
+    const clearIcon = Widget.Label({ className: 'gemini-chat-icon-label', label: '\uf1f8' });
     const clearBtn = Widget.Button({
         className: 'gemini-chat-icon-btn gemini-chat-clear',
         valign: Gtk.Align.CENTER,
         tooltipText: 'Hapus riwayat chat (API key tidak dihapus)',
-        child: Widget.Label({ className: 'gemini-chat-icon-label', label: '\uf1f8' }),
-        onClicked: () => clearChat(),
+        child: clearIcon,
+        onClicked: () => {
+            if (clearArmed) {
+                clearArmed = false;
+                if (clearTimer) GLib.source_remove(clearTimer);
+                clearTimer = 0;
+                clearIcon.label = '\uf1f8';
+                clearBtn.tooltipText = 'Hapus riwayat chat (API key tidak dihapus)';
+                clearChat();
+                return;
+            }
+            clearArmed = true;
+            clearIcon.label = '\uf00c';
+            clearBtn.tooltipText = 'Klik lagi untuk menghapus riwayat';
+            clearTimer = Utils.timeout(2500, () => {
+                clearArmed = false;
+                clearTimer = 0;
+                clearIcon.label = '\uf1f8';
+                clearBtn.tooltipText = 'Hapus riwayat chat (API key tidak dihapus)';
+            }, clearBtn);
+        },
     });
 
     const closeBtn = Widget.Button({

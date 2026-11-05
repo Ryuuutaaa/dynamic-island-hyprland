@@ -1,3 +1,4 @@
+import GLib from 'gi://GLib';
 import Gtk from 'gi://Gtk?version=3.0';
 import Widget from 'resource:///com/github/Aylur/ags/widget.js';
 import * as Utils from 'resource:///com/github/Aylur/ags/utils.js';
@@ -78,18 +79,34 @@ const TaskRow = (task, editMode) => {
 
     if (!editMode) return button;
 
+    let armed = false;
+    let resetTimer = 0;
+    const removeIcon = Widget.Label({ className: 'dyn-island-todo-remove-label', label: '\uf00d' });
+    const removeButton = Widget.Button({
+        className: 'dyn-island-todo-remove',
+        tooltipText: `Hapus: ${task.text}`,
+        child: removeIcon,
+        onClicked: () => {
+            if (armed) {
+                if (resetTimer) GLib.source_remove(resetTimer);
+                removeTask(task.id);
+                return;
+            }
+            armed = true;
+            removeIcon.label = '\uf00c';
+            removeButton.tooltipText = 'Klik lagi untuk menghapus tugas';
+            resetTimer = Utils.timeout(2500, () => {
+                armed = false;
+                resetTimer = 0;
+                removeIcon.label = '\uf00d';
+                removeButton.tooltipText = `Hapus: ${task.text}`;
+            }, removeButton);
+        },
+    });
     return Widget.Box({
         className: 'dyn-island-todo-rowline',
         spacing: 2,
-        children: [
-            button,
-            Widget.Button({
-                className: 'dyn-island-todo-remove',
-                tooltipText: 'Hapus tugas',
-                child: Widget.Label({ className: 'dyn-island-todo-remove-label', label: '\uf00d' }),
-                onClicked: () => removeTask(task.id),
-            }),
-        ],
+        children: [button, removeButton],
     });
 };
 

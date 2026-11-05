@@ -1,3 +1,4 @@
+import GLib from 'gi://GLib';
 import Gtk from 'gi://Gtk?version=3.0';
 import Widget from 'resource:///com/github/Aylur/ags/widget.js';
 import * as Utils from 'resource:///com/github/Aylur/ags/utils.js';
@@ -117,13 +118,35 @@ export default () => {
         label: `Gemini · ${modelLabel()}`,
         xalign: 0,
     });
+    let clearArmed = false;
+    let clearTimer = 0;
+    const clearLabel = Widget.Label({ className: 'dyn-island-chip-label', label: 'Hapus' });
     const clear = Widget.Button({
         className: 'dyn-island-chip',
         halign: Gtk.Align.END,
         valign: Gtk.Align.CENTER,
         tooltipText: 'Hapus riwayat chat (tidak menghapus API key)',
-        child: Widget.Label({ className: 'dyn-island-chip-label', label: 'Hapus' }),
-        onClicked: () => clearChat(),
+        child: clearLabel,
+        onClicked: () => {
+            if (clearArmed) {
+                clearArmed = false;
+                if (clearTimer) GLib.source_remove(clearTimer);
+                clearTimer = 0;
+                clearLabel.label = 'Hapus';
+                clear.tooltipText = 'Hapus riwayat chat (tidak menghapus API key)';
+                clearChat();
+                return;
+            }
+            clearArmed = true;
+            clearLabel.label = 'Yakin?';
+            clear.tooltipText = 'Klik lagi untuk menghapus riwayat';
+            clearTimer = Utils.timeout(2500, () => {
+                clearArmed = false;
+                clearTimer = 0;
+                clearLabel.label = 'Hapus';
+                clear.tooltipText = 'Hapus riwayat chat (tidak menghapus API key)';
+            }, clear);
+        },
         setup: self => self.set_no_show_all(true),
     });
     const head = Widget.CenterBox({

@@ -89,11 +89,33 @@ export default () => {
                         wrap: true,
                         maxWidthChars: 52,
                     }),
-                    Widget.Button({
-                        className: 'standup-remove',
-                        child: Widget.Label({ label: '\uf00d' }),
-                        onClicked: () => removeItem(key, index),
-                    }),
+                    (() => {
+                        let armed = false;
+                        let resetTimer = 0;
+                        const icon = Widget.Label({ label: '\uf00d' });
+                        const remove = Widget.Button({
+                            className: 'standup-remove',
+                            tooltipText: 'Hapus item',
+                            child: icon,
+                            onClicked: () => {
+                                if (armed) {
+                                    if (resetTimer) GLib.source_remove(resetTimer);
+                                    removeItem(key, index);
+                                    return;
+                                }
+                                armed = true;
+                                icon.label = '\uf00c';
+                                remove.tooltipText = 'Klik lagi untuk menghapus item';
+                                resetTimer = Utils.timeout(2500, () => {
+                                    armed = false;
+                                    resetTimer = 0;
+                                    icon.label = '\uf00d';
+                                    remove.tooltipText = 'Hapus item';
+                                }, remove);
+                            },
+                        });
+                        return remove;
+                    })(),
                 ],
             }));
             pane.visible = list.length > 0;
