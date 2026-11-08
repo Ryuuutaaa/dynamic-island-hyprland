@@ -3,7 +3,7 @@ import Gdk from 'gi://Gdk?version=3.0';
 import Widget from 'resource:///com/github/Aylur/ags/widget.js';
 import Audio from 'resource:///com/github/Aylur/ags/service/audio.js';
 import Bluetooth from 'resource:///com/github/Aylur/ags/service/bluetooth.js';
-import { glyphFor, primaryDevice } from './bluetooth.js';
+import { glyphFor, primaryDevice, sinkFor } from './bluetooth.js';
 import { eventButton, eventX } from './pointer.js';
 import { page } from '../state.js';
 import { palette, hexToRgb } from '../theme.js';
@@ -12,39 +12,17 @@ import { tabular } from './type.js';
 
 const FG = hexToRgb(palette.fg);
 const ACCENT = hexToRgb(palette.accent2);
-const OK = hexToRgb(palette.ok);
 
 const BLUETOOTH_GLYPH = '\uf293';
-const LIST_W = 190;
-const LIST_H = 64;
+const LIST_W = 200;
+const LIST_H = 70;
 const RIGHT_W = 190;
 
-const batteryGlyph = percent => {
-    if (percent >= 90) return '\uf240';
-    if (percent >= 65) return '\uf241';
-    if (percent >= 40) return '\uf242';
-    if (percent >= 15) return '\uf243';
-    return '\uf244';
-};
+const nameOf = device => device?.name || device?.alias || 'Perangkat';
 
 const volumeGlyph = (muted, volume) => {
     if (muted || volume <= 0) return '\uf026';
     return volume < 0.34 ? '\uf027' : '\uf028';
-};
-
-// Sink audio milik device Bluetooth. Nama sink PipeWire memuat alamat device
-// dengan ':' diganti '_' (bluez_output.64_8F_DB_52_8A_74.1), jadi device yang
-// terhubung bisa dipetakan ke sink yang tepat — bukan sekadar sink default.
-const sinkFor = device => {
-    if (!device) return null;
-    const address = String(device.address ?? '').replace(/:/g, '_').toLowerCase();
-    const sinks = Audio.speakers ?? [];
-    if (address) {
-        const byAddress = sinks.find(s =>
-            String(s.name ?? '').toLowerCase().includes(`bluez_output.${address}`));
-        if (byAddress) return byAddress;
-    }
-    return sinks.find(s => s.description === device.name) ?? null;
 };
 
 // Slider volume: Cairo + click/drag, karena Gtk.Scale diregangkan penuh oleh
@@ -121,48 +99,74 @@ const VolumeSlider = (width, onChange) => {
     return area;
 };
 
-const stateText = device => {
-    if (!device) return '';
-    if (device.connecting) return '…';
-    if (device.connected) {
-        const battery = Number(device.battery_percentage) || 0;
-        return battery > 0 ? `${battery}%` : 'aktif';
-    }
-    return 'terpasang';
-};
-
-const DeviceRow = (device, selected, onSelect) => {
+// Satu baris = satu perangkat. Klik badan memilih (panel kanan ikut berganti),
+// klik badge langsung menyambung / memutus tanpa perlu memilih dulu.
+const DeviceRow = (device, selected, onSelect, onToggle) => {
+    const connected = !!device.connected;
     const icon = Widget.Label({
-        className: 'dyn-island-bt-device-icon',
+        className: `dyn-island-bt-device-icon${connected ? ' is-on' : ''}`,
         label: glyphFor(device),
     });
     const name = Widget.Label({
         className: 'dyn-island-bt-device-name',
-        label: device.name || device.alias || 'Perangkat',
+        label: nameOf(device),
         truncate: 'end',
-        maxWidthChars: 12,
+        maxWidthChars: 14,
         xalign: 0,
     });
-    const state = Widget.Label({
-        className: `dyn-island-bt-device-state${device.connected ? ' on' : ''}`,
-        label: stateText(device),
-        xalign: 1,
+    const badge = Widget.Button({
+        className: `dyn-island-bt-badge${connected ? ' is-on' : ''}`
+            + (device.connecting ? ' is-busy' : ''),
+        child: Widget.Label({
+            className: 'dyn-island-bt-badge-label',
+            label: device.connecting ? '…' : connected ? 'Putus' : 'Sambung',
+        }),
+        sensitive: Bluetooth.enabled && !device.connecting,
+        tooltipText: connected
+            ? `Putuskan ${nameOf(device)}`
+            : `Sambungkan ${nameOf(device)}`,
+        onClicked: () => onToggle(device),
     });
 
-    const row = Widget.Button({
+    const row = Widget.EventBox({
         className: `dyn-island-bt-device${selected ? ' is-selected' : ''}`,
         child: Widget.CenterBox({
-            startWidget: Widget.Box({ spacing: 6, children: [icon, name] }),
-            endWidget: state,
+            startWidget: Widget.Box({ spacing: 7, children: [icon, name] }),
+            endWidget: badge,
         }),
-        onClicked: () => onSelect(device),
+        setup: self => {
+            self.connect('button-press-event', (_w, event) => {
+                if (eventButton(event) !== 1) return false;
+                onSelect(device);
+                return true;
+            });
+        },
     });
-    row.set_size_request(LIST_W - 4, -1);
+    row.set_size_request(LIST_W, -1);
     return row;
 };
 
 export default () => {
     let selectedAddress = null;
+    let userSelected = false;
+    let sink = null;
+
+    // ── kolom kiri: judul + daya + daftar perangkat ─────────────────────────
+    const powerDot = Widget.Label({ className: 'dyn-island-bt-power-dot', label: '●' });
+    const powerLabel = Widget.Label({ className: 'dyn-island-bt-power-label', label: 'Aktif' });
+    const power = Widget.Button({
+        className: 'dyn-island-bt-power',
+        child: Widget.Box({ spacing: 6, children: [powerDot, powerLabel] }),
+        tooltipText: 'Nyalakan / matikan Bluetooth',
+        onClicked: () => Bluetooth.toggle(),
+    });
+    const title = Widget.Label({ className: 'dyn-island-bt-title', label: 'Bluetooth' });
+    const header = Widget.CenterBox({
+        className: 'dyn-island-bt-header',
+        startWidget: title,
+        endWidget: power,
+    });
+    header.set_size_request(LIST_W, -1);
 
     const list = Widget.Box({ className: 'dyn-island-bt-list', vertical: true, spacing: 2 });
     const pane = Widget.Scrollable({
@@ -189,56 +193,47 @@ export default () => {
     };
     pane.connect('scroll-event', (_self, event) => scrollPane(event));
 
-    const powerLabel = Widget.Label({ className: 'dyn-island-chip-label', label: 'Aktif' });
-    const power = Widget.Button({
-        className: 'dyn-island-chip dyn-island-bt-power',
-        child: powerLabel,
-        tooltipText: 'Nyalakan / matikan Bluetooth',
-        onClicked: () => Bluetooth.toggle(),
-    });
-    const title = Widget.Label({ className: 'dyn-island-bt-title', label: 'Bluetooth' });
-    const header = Widget.Box({
-        className: 'dyn-island-bt-header',
-        spacing: 8,
-        children: [title, power],
-    });
-
     const left = Widget.Box({
         className: 'dyn-island-bt-left',
         vertical: true,
-        spacing: 4,
+        spacing: 6,
         widthRequest: LIST_W,
         valign: Gtk.Align.CENTER,
         children: [header, pane],
     });
 
+    // ── kolom kanan: detail perangkat terpilih + volume ───────────────────────
     const icon = Widget.Label({ className: 'dyn-island-bt-icon' });
     const name = Widget.Label({
         className: 'dyn-island-bt-name',
         xalign: 0,
         truncate: 'end',
-        maxWidthChars: 12,
+        maxWidthChars: 14,
     });
     const meta = Widget.Label({
         className: 'dyn-island-bt-meta',
         xalign: 0,
         truncate: 'end',
-        maxWidthChars: 16,
+        maxWidthChars: 18,
     });
-    const actionLabel = Widget.Label({ className: 'dyn-island-chip-label', label: 'Sambung' });
-    const action = Widget.Button({
-        className: 'dyn-island-chip dyn-island-bt-action',
-        child: actionLabel,
-        onClicked: () => {
-            const device = Bluetooth.devices.find(item => item.address === selectedAddress);
-            if (device && Bluetooth.enabled) device.setConnection(!device.connected);
-        },
+    const statusDot = Widget.Label({ className: 'dyn-island-bt-status-dot', label: '●' });
+    const statusText = Widget.Label({ className: 'dyn-island-bt-status-text' });
+    const status = Widget.Box({
+        className: 'dyn-island-bt-status',
+        spacing: 6,
+        valign: Gtk.Align.CENTER,
+        children: [statusDot, statusText],
     });
-    action.set_no_show_all(true);
+    const hint = Widget.Label({
+        className: 'dyn-island-bt-hint',
+        xalign: 0,
+        wrap: true,
+        maxWidthChars: 26,
+    });
 
     const head = Widget.Box({
         className: 'dyn-island-bt-head',
-        spacing: 6,
+        spacing: 10,
         valign: Gtk.Align.CENTER,
         widthRequest: RIGHT_W,
         children: [
@@ -246,18 +241,16 @@ export default () => {
             Widget.Box({
                 className: 'dyn-island-bt-text',
                 vertical: true,
-                spacing: 0,
-                widthRequest: 80,
+                spacing: 1,
+                widthRequest: 132,
                 valign: Gtk.Align.CENTER,
                 children: [name, meta],
             }),
-            action,
         ],
     });
 
     const volText = tabular(Widget.Label({ className: 'dyn-island-bt-vol-text' }));
     const muteLabel = Widget.Label({ className: 'dyn-island-ctl-icon' });
-    let sink = null;
     const muteButton = Widget.Button({
         className: 'dyn-island-ctl',
         tooltipText: 'Bisukan / nyalakan suara',
@@ -268,7 +261,7 @@ export default () => {
             refresh();
         },
     });
-    const slider = VolumeSlider(110, value => {
+    const slider = VolumeSlider(106, value => {
         if (!sink) return;
         if (sink.is_muted) sink.is_muted = false;
         sink.volume = value;
@@ -281,78 +274,113 @@ export default () => {
         widthRequest: RIGHT_W,
         children: [muteButton, slider, volText],
     });
-    volRow.set_no_show_all(true);
 
     const right = Widget.Box({
         className: 'dyn-island-bt-right',
         vertical: true,
-        spacing: 4,
+        spacing: 6,
         widthRequest: RIGHT_W,
         valign: Gtk.Align.CENTER,
-        children: [head, volRow],
+        children: [head, status, volRow, hint],
     });
 
+    for (const widget of [status, volRow, hint])
+        widget.set_no_show_all(true);
+
+    // Pilihan eksplisit user dipertahankan; kalau belum ada (atau perangkatnya
+    // hilang), ikuti perangkat audio yang sedang tersambung — bukan sekadar
+    // entri pertama, supaya panel kanan langsung menampilkan yang aktif.
     const selectedDevice = () => {
         const devices = Bluetooth.devices;
         if (!devices.length) return null;
-        let device = devices.find(item => item.address === selectedAddress);
+        let device = userSelected
+            ? devices.find(item => item.address === selectedAddress)
+            : null;
         if (!device) {
-            const primary = primaryDevice();
-            device = devices.find(item => item.address === primary?.address) ?? devices[0];
+            device = primaryDevice()
+                ?? devices.find(item => item.connected)
+                ?? devices[0];
             selectedAddress = device?.address ?? null;
         }
         return device ?? null;
     };
 
+    const select = device => {
+        userSelected = true;
+        selectedAddress = device.address;
+        refresh();
+    };
+
+    const toggle = device => {
+        if (!Bluetooth.enabled || device.connecting) return;
+        userSelected = true;
+        selectedAddress = device.address;
+        device.setConnection(!device.connected);
+        refresh();
+    };
+
     const refresh = () => {
         const enabled = Bluetooth.enabled;
         powerLabel.label = enabled ? 'Aktif' : 'Mati';
-        power.className = `dyn-island-chip dyn-island-bt-power${enabled ? ' is-on' : ''}`;
+        power.className = `dyn-island-bt-power${enabled ? ' is-on' : ''}`;
+        powerDot.className = `dyn-island-bt-power-dot${enabled ? ' is-on' : ''}`;
 
         const devices = Bluetooth.devices;
+        // Perangkat aktif di atas supaya aksi yang paling sering dipakai dekat.
+        const ordered = devices.slice().sort((a, b) =>
+            (Number(b.connected) - Number(a.connected))
+            || nameOf(a).localeCompare(nameOf(b)));
         const device = selectedDevice();
 
-        list.children = devices.length
-            ? devices.map(item => DeviceRow(item, item.address === device?.address, next => {
-                selectedAddress = next.address;
-                refresh();
-            }))
+        list.children = ordered.length
+            ? ordered.map(item => DeviceRow(
+                item,
+                item.address === device?.address,
+                select,
+                toggle))
             : [Widget.Label({
                 className: 'dyn-island-bt-empty',
-                label: enabled ? 'Tidak ada perangkat paired' : 'Bluetooth nonaktif',
+                label: enabled ? 'Belum ada perangkat' : 'Bluetooth nonaktif',
                 xalign: 0,
             })];
 
         if (!device) {
             icon.label = BLUETOOTH_GLYPH;
-            name.label = 'Tidak ada perangkat';
-            meta.label = enabled ? 'Pasangkan lewat bluetoothctl' : 'Bluetooth nonaktif';
-            action.visible = false;
+            name.label = enabled ? 'Tidak ada perangkat' : 'Bluetooth nonaktif';
+            meta.label = enabled ? 'Tidak ada yang dipasangkan' : 'Nyalakan untuk memakai';
+            status.visible = false;
             volRow.visible = false;
+            hint.visible = true;
+            hint.label = enabled
+                ? 'Pasangkan perangkat lewat bluetoothctl atau pengaturan sistem.'
+                : 'Tekan tombol daya di kiri untuk menyalakan Bluetooth.';
             sink = null;
             return;
         }
 
         icon.label = glyphFor(device);
-        name.label = device.name || device.alias || 'Perangkat';
-        const battery = Number(device.battery_percentage) || 0;
-        meta.label = `${device.type || 'Bluetooth'} · ${device.address}`
-            + (battery > 0 ? ` · ${battery}%` : '');
+        name.label = nameOf(device);
         name.tooltipText = name.label;
+        const battery = Number(device.battery_percentage) || 0;
+        meta.label = (device.type || 'Bluetooth')
+            + (battery > 0 ? ` · baterai ${battery}%` : '');
         meta.tooltipText = meta.label;
 
-        action.visible = enabled;
-        action.sensitive = !device.connecting;
-        actionLabel.label = device.connecting ? '…' : device.connected ? 'Putus' : 'Sambung';
-        if (enabled) {
-            action.show();
-            action.child.show();
-        }
+        status.visible = true;
+        statusDot.className = `dyn-island-bt-status-dot${device.connected ? ' is-on' : ''}`;
+        statusText.label = device.connecting
+            ? 'Menyambungkan…'
+            : device.connected ? 'Tersambung' : 'Tidak tersambung';
 
         sink = device.connected ? sinkFor(device) : null;
         volRow.visible = !!sink;
-        if (!sink) return;
-        volRow.show();
+        hint.visible = !sink;
+        if (!sink) {
+            hint.label = enabled
+                ? 'Tekan Sambung untuk menghubungkan perangkat ini.'
+                : 'Bluetooth sedang nonaktif.';
+            return;
+        }
 
         const volume = Number(sink.volume) || 0;
         slider.setFraction(volume);
@@ -363,7 +391,7 @@ export default () => {
 
     return Widget.Box({
         className: 'dyn-island-bluetooth',
-        spacing: 10,
+        spacing: 12,
         halign: Gtk.Align.CENTER,
         valign: Gtk.Align.CENTER,
         children: [left, right],

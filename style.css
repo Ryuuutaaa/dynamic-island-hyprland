@@ -221,7 +221,10 @@ tooltip > box {
 }
 
 .dyn-island-bluetooth {
-    min-width: 390px;
+    min-width: 402px;
+}
+.dyn-island-bt-header {
+    min-width: 200px;
 }
 .dyn-island-bt-title {
     font-size: 13px;
@@ -229,10 +232,30 @@ tooltip > box {
     color: __FG__;
 }
 .dyn-island-bt-power {
-    padding: 0px 8px;
+    min-height: 22px;
+    padding: 0px 9px;
+    border-radius: 8px;
+    background-color: __SURFACE_DIM__;
+    background-image: none;
+    border: none;
+    box-shadow: none;
+}
+.dyn-island-bt-power:hover {
+    background-color: __SURFACE_HOVER__;
 }
 .dyn-island-bt-power.is-on {
     background-color: __ACCENT_SOFT__;
+}
+.dyn-island-bt-power-dot {
+    font-size: 8px;
+    color: __MUTED__;
+}
+.dyn-island-bt-power-dot.is-on {
+    color: __OK__;
+}
+.dyn-island-bt-power-label {
+    font-size: 10px;
+    color: __FG__;
 }
 .dyn-island-bt-pane,
 .dyn-island-bt-pane viewport,
@@ -241,9 +264,9 @@ tooltip > box {
     border: none;
 }
 .dyn-island-bt-device {
-    min-height: 24px;
-    padding: 0px 4px;
-    border-radius: 8px;
+    min-height: 26px;
+    padding: 0px 6px;
+    border-radius: 9px;
     background-color: transparent;
     background-image: none;
     border: none;
@@ -258,17 +281,36 @@ tooltip > box {
 }
 .dyn-island-bt-device-icon {
     font-size: 13px;
-    color: __ACCENT2__;
+    color: __MUTED__;
+}
+.dyn-island-bt-device-icon.is-on {
+    color: __OK__;
 }
 .dyn-island-bt-device-name {
     font-size: 11px;
     color: __FG__;
 }
-.dyn-island-bt-device-state {
-    font-size: 9.5px;
-    color: __MUTED__;
+.dyn-island-bt-badge {
+    min-height: 20px;
+    min-width: 56px;
+    padding: 0px 8px;
+    border-radius: 7px;
+    background-color: __SURFACE_DIM__;
+    background-image: none;
+    border: none;
+    box-shadow: none;
 }
-.dyn-island-bt-device-state.on {
+.dyn-island-bt-badge:hover {
+    background-color: __SURFACE_HOVER__;
+}
+.dyn-island-bt-badge.is-on {
+    background-color: __SURFACE_STRONG__;
+}
+.dyn-island-bt-badge-label {
+    font-size: 9.5px;
+    color: __FG__;
+}
+.dyn-island-bt-badge.is-on .dyn-island-bt-badge-label {
     color: __OK__;
 }
 .dyn-island-bt-empty {
@@ -280,7 +322,7 @@ tooltip > box {
     min-width: 190px;
 }
 .dyn-island-bt-text {
-    min-width: 80px;
+    min-width: 132px;
 }
 .dyn-island-bt-icon {
     font-size: 26px;
@@ -295,8 +337,23 @@ tooltip > box {
     font-size: 9.5px;
     color: __MUTED__;
 }
-.dyn-island-bt-action {
-    padding: 0px 8px;
+.dyn-island-bt-status {
+    min-height: 14px;
+}
+.dyn-island-bt-status-dot {
+    font-size: 8px;
+    color: __MUTED__;
+}
+.dyn-island-bt-status-dot.is-on {
+    color: __OK__;
+}
+.dyn-island-bt-status-text {
+    font-size: 10px;
+    color: __MUTED__;
+}
+.dyn-island-bt-hint {
+    font-size: 10px;
+    color: __MUTED__;
 }
 .dyn-island-bt-vol {
     min-width: 190px;

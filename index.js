@@ -49,7 +49,7 @@ import {
 } from './modules/water.js';
 import { pomodoro, MODES as pomodoroModes, setMode as pomodoroSetMode, toggleRunning as pomodoroToggle, reset as pomodoroReset } from './modules/pomodoro.js';
 import { watchLyrics, lyrics as lyricsStore, retryLyrics } from './modules/lyrics.js';
-import { btPreview } from './modules/bluetooth.js';
+import { btPreview, watchAudioRouting } from './modules/bluetooth.js';
 import { focusedRect, refresh as refreshMonitors, followFocused, applyFocused } from './modules/monitor.js';
 import { onResume } from './modules/timefmt.js';
 import ClickAway from './modules/clickaway.js';
@@ -1202,6 +1202,7 @@ dyn.syncMirrors = syncMirrors;
 try {
     watchMpris();
     watchNotifications();
+    watchAudioRouting();
     const gdkDisplay = Gdk.Display.get_default();
     if (gdkDisplay) {
         gdkDisplay.connect('monitor-added', () => mountMirrors());

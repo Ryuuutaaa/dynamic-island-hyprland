@@ -1,5 +1,7 @@
+import GLib from 'gi://GLib';
 import Widget from 'resource:///com/github/Aylur/ags/widget.js';
 import Variable from 'resource:///com/github/Aylur/ags/variable.js';
+import Audio from 'resource:///com/github/Aylur/ags/service/audio.js';
 import Bluetooth from 'resource:///com/github/Aylur/ags/service/bluetooth.js';
 import { pinPage } from '../state.js';
 
@@ -41,6 +43,67 @@ export const primaryDevice = () => {
         ?? list[0]
         ?? null;
 };
+
+const AUDIO_DEVICE = /audio|headset|headphone|speaker/;
+
+// Sink PipeWire milik device Bluetooth. Nama sink memuat alamat device dengan
+// ':' diganti '_' (bluez_output.64_8F_DB_52_8A_74.1).
+export const sinkFor = device => {
+    if (!device) return null;
+    const address = String(device.address ?? '').replace(/:/g, '_').toLowerCase();
+    const sinks = Audio.speakers ?? [];
+    if (address) {
+        const byAddress = sinks.find(s =>
+            String(s.name ?? '').toLowerCase().includes(`bluez_output.${address}`));
+        if (byAddress) return byAddress;
+    }
+    return sinks.find(s => s.description === device.name) ?? null;
+};
+
+// Begitu device audio Bluetooth tersambung, jadikan sink-nya default supaya
+// suara langsung pindah tanpa membuka pengaturan audio. Hanya transisi yang
+// dipicu: sink yang sudah aktif saat AGS start tidak diambil alih, dan pilihan
+// manual user saat device tetap tersambung tidak dilawan.
+export function watchAudioRouting() {
+    let known = null;
+    let retrySeq = 0;
+
+    const switchTo = device => {
+        const sink = sinkFor(device);
+        if (!sink) return false;
+        if (Audio.speaker?.name === sink.name) return true;
+        Audio.speaker = sink;
+        return true;
+    };
+
+    const check = () => {
+        const connected = new Map();
+        for (const device of Bluetooth.devices) {
+            if (!device.connected) continue;
+            if (!AUDIO_DEVICE.test(String(device.icon_name ?? ''))) continue;
+            connected.set(device.address, device);
+        }
+        const previous = known;
+        known = new Set(connected.keys());
+        if (previous === null) return; // jangan rebut default saat AGS baru start
+
+        for (const [address, device] of connected) {
+            if (previous.has(address)) continue;
+            if (switchTo(device)) continue;
+            // Sink PipeWire baru muncul beberapa ratus ms setelah connect.
+            const seq = ++retrySeq;
+            let tries = 0;
+            GLib.timeout_add(GLib.PRIORITY_DEFAULT, 400, () => {
+                if (seq !== retrySeq) return GLib.SOURCE_REMOVE;
+                if (switchTo(device) || ++tries >= 6) return GLib.SOURCE_REMOVE;
+                return GLib.SOURCE_CONTINUE;
+            });
+        }
+    };
+
+    Bluetooth.connect('changed', check);
+    check();
+}
 
 const nameOf = device => device.name || device.alias || 'Perangkat';
 
