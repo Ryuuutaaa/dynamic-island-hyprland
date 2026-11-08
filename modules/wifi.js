@@ -19,6 +19,7 @@ export const wifi = Variable({
     iface: '',
     networks: [],
     connected: '',
+    ip: '',
     connectivity: '',
     busy: '',
     error: '',
@@ -120,6 +121,7 @@ export async function refreshConnection() {
     let enabled = wifi.value.enabled;
     let iface = wifi.value.iface;
     let connected = '';
+    let ip = '';
     let connectivity = '';
 
     try {
@@ -151,13 +153,22 @@ export async function refreshConnection() {
                     : /limited/i.test(state) ? 'limited'
                         : /full/i.test(state) ? 'full'
                             : /none/i.test(state) ? 'none' : '';
+                if (connected) {
+                    try {
+                        const addrs = await Utils.execAsync(
+                            ['nmcli', '-g', 'IP4.ADDRESS', 'device', 'show', iface]);
+                        ip = addrs.split('\n')
+                            .map(line => line.split('/')[0].trim())
+                            .find(Boolean) ?? '';
+                    } catch (_) { }
+                }
             } catch (_) { }
         }
     }
 
     if (connected !== wifi.value.connected && wifi.value.portalOpened && connected !== wifi.value.portalOpened)
         update({ portalOpened: '' });
-    update({ enabled, iface, connected, connectivity });
+    update({ enabled, iface, connected, ip, connectivity });
 }
 
 const friendlyError = error => {

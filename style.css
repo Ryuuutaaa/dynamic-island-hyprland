@@ -366,15 +366,19 @@ tooltip > box {
 
 /* ── wifi (halaman detail) ──────────────────────────────────── */
 .dyn-island-wifi {
-    min-width: 402px;
+    min-width: 428px;
 }
 .dyn-island-wf-header {
-    min-width: 200px;
+    min-width: 210px;
 }
 .dyn-island-wf-title {
     font-size: 13px;
     font-weight: 700;
     color: __FG__;
+}
+.dyn-island-wf-scanning {
+    font-size: 9.5px;
+    color: __MUTED__;
 }
 .dyn-island-wf-iconbtn {
     min-height: 22px;
@@ -427,7 +431,7 @@ tooltip > box {
 }
 .dyn-island-wf-device {
     min-height: 26px;
-    padding: 0px 6px;
+    padding: 0px 7px;
     border-radius: 9px;
     background-color: transparent;
     background-image: none;
@@ -440,6 +444,7 @@ tooltip > box {
 }
 .dyn-island-wf-device.is-selected {
     background-color: __SURFACE__;
+    box-shadow: inset 2px 0 0 __ACCENT__;
 }
 .dyn-island-wf-signal {
     font-size: 12px;
@@ -455,16 +460,16 @@ tooltip > box {
     color: __MUTED__;
 }
 .dyn-island-wf-device-name {
-    font-size: 11px;
+    font-size: 11.5px;
     color: __FG__;
 }
 .dyn-island-wf-lock {
-    font-size: 8.5px;
+    font-size: 9px;
     color: __MUTED__;
 }
 .dyn-island-wf-badge {
-    min-height: 20px;
-    min-width: 56px;
+    min-height: 22px;
+    min-width: 58px;
     padding: 0px 8px;
     border-radius: 7px;
     background-color: __SURFACE_DIM__;
@@ -478,8 +483,12 @@ tooltip > box {
 .dyn-island-wf-badge.is-on {
     background-color: __SURFACE_STRONG__;
 }
+.dyn-island-wf-badge-dot {
+    font-size: 6px;
+    color: __OK__;
+}
 .dyn-island-wf-badge-label {
-    font-size: 9.5px;
+    font-size: 10px;
     color: __FG__;
 }
 .dyn-island-wf-badge.is-on .dyn-island-wf-badge-label {
@@ -493,14 +502,23 @@ tooltip > box {
     color: __MUTED__;
     padding: 2px 4px;
 }
+.dyn-island-wf-panel {
+    min-height: 84px;
+    padding: 9px 12px;
+    border-radius: 12px;
+    background-color: __SURFACE_DIM__;
+}
+.dyn-island-wf-detail {
+    min-width: 182px;
+}
 .dyn-island-wf-head {
-    min-width: 190px;
+    min-width: 182px;
 }
 .dyn-island-wf-text {
-    min-width: 132px;
+    min-width: 140px;
 }
 .dyn-island-wf-icon {
-    font-size: 28px;
+    font-size: 30px;
     color: __MUTED__;
 }
 .dyn-island-wf-icon.is-strong {
@@ -532,7 +550,11 @@ tooltip > box {
     color: __ACCENT__;
 }
 .dyn-island-wf-status-text {
-    font-size: 10px;
+    font-size: 10.5px;
+    color: __MUTED__;
+}
+.dyn-island-wf-ip {
+    font-size: 9.5px;
     color: __MUTED__;
 }
 .dyn-island-wf-portal {
@@ -557,6 +579,22 @@ tooltip > box {
 }
 .dyn-island-wf-hint.is-error {
     color: __DANGER__;
+}
+.dyn-island-wf-empty-icon {
+    font-size: 30px;
+    color: __MUTED__;
+}
+.dyn-island-wf-empty-icon.is-off {
+    color: __MUTED__;
+}
+.dyn-island-wf-empty-title {
+    font-size: 12.5px;
+    font-weight: 700;
+    color: __FG__;
+}
+.dyn-island-wf-empty-hint {
+    font-size: 10px;
+    color: __MUTED__;
 }
 
 /* ── jadwal sholat ──────────────────────────────────────────── */

@@ -11,22 +11,22 @@ const WIFI_GLYPH = '\uf1eb';
 const LOCK_GLYPH = '\uf023';
 const SCAN_GLYPH = '\uf021';
 
-const LIST_W = 200;
-const LIST_H = 70;
-const RIGHT_W = 190;
+const LIST_W = 210;
+const LIST_H = 82;
+const RIGHT_W = 206;
 
 const signalClass = signal =>
     signal >= 65 ? 'is-strong' : signal >= 40 ? 'is-mid' : 'is-weak';
 
 const badgeFor = (item, state) => {
-    if (state.busy === item.ssid) return ['…', 'is-busy'];
-    if (state.connected === item.ssid) return ['Putus', 'is-on'];
-    if (isEnterprise(item.security)) return ['Manual', 'is-manual'];
-    return ['Sambung', ''];
+    if (state.busy === item.ssid) return ['…', 'is-busy', false];
+    if (state.connected === item.ssid) return ['Putus', 'is-on', true];
+    if (isEnterprise(item.security)) return ['Manual', 'is-manual', false];
+    return ['Sambung', '', false];
 };
 
 const DeviceRow = (item, selected, state, onSelect, onToggle) => {
-    const [badgeText, badgeState] = badgeFor(item, state);
+    const [badgeText, badgeState, showDot] = badgeFor(item, state);
     const signal = Widget.Label({
         className: `dyn-island-wf-signal ${signalClass(item.signal)}`,
         label: WIFI_GLYPH,
@@ -38,14 +38,25 @@ const DeviceRow = (item, selected, state, onSelect, onToggle) => {
         maxWidthChars: 14,
         xalign: 0,
     });
-    const lock = Widget.Label({
-        className: 'dyn-island-wf-lock',
-        label: LOCK_GLYPH,
-        visible: !!item.security,
+    const nameChildren = [signal, name];
+    if (item.security)
+        nameChildren.push(Widget.Label({ className: 'dyn-island-wf-lock', label: LOCK_GLYPH }));
+    const badgeLabel = Widget.Label({
+        className: 'dyn-island-wf-badge-label',
+        label: badgeText,
     });
+    // Dot hanya dimasukkan saat terhubung: show_all milik container akan
+    // menampilkan kembali child yang visible=false.
+    const badgeChildren = showDot
+        ? [Widget.Label({ className: 'dyn-island-wf-badge-dot', label: '●' }), badgeLabel]
+        : [badgeLabel];
     const badge = Widget.Button({
         className: `dyn-island-wf-badge ${badgeState}`.trim(),
-        child: Widget.Label({ className: 'dyn-island-wf-badge-label', label: badgeText }),
+        child: Widget.Box({
+            spacing: 5,
+            halign: Gtk.Align.CENTER,
+            children: badgeChildren,
+        }),
         sensitive: state.enabled && state.busy !== item.ssid,
         tooltipText: state.connected === item.ssid
             ? `Putuskan ${item.ssid}`
@@ -56,7 +67,7 @@ const DeviceRow = (item, selected, state, onSelect, onToggle) => {
     const row = Widget.EventBox({
         className: `dyn-island-wf-device${selected ? ' is-selected' : ''}`,
         child: Widget.CenterBox({
-            startWidget: Widget.Box({ spacing: 6, children: [signal, name, lock] }),
+            startWidget: Widget.Box({ spacing: 6, children: nameChildren }),
             endWidget: badge,
         }),
         setup: self => {
@@ -75,7 +86,8 @@ export default () => {
     let selectedSsid = null;
     let userSelected = false;
 
-    // ── kolom kiri ───────────────────────────────────────────────────────────
+    // ── kolom kiri: judul, aksi, daftar jaringan ─────────────────────────────
+    const scanningLabel = Widget.Label({ className: 'dyn-island-wf-scanning', label: 'memindai…' });
     const powerDot = Widget.Label({ className: 'dyn-island-wf-power-dot', label: '●' });
     const powerLabel = Widget.Label({ className: 'dyn-island-wf-power-label', label: 'Aktif' });
     const power = Widget.Button({
@@ -93,8 +105,8 @@ export default () => {
     const title = Widget.Label({ className: 'dyn-island-wf-title', label: 'Wi-Fi' });
     const header = Widget.CenterBox({
         className: 'dyn-island-wf-header',
-        startWidget: Widget.Box({ spacing: 4, children: [title, scanButton] }),
-        endWidget: power,
+        startWidget: Widget.Box({ spacing: 6, children: [title, scanningLabel] }),
+        endWidget: Widget.Box({ spacing: 4, children: [scanButton, power] }),
     });
     header.set_size_request(LIST_W, -1);
 
@@ -106,6 +118,9 @@ export default () => {
     });
     pane.child = list;
     pane.set_size_request(LIST_W, LIST_H);
+
+    for (const widget of [scanningLabel])
+        widget.set_no_show_all(true);
 
     const scrollPane = event => {
         let dy = 0;
@@ -132,7 +147,7 @@ export default () => {
         children: [header, pane],
     });
 
-    // ── kolom kanan ──────────────────────────────────────────────────────────
+    // ── kolom kanan: panel detail ────────────────────────────────────────────
     const icon = Widget.Label({ className: 'dyn-island-wf-icon', label: WIFI_GLYPH });
     const name = Widget.Label({
         className: 'dyn-island-wf-name',
@@ -144,15 +159,20 @@ export default () => {
         className: 'dyn-island-wf-meta',
         xalign: 0,
         truncate: 'end',
-        maxWidthChars: 20,
+        maxWidthChars: 22,
     });
     const statusDot = Widget.Label({ className: 'dyn-island-wf-status-dot', label: '●' });
     const statusText = Widget.Label({ className: 'dyn-island-wf-status-text' });
-    const status = Widget.Box({
+    const ipLabel = Widget.Label({
+        className: 'dyn-island-wf-ip',
+        xalign: 1,
+        truncate: 'end',
+        maxWidthChars: 16,
+    });
+    const status = Widget.CenterBox({
         className: 'dyn-island-wf-status',
-        spacing: 6,
-        valign: Gtk.Align.CENTER,
-        children: [statusDot, statusText],
+        startWidget: Widget.Box({ spacing: 6, children: [statusDot, statusText] }),
+        endWidget: ipLabel,
     });
     const portalButton = Widget.Button({
         className: 'dyn-island-wf-portal',
@@ -166,37 +186,59 @@ export default () => {
         className: 'dyn-island-wf-hint',
         xalign: 0,
         wrap: true,
-        maxWidthChars: 26,
+        maxWidthChars: 24,
     });
 
     const head = Widget.Box({
         className: 'dyn-island-wf-head',
         spacing: 10,
         valign: Gtk.Align.CENTER,
-        widthRequest: RIGHT_W,
         children: [
             icon,
             Widget.Box({
                 className: 'dyn-island-wf-text',
                 vertical: true,
                 spacing: 1,
-                widthRequest: 132,
+                widthRequest: 140,
                 valign: Gtk.Align.CENTER,
                 children: [name, meta],
             }),
         ],
     });
 
-    const right = Widget.Box({
-        className: 'dyn-island-wf-right',
+    const detail = Widget.Box({
+        className: 'dyn-island-wf-detail',
         vertical: true,
         spacing: 6,
-        widthRequest: RIGHT_W,
-        valign: Gtk.Align.CENTER,
         children: [head, status, portalButton, hint],
     });
 
-    for (const widget of [status, portalButton, hint])
+    const emptyIcon = Widget.Label({ className: 'dyn-island-wf-empty-icon', label: WIFI_GLYPH });
+    const emptyTitle = Widget.Label({ className: 'dyn-island-wf-empty-title' });
+    const emptyHint = Widget.Label({
+        className: 'dyn-island-wf-empty-hint',
+        wrap: true,
+        maxWidthChars: 24,
+        justify: Gtk.Justification.CENTER,
+    });
+    const empty = Widget.Box({
+        className: 'dyn-island-wf-empty-box',
+        vertical: true,
+        spacing: 6,
+        halign: Gtk.Align.CENTER,
+        valign: Gtk.Align.CENTER,
+        children: [emptyIcon, emptyTitle, emptyHint],
+    });
+
+    const right = Widget.Box({
+        className: 'dyn-island-wf-panel',
+        vertical: true,
+        widthRequest: RIGHT_W,
+        valign: Gtk.Align.CENTER,
+        children: [detail, empty],
+    });
+
+    for (const widget of [status, portalButton, hint, detail, empty])
         widget.set_no_show_all(true);
 
     const selectedNetwork = () => {
@@ -234,6 +276,8 @@ export default () => {
         power.className = `dyn-island-wf-power${state.enabled ? ' is-on' : ''}`;
         powerDot.className = `dyn-island-wf-power-dot${state.enabled ? ' is-on' : ''}`;
         scanButton.sensitive = state.enabled && !state.scanning;
+        scanningLabel.visible = state.scanning;
+        if (state.scanning) scanningLabel.show();
 
         const networks = state.networks;
         const selected = selectedNetwork();
@@ -253,19 +297,20 @@ export default () => {
                 xalign: 0,
             })];
 
+        // Panel kanan: detail kalau ada jaringan, empty state kalau tidak.
         if (!selected) {
-            icon.className = 'dyn-island-wf-icon is-weak';
-            name.label = state.enabled ? 'Tidak ada jaringan' : 'Wi-Fi nonaktif';
-            meta.label = state.enabled ? 'Tekan pindai untuk mencari' : 'Nyalakan untuk memakai';
-            status.visible = false;
-            portalButton.visible = false;
-            hint.visible = true;
-            hint.className = 'dyn-island-wf-hint';
-            hint.label = state.enabled
-                ? 'Belum ada jaringan yang terdeteksi di sekitar.'
-                : 'Tekan tombol daya di kiri untuk menyalakan Wi-Fi.';
+            detail.visible = false;
+            empty.visible = true;
+            emptyIcon.className = `dyn-island-wf-empty-icon${state.enabled ? '' : ' is-off'}`;
+            emptyTitle.label = state.enabled ? 'Tidak ada jaringan' : 'Wi-Fi nonaktif';
+            emptyHint.label = state.enabled
+                ? 'Tekan ikon pindai di kiri atas untuk mencari jaringan di sekitar.'
+                : 'Tekan tombol daya di kiri atas untuk menyalakan Wi-Fi.';
             return;
         }
+
+        detail.visible = true;
+        empty.visible = false;
 
         const connected = state.connected === selected.ssid;
         const portal = connected && state.connectivity === 'portal';
@@ -279,12 +324,14 @@ export default () => {
         meta.tooltipText = meta.label;
 
         status.visible = true;
-        statusDot.className = `dyn-island-wf-status-dot`
-            + (portal ? ' is-portal' : connected && state.connectivity !== 'portal' ? ' is-on' : '');
+        statusDot.className = 'dyn-island-wf-status-dot'
+            + (portal ? ' is-portal' : connected ? ' is-on' : '');
         statusText.label = busy
             ? 'Menyambungkan…'
             : portal ? 'Butuh login'
                 : connected ? 'Tersambung' : 'Tidak tersambung';
+        ipLabel.label = connected && state.ip ? state.ip : '';
+        ipLabel.tooltipText = ipLabel.label;
 
         portalButton.visible = portal && !busy;
         hint.visible = !portal;
