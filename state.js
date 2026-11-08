@@ -10,11 +10,11 @@ import CONFIG from './config.js';
 // Urutan kanonik seluruh halaman. Halaman yang dimatikan lewat
 // CONFIG.modules tidak masuk PAGE_ORDER sehingga dot/panah tidak bertambah;
 // halaman tetap ada di Stack (bisa dipanggil showTransient(name, ms)).
-const ALL_PAGES = ['idle', 'media', 'weather', 'calendar', 'pomodoro', 'timer', 'stats', 'water', 'todo', 'standup', 'shelf', 'bluetooth', 'prayer', 'chat', 'settings'];
+const ALL_PAGES = ['idle', 'media', 'weather', 'calendar', 'pomodoro', 'timer', 'stats', 'water', 'todo', 'standup', 'shelf', 'bluetooth', 'wifi', 'prayer', 'chat', 'settings'];
 const ALWAYS_ON = ['idle', 'media'];
 // Halaman dengan interaksi panjang bertahan sampai user pindah halaman;
 // halaman read-only tetap kembali setelah pinTimeout.
-const STICKY_PAGES = new Set(['chat', 'settings', 'todo', 'shelf', 'bluetooth']);
+const STICKY_PAGES = new Set(['chat', 'settings', 'todo', 'shelf', 'bluetooth', 'wifi']);
 export const isStickyPage = name => STICKY_PAGES.has(name);
 
 export const PAGE_ORDER = ALL_PAGES.filter(name =>

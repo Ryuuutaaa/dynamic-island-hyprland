@@ -27,6 +27,7 @@ import WaterPage from './modules/water-page.js';
 import TodoPage from './modules/todo-page.js';
 import ShelfPage from './modules/shelf-page.js';
 import BluetoothPage from './modules/bluetooth-page.js';
+import WifiPage from './modules/wifi-page.js';
 import PrayerPage from './modules/prayer-page.js';
 import ChatPage from './modules/chat-page.js';
 import {
@@ -50,6 +51,11 @@ import {
 import { pomodoro, MODES as pomodoroModes, setMode as pomodoroSetMode, toggleRunning as pomodoroToggle, reset as pomodoroReset } from './modules/pomodoro.js';
 import { watchLyrics, lyrics as lyricsStore, retryLyrics } from './modules/lyrics.js';
 import { btPreview, watchAudioRouting } from './modules/bluetooth.js';
+import {
+    watchWifi, wifi as wifiState,
+    connect as wifiConnect, disconnect as wifiDisconnect,
+    scan as wifiScan, openPortal as wifiPortal,
+} from './modules/wifi.js';
 import { focusedRect, refresh as refreshMonitors, followFocused, applyFocused } from './modules/monitor.js';
 import { onResume } from './modules/timefmt.js';
 import ClickAway from './modules/clickaway.js';
@@ -244,6 +250,7 @@ function DynamicIsland() {
             standup: StandupPage(),
             shelf: ShelfPage(),
             bluetooth: BluetoothPage(),
+            wifi: WifiPage(),
             prayer: PrayerPage(),
             chat: ChatPage(),
             settings: SettingsPage(),
@@ -984,6 +991,8 @@ function DynamicIsland() {
 const dyn = {
     page, hovered, showTransient, refreshBase, config: CONFIG,
     notif: notifCurrent, notifLatest, notifSweep,
+    wifi: wifiState,
+    wifiConnect, wifiDisconnect, wifiScan, wifiPortal,
     stepPage, pinPage, PAGE_ORDER, isPinned, mediaView, btPreview,
     lyrics: lyricsStore, retryLyrics, pomodoro,
     prayer: prayerState, prayerNotify: notifyPrayer,
@@ -1203,6 +1212,7 @@ try {
     watchMpris();
     watchNotifications();
     watchAudioRouting();
+    watchWifi();
     const gdkDisplay = Gdk.Display.get_default();
     if (gdkDisplay) {
         gdkDisplay.connect('monitor-added', () => mountMirrors());

@@ -78,6 +78,7 @@ export default {
         standup: true,
         shelf: true,
         bluetooth: true,
+        wifi: true,
         prayer: true,
         chat: true,
     },
@@ -113,6 +114,15 @@ export default {
         moveEveryMinutes: 60,  // pengingat gerak
         startHour: 8,
         endHour: 22,
+    },
+
+    // WI-FI — NetworkManager lewat nmcli. autoPortal membuka halaman login
+    // captive portal otomatis setelah connect; portalUrl adalah alamat
+    // pemeriksaan konektivitas yang dipakai NetworkManager di mesin ini.
+    wifi: {
+        scanSeconds: 20,
+        autoPortal: true,
+        portalUrl: 'http://connectivity-check.ubuntu.com/',
     },
 
     // CUACA — Open-Meteo (gratis, tanpa API key/akun). Koordinat & kota
