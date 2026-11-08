@@ -23,6 +23,7 @@ let inActions = false;
 let sawActions = false;
 let callSerial = 0;
 let awaitingId = false;
+let closingId = false;
 let replacesId = 0;
 // Hints: desktop-entry adalah identitas aplikasi paling andal (dipakai untuk
 // mengenali provider seperti WhatsApp/Telegram/Discord).
@@ -40,6 +41,14 @@ let pendingString = null;
 // datang dengan body kosong (mis. hanya mengubah judul); jangan sampai
 // menimpa body yang sudah tampil dengan kosong.
 const lastBodyById = new Map();
+// Usia notifikasi untuk pembersihan otomatis. swaync 0.9 tidak menyediakan
+// daftar notifikasi beserta waktunya, jadi id dilacak dari bus selagi AGS
+// berjalan: id -> waktu pertama terlihat.
+const notificationAges = new Map();
+const notifTtlHours = () => {
+    const hours = Number(CONFIG.notifTtlHours ?? 3);
+    return Number.isFinite(hours) ? hours : 3;
+};
 let started = false;
 
 const BROWSER = /brave|chrome|chromium|firefox/i;
@@ -120,9 +129,36 @@ const detectProvider = (haystack) => {
     return hit ? { id: hit.id, glyph: hit.glyph } : null;
 };
 
+// Catat kapan sebuah id notifikasi pertama terlihat. Notifikasi yang
+// dibisukan island tetap masuk control center swaync, jadi tetap dilacak.
+const trackNotificationAge = (id) => {
+    if (!id) return;
+    if (!notificationAges.has(id)) notificationAges.set(id, Date.now());
+    if (notificationAges.size > 500)
+        notificationAges.delete(notificationAges.keys().next().value);
+};
+
+// Tutup notifikasi yang umurnya melewati notifTtlHours (jam). ttlHours boleh
+// diisi untuk pengujian; 0 / negatif berarti tidak membersihkan apa pun.
+export function sweepNotificationAges(ttlHours = null) {
+    const hours = ttlHours === null ? notifTtlHours() : Number(ttlHours);
+    if (!Number.isFinite(hours) || hours <= 0) return 0;
+    const ttl = hours * 60 * 60 * 1000;
+    const now = Date.now();
+    let closed = 0;
+    for (const [id, at] of notificationAges) {
+        if (now - at < ttl) continue;
+        closeNotification(id);
+        notificationAges.delete(id);
+        closed++;
+    }
+    return closed;
+}
+
 // id datang belakangan (method return). seq dipakai popup untuk mengenali
 // notifikasi yang sama, supaya update id tidak memicu popup tampil ulang.
 const latestWithId = (id) => {
+    trackNotificationAge(id);
     if (suppressNextId) {
         suppressNextId = false;
         return;
@@ -264,6 +300,19 @@ const parseLine = (line) => {
         callSerial = 0;
         return;
     }
+    // Notifikasi ditutup (oleh user, aplikasi, atau sweeper): lupakan umurnya.
+    if (line.includes('member=NotificationClosed')) {
+        closingId = true;
+        return;
+    }
+    if (closingId) {
+        const closed = /^uint32 (\d+)$/.exec(line);
+        if (closed) {
+            closingId = false;
+            notificationAges.delete(Number(closed[1]));
+        }
+        return;
+    }
     if (awaitingId) {
         const id = /^uint32 (\d+)$/.exec(line);
         if (id) {
@@ -377,6 +426,7 @@ export function invokeAction(id, key, appHint = null) {
 // Tutup notifikasi di daemon (swaync) supaya ikut hilang dari control center.
 export function closeNotification(id) {
     if (!id) return;
+    notificationAges.delete(id);
     Utils.execAsync([
         'gdbus', 'call', '--session',
         '--dest', 'org.freedesktop.Notifications',
@@ -466,6 +516,11 @@ export function watchNotifications() {
     if (started) return;
     started = true;
     spawnMonitor();
+    // Sapu notifikasi yang lebih tua dari notifTtlHours sekali per menit.
+    GLib.timeout_add(GLib.PRIORITY_DEFAULT, 60 * 1000, () => {
+        sweepNotificationAges();
+        return GLib.SOURCE_CONTINUE;
+    });
 }
 
 export default () => {

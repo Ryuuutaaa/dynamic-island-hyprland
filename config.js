@@ -47,6 +47,9 @@ export default {
     // berapa lama page sementara bertahan (ms)
     osdTimeout: 1600,
     notifyTimeout: 4200,
+    // Hapus notifikasi dari control center setelah umurnya melewati ini (jam).
+    // 0 = tidak pernah dibersihkan otomatis.
+    notifTtlHours: 3,
 
     // halaman pilihan manual (panah) bertahan sebentar lalu kembali
     pinTimeout: 10000,

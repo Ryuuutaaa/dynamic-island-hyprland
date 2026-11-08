@@ -19,7 +19,7 @@ import Idle from './modules/idle.js';
 import Media from './modules/media.js';
 import Closed from './modules/closed.js';
 import { VolumeOsd, BrightnessOsd } from './modules/osd.js';
-import Notify, { watchNotifications, current as notifCurrent, latest as notifLatest, registerLocalAction, invokeAction as notifInvoke } from './modules/notify.js';
+import Notify, { watchNotifications, current as notifCurrent, latest as notifLatest, registerLocalAction, invokeAction as notifInvoke, sweepNotificationAges as notifSweep } from './modules/notify.js';
 import Nav from './modules/nav.js';
 import LyricsPage from './modules/lyrics-page.js';
 import PomodoroPage from './modules/pomodoro-page.js';
@@ -983,7 +983,7 @@ function DynamicIsland() {
 // diisi ulang oleh publishIsland().
 const dyn = {
     page, hovered, showTransient, refreshBase, config: CONFIG,
-    notif: notifCurrent, notifLatest,
+    notif: notifCurrent, notifLatest, notifSweep,
     stepPage, pinPage, PAGE_ORDER, isPinned, mediaView, btPreview,
     lyrics: lyricsStore, retryLyrics, pomodoro,
     prayer: prayerState, prayerNotify: notifyPrayer,
