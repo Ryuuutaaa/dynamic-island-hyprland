@@ -702,7 +702,9 @@ tooltip > box {
 }
 
 .dyn-island-popup-pad {
-    padding: 14px;
+    /* padding vertikal tidak ikut natural height ScrolledWindow -> kartu
+       terpotong di bawah; sisakan padding horizontal saja. */
+    padding: 0 14px;
 }
 
 .dyn-island-popup {

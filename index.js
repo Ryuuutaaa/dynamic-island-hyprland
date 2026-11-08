@@ -1214,9 +1214,16 @@ clickAway = ClickAway({ onClose: closeIsland });
 App.addWindow(clickAway);
 dyn.clickAway = clickAway;
 
+// Kartu pomodoro di kanan atas (terpisah dari island, lihat pomodoro-osd.js).
+// Dibuat SEBELUM popup notifikasi: layer yang dibuat belakangan berada di atas,
+// jadi popup notifikasi tidak bisa tertutup kartu pomodoro.
+const pomodoroCard = PomodoroOsd();
+App.addWindow(pomodoroCard);
+dyn.pomodoroCard = pomodoroCard;
+
 // popup notifikasi kanan atas digambar island sendiri (slide + loading bar).
-// Popup bawaan swaync dimatikan lewat DND supaya tidak dobel; notifikasi tetap
-// masuk control center swaync.
+// Popup bawaan swaync dimatikan lewat notification-visibility "muted";
+// notifikasi tetap masuk control center swaync.
 const notifPopup = NotificationPopup();
 App.addWindow(notifPopup);
 dyn.notifPopup = notifPopup;
@@ -1226,11 +1233,6 @@ dyn.notifPopup = notifPopup;
 const geminiChat = GeminiChat();
 App.addWindow(geminiChat);
 dyn.chatWindow = geminiChat;
-
-// Kartu pomodoro di kanan atas (terpisah dari island, lihat pomodoro-osd.js).
-const pomodoroCard = PomodoroOsd();
-App.addWindow(pomodoroCard);
-dyn.pomodoroCard = pomodoroCard;
 
 // Daily standup: popup + pengingat Senin-Jumat 10:00. Klik notifikasi
 // "Standup" membuka popup ini (aksi lokal, bukan ActionInvoked DBus).

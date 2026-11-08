@@ -92,8 +92,8 @@ export default () => {
         child: card,
     });
 
-    // Stack notifikasi bisa 1..3 kartu (tinggi berubah); taruh kartu pomodoro
-    // di bawah stack, bukan menimpa kartu notifikasi.
+    // Popup notifikasi sekarang satu kartu (FIFO); taruh kartu pomodoro
+    // di bawahnya supaya tidak menimpa kartu notifikasi.
     const NOTIF_TOP = 64;
     const NOTIF_GAP = 8;
     const BASE_TOP = 110;
