@@ -430,8 +430,8 @@ tooltip > box {
     border: none;
 }
 .dyn-island-wf-device {
-    min-height: 26px;
-    padding: 0px 7px;
+    min-height: 28px;
+    padding: 0px 9px;
     border-radius: 9px;
     background-color: transparent;
     background-image: none;
@@ -447,7 +447,7 @@ tooltip > box {
     box-shadow: inset 2px 0 0 __ACCENT__;
 }
 .dyn-island-wf-signal {
-    font-size: 12px;
+    font-size: 13px;
     color: __MUTED__;
 }
 .dyn-island-wf-signal.is-strong {
@@ -460,17 +460,17 @@ tooltip > box {
     color: __MUTED__;
 }
 .dyn-island-wf-device-name {
-    font-size: 11.5px;
+    font-size: 12px;
     color: __FG__;
 }
 .dyn-island-wf-lock {
-    font-size: 9px;
+    font-size: 9.5px;
     color: __MUTED__;
 }
 .dyn-island-wf-badge {
     min-height: 22px;
-    min-width: 58px;
-    padding: 0px 8px;
+    min-width: 60px;
+    padding: 0px 9px;
     border-radius: 7px;
     background-color: __SURFACE_DIM__;
     background-image: none;
@@ -488,7 +488,7 @@ tooltip > box {
     color: __OK__;
 }
 .dyn-island-wf-badge-label {
-    font-size: 10px;
+    font-size: 10.5px;
     color: __FG__;
 }
 .dyn-island-wf-badge.is-on .dyn-island-wf-badge-label {
@@ -503,19 +503,19 @@ tooltip > box {
     padding: 2px 4px;
 }
 .dyn-island-wf-panel {
-    min-height: 84px;
-    padding: 9px 12px;
+    min-height: 90px;
+    padding: 10px 14px;
     border-radius: 12px;
     background-color: __SURFACE_DIM__;
 }
 .dyn-island-wf-detail {
-    min-width: 182px;
+    min-width: 176px;
 }
 .dyn-island-wf-head {
-    min-width: 182px;
+    min-width: 176px;
 }
 .dyn-island-wf-text {
-    min-width: 140px;
+    min-width: 136px;
 }
 .dyn-island-wf-icon {
     font-size: 30px;
@@ -533,11 +533,11 @@ tooltip > box {
     color: __FG__;
 }
 .dyn-island-wf-meta {
-    font-size: 9.5px;
+    font-size: 10px;
     color: __MUTED__;
 }
 .dyn-island-wf-status {
-    min-height: 14px;
+    min-height: 15px;
 }
 .dyn-island-wf-status-dot {
     font-size: 8px;
@@ -550,11 +550,11 @@ tooltip > box {
     color: __ACCENT__;
 }
 .dyn-island-wf-status-text {
-    font-size: 10.5px;
+    font-size: 11px;
     color: __MUTED__;
 }
 .dyn-island-wf-ip {
-    font-size: 9.5px;
+    font-size: 10px;
     color: __MUTED__;
 }
 .dyn-island-wf-portal {
@@ -570,11 +570,11 @@ tooltip > box {
     background-color: __SURFACE_HOVER__;
 }
 .dyn-island-wf-portal-label {
-    font-size: 10px;
+    font-size: 10.5px;
     color: __ACCENT__;
 }
 .dyn-island-wf-hint {
-    font-size: 10px;
+    font-size: 10.5px;
     color: __MUTED__;
 }
 .dyn-island-wf-hint.is-error {
@@ -588,12 +588,12 @@ tooltip > box {
     color: __MUTED__;
 }
 .dyn-island-wf-empty-title {
-    font-size: 12.5px;
+    font-size: 13px;
     font-weight: 700;
     color: __FG__;
 }
 .dyn-island-wf-empty-hint {
-    font-size: 10px;
+    font-size: 10.5px;
     color: __MUTED__;
 }
 

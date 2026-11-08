@@ -12,8 +12,8 @@ const LOCK_GLYPH = '\uf023';
 const SCAN_GLYPH = '\uf021';
 
 const LIST_W = 210;
-const LIST_H = 82;
-const RIGHT_W = 206;
+const LIST_H = 90;
+const RIGHT_W = 204;
 
 const signalClass = signal =>
     signal >= 65 ? 'is-strong' : signal >= 40 ? 'is-mid' : 'is-weak';
@@ -67,7 +67,7 @@ const DeviceRow = (item, selected, state, onSelect, onToggle) => {
     const row = Widget.EventBox({
         className: `dyn-island-wf-device${selected ? ' is-selected' : ''}`,
         child: Widget.CenterBox({
-            startWidget: Widget.Box({ spacing: 6, children: nameChildren }),
+            startWidget: Widget.Box({ spacing: 7, children: nameChildren }),
             endWidget: badge,
         }),
         setup: self => {
@@ -105,12 +105,12 @@ export default () => {
     const title = Widget.Label({ className: 'dyn-island-wf-title', label: 'Wi-Fi' });
     const header = Widget.CenterBox({
         className: 'dyn-island-wf-header',
-        startWidget: Widget.Box({ spacing: 6, children: [title, scanningLabel] }),
+        startWidget: Widget.Box({ spacing: 7, children: [title, scanningLabel] }),
         endWidget: Widget.Box({ spacing: 4, children: [scanButton, power] }),
     });
-    header.set_size_request(LIST_W, -1);
+    header.set_size_request(LIST_W, 22);
 
-    const list = Widget.Box({ className: 'dyn-island-wf-list', vertical: true, spacing: 2 });
+    const list = Widget.Box({ className: 'dyn-island-wf-list', vertical: true, spacing: 3 });
     const pane = Widget.Scrollable({
         className: 'dyn-island-wf-pane',
         hscroll: 'never',
@@ -141,7 +141,7 @@ export default () => {
     const left = Widget.Box({
         className: 'dyn-island-wf-left',
         vertical: true,
-        spacing: 6,
+        spacing: 4,
         widthRequest: LIST_W,
         valign: Gtk.Align.CENTER,
         children: [header, pane],
@@ -199,7 +199,7 @@ export default () => {
                 className: 'dyn-island-wf-text',
                 vertical: true,
                 spacing: 1,
-                widthRequest: 140,
+                widthRequest: 136,
                 valign: Gtk.Align.CENTER,
                 children: [name, meta],
             }),
@@ -209,7 +209,7 @@ export default () => {
     const detail = Widget.Box({
         className: 'dyn-island-wf-detail',
         vertical: true,
-        spacing: 6,
+        spacing: 7,
         children: [head, status, portalButton, hint],
     });
 
@@ -304,8 +304,8 @@ export default () => {
             emptyIcon.className = `dyn-island-wf-empty-icon${state.enabled ? '' : ' is-off'}`;
             emptyTitle.label = state.enabled ? 'Tidak ada jaringan' : 'Wi-Fi nonaktif';
             emptyHint.label = state.enabled
-                ? 'Tekan ikon pindai di kiri atas untuk mencari jaringan di sekitar.'
-                : 'Tekan tombol daya di kiri atas untuk menyalakan Wi-Fi.';
+                ? 'Tekan pindai untuk mencari jaringan.'
+                : 'Tekan tombol daya untuk menyalakan.';
             return;
         }
 
@@ -347,7 +347,7 @@ export default () => {
 
     return Widget.Box({
         className: 'dyn-island-wifi',
-        spacing: 12,
+        spacing: 14,
         halign: Gtk.Align.CENTER,
         valign: Gtk.Align.CENTER,
         children: [left, right],
