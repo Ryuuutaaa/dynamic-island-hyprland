@@ -9,6 +9,7 @@ import CONFIG from '../config.js';
 
 const DEFAULTS = {
     enabled: true,
+    eyeEnabled: true,
     everyMinutes: 20,
     lookSeconds: 20,
     startHour: 8,
@@ -99,13 +100,15 @@ const arm = () => {
     const enabled = wellness.value.enabled && options.enabled !== false;
     if (!enabled) return;
 
-    eyeTimer = GLib.timeout_add(GLib.PRIORITY_DEFAULT,
-        Math.max(1, options.everyMinutes) * 60 * 1000, () => {
-            eyeTimer = 0;
-            if (wellness.value.enabled && inHours()) fireEye();
-            arm();
-            return GLib.SOURCE_REMOVE;
-        });
+    if (options.eyeEnabled !== false) {
+        eyeTimer = GLib.timeout_add(GLib.PRIORITY_DEFAULT,
+            Math.max(1, options.everyMinutes) * 60 * 1000, () => {
+                eyeTimer = 0;
+                if (wellness.value.enabled && inHours()) fireEye();
+                arm();
+                return GLib.SOURCE_REMOVE;
+            });
+    }
 
     if (options.moveEnabled !== false) {
         moveTimer = GLib.timeout_add(GLib.PRIORITY_DEFAULT,
@@ -117,7 +120,12 @@ const arm = () => {
             });
     }
 
-    wellness.value = { ...wellness.value, nextEyeAt: Date.now() + options.everyMinutes * 60 * 1000 };
+    wellness.value = {
+        ...wellness.value,
+        nextEyeAt: options.eyeEnabled !== false
+            ? Date.now() + options.everyMinutes * 60 * 1000
+            : 0,
+    };
 };
 
 export function watchWellness() {

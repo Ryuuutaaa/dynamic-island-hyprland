@@ -103,7 +103,8 @@ export default {
     // Timer otomatis diam di luar startHour-endHour.
     wellness: {
         enabled: true,
-        everyMinutes: 20,      // jeda mata
+        eyeEnabled: false,     // jeda mata 20-20-20 dimatikan
+        everyMinutes: 20,
         lookSeconds: 20,
         moveEnabled: true,
         moveEveryMinutes: 60,  // pengingat gerak
