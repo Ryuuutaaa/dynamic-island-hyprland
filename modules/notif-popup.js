@@ -16,9 +16,9 @@ import { eventButton, rootX, rootY } from './pointer.js';
 // slide masuk dari kanan, loading bar 5 detik, tombol X, klik -> buka aplikasi,
 // dan action ringkas (install/update -> ikon unduh).
 //
-// Sejak P0 Poni, popup menampilkan tumpukan maksimal tiga kartu dengan jarak
-// 6px; kartu terbaru paling atas, kartu tertua memudar. Hanya kartu terbaru
-// yang punya loading bar dan menjadi acuan timer tampil.
+// Popup menampilkan satu kartu; notifikasi baru masuk antrean FIFO dan
+// ditampilkan setelah kartu aktif selesai/ditutup. Hanya kartu aktif yang
+// punya loading bar dan menjadi acuan timer tampil.
 //
 // Slide dianimasikan manual (parse GLib, seperti notch), bukan lewat animasi
 // GTK:
@@ -40,9 +40,7 @@ const DURATION = 5000;    // loading bar = sisa waktu tampil (ms)
 const DURATION_MIN = 3000;
 const DURATION_MAX = 15000;
 const NEVER_EXPIRE_MS = 12000;
-const STACK_SIZE = 3;
-const STACK_GAP = 8;
-const OPACITY = [1, 0.78, 0.62]; // terbaru -> tertua; minimal terbaca
+const OPACITY = [1]; // satu kartu, selalu penuh
 
 // expire_time dari pengirim: -1 = default server, 0 = tidak pernah
 // kedaluwarsa, >0 = durasi yang diminta. Dibatasi supaya popup tidak
@@ -136,14 +134,17 @@ const buildCard = (item, index, { dismiss, open, close, dragMove, dragEnd }) => 
     const photo = Gtk.Image.new();
     photo.set_size_request(26, 26);
 
+    const appName = String(item.app || '').trim();
+    const summaryText = String(item.summary || '').trim();
     const appLabel = Widget.Label({
         className: 'dyn-island-popup-app',
         xalign: 0,
         truncate: 'end',
         maxWidthChars: 28,
-        label: truncate(item.app || '', 28),
-        tooltipText: item.app || '',
-        visible: !!item.app,
+        label: truncate(appName, 28),
+        tooltipText: appName,
+        // Jangan ulang "IBus" di atas judul "IBus".
+        visible: !!appName && appName.toLowerCase() !== summaryText.toLowerCase(),
     });
     const summary = Widget.Label({
         className: 'dyn-island-popup-title',
@@ -162,6 +163,7 @@ const buildCard = (item, index, { dismiss, open, close, dragMove, dragEnd }) => 
         tooltipText: item.body || '',
     });
     body.visible = !!item.body;
+
 
     // Prioritas ikon: glyph provider (native WA/Telegram/Discord) ->
     // ikon situs yang disalin saat notifikasi masuk (web app di browser) ->
@@ -271,12 +273,25 @@ const buildCard = (item, index, { dismiss, open, close, dragMove, dragEnd }) => 
         widthRequest: 24,
         heightRequest: 24,
         visible: !!item.app,
-        child: Widget.Label({ className: 'dyn-island-popup-mute-icon', label: '\uf1f6' }),
+        child: Widget.Icon({ className: 'dyn-island-popup-mute-icon', icon: 'notifications-disabled-symbolic', size: 12 }),
         onClicked: () => {
             if (item.app) muteApp(item.app);
             dismiss(item);
         },
     });
+
+    // Window.show_all() akan menampilkan kembali child yang visible=false.
+    // Kunci semua elemen kondisional supaya hanya satu ikon yang pernah tampil.
+    [icon, glyph, photo, appLabel, body, actionRow, muteButton]
+        .forEach(w => w.set_no_show_all(true));
+    // Container AGS memanggil show_all saat child ditambahkan; terapkan ulang
+    // visibility SETELAH semua container selesai supaya hanya satu ikon tampil.
+    icon.visible = useIcon;
+    glyph.visible = !!provider || (!pixbuf && !useIcon);
+    photo.visible = !!pixbuf;
+    appLabel.visible = !!appName && appName.toLowerCase() !== summaryText.toLowerCase();
+    body.visible = !!item.body;
+    muteButton.visible = !!item.app;
 
     const head = new Gtk.Box({ orientation: Gtk.Orientation.HORIZONTAL });
     head.get_style_context().add_class('dyn-island-popup-head');
@@ -322,7 +337,7 @@ const buildCard = (item, index, { dismiss, open, close, dragMove, dragEnd }) => 
 
 export default () => {
     let items = [];
-    let shownSeq = -1;
+    const seen = new Set();
     let hidden = true;
     let hiding = false;
     let slideTween = null;
@@ -333,6 +348,11 @@ export default () => {
     let last = 0;
     let hovered = false;
     let hoveredAt = 0;
+    // Kartu yang sedang dihitung + timeout slide-in yang masih tertunda.
+    // Keduanya harus dilacak: tanpa itu, satu transisi yang terlewat
+    // meninggalkan popup menggantung (kartu tidak hilang / antrean berhenti).
+    let activeSeq = 0;
+    let showTimer = 0;
 
     const stopTimer = () => {
         if (timer) {
@@ -340,6 +360,13 @@ export default () => {
             timer = 0;
         }
         last = 0;
+    };
+
+    const cancelShow = () => {
+        if (showTimer) {
+            GLib.source_remove(showTimer);
+            showTimer = 0;
+        }
     };
 
     const slideTo = (from, to, onDone) => {
@@ -358,6 +385,7 @@ export default () => {
     const hide = (immediate = false) => {
         if (hidden) return;
         stopTimer();
+        cancelShow();
         hovered = false;
         if (immediate) {
             hiding = false;
@@ -392,10 +420,29 @@ export default () => {
         if (!hovered && last) left -= now - last;
         last = now;
         const newest = items[0];
-        if (newest?.bar) newest.bar.setFraction(duration > 0 ? left / duration : 0);
+        if (!newest) {
+            timer = 0;
+            if (!hidden) hide();
+            return GLib.SOURCE_REMOVE;
+        }
+        // Kartu terdepan berubah tanpa startTimer (mis. render sebelumnya
+        // gagal): adopsi kartu itu dan mulai ulang hitungannya, jangan biarkan
+        // popup menampilkan kartu lama tanpa timer.
+        if (newest.seq !== activeSeq) {
+            timer = 0;
+            try {
+                render();
+                startTimer(durationFor(newest));
+                if (hidden || hiding) show(newest);
+            } catch (error) {
+                console.error('[dyn-island] popup tidak sinkron:', error);
+            }
+            return GLib.SOURCE_REMOVE;
+        }
+        if (newest.bar) newest.bar.setFraction(duration > 0 ? left / duration : 0);
         if (left <= 0) {
             timer = 0;
-            hide();
+            dismiss(newest);
             return GLib.SOURCE_REMOVE;
         }
         return GLib.SOURCE_CONTINUE;
@@ -406,7 +453,15 @@ export default () => {
         duration = ms;
         left = ms;
         hovered = false;
+        activeSeq = items[0]?.seq ?? 0;
         if (items[0]?.bar) items[0].bar.setFraction(1);
+        timer = GLib.timeout_add(GLib.PRIORITY_DEFAULT, 50, tick);
+    };
+
+    // Lanjutkan hitungan yang berhenti tanpa mengulang dari durasi penuh
+    // (dipakai jaring pengaman saat timer mati di tengah jalan).
+    const resumeTimer = () => {
+        if (timer) return;
         timer = GLib.timeout_add(GLib.PRIORITY_DEFAULT, 50, tick);
     };
 
@@ -414,16 +469,26 @@ export default () => {
     // dihitung ulang untuk kartu yang sekarang paling baru.
     const dismiss = item => {
         const index = items.indexOf(item);
-        if (index >= 0) items.splice(index, 1);
+        // Klik X dua kali atau aksi ganda: item sudah tidak ada di antrean.
+        // Dulu ini me-render ulang kartu yang sedang tampil dan mengulang
+        // timernya, sehingga notifikasi berikutnya tertunda.
+        if (index < 0) return;
+        items.splice(index, 1);
         if (!items.length) {
             hide();
             return;
         }
-        render();
-        // drag kanan bisa menyisakan offset; tampilkan kartu baru di posisi normal
-        const page = Math.round(adj.page_size) || FULL;
-        adj.value = Math.min(page, Math.max(0, adj.upper - adj.page_size));
-        startTimer(durationFor(items[0]));
+        try {
+            render();
+            // drag kanan bisa menyisakan offset; tampilkan kartu baru di posisi normal
+            const page = Math.round(adj.page_size) || FULL;
+            adj.value = Math.min(page, Math.max(0, adj.upper - adj.page_size));
+            startTimer(durationFor(items[0]));
+        } catch (error) {
+            console.error('[dyn-island] render kartu berikutnya gagal:', error);
+            items = [];
+            hide(true);
+        }
     };
 
     const close = item => {
@@ -454,7 +519,7 @@ export default () => {
     const stack = Widget.Box({
         className: 'dyn-island-popup-stack',
         vertical: true,
-        spacing: STACK_GAP,
+        spacing: 0,
         widthRequest: W,
     });
 
@@ -464,8 +529,16 @@ export default () => {
 
     const render = () => {
         items.forEach(item => { item.bar = null; });
-        stack.children = items.map((item, index) =>
-            buildCard(item, index, { dismiss, open, close, dragMove, dragEnd }));
+        stack.children = items.length
+            ? [buildCard(items[0], 0, { dismiss, open, close, dragMove, dragEnd })]
+            : [];
+        // Tinggi kartu berubah saat antrean maju; paksa layer surface ikut
+        // resize supaya kartu terakhir tidak terpotong di tepi bawah.
+        stack.queue_resize();
+        pad.queue_resize();
+        hoverArea.queue_resize();
+        sw.queue_resize();
+        win.queue_resize();
     };
 
     // Hover menahan countdown supaya notifikasi bisa dibaca/diklik.
@@ -525,6 +598,7 @@ export default () => {
     win.popupAdj = adj;       // untuk pengujian (ags -r)
     win.hidePopup = () => hide();   // untuk pengujian (ags -r)
     win.stackItems = () => items.length;
+    win.stackVisible = () => stack.get_children().length;
     win.dismissTop = () => { if (items[0]) dismiss(items[0]); };
     // fallback: drag ke atas meninggalkan clickArea/window sebelum release
     win.connect('button-release-event', (_w, event) => {
@@ -557,7 +631,9 @@ export default () => {
             win.margins = [TOP_INSET, Math.max(0, INSET - extra), 0, 0];
             // tunggu layout selesai: sebelum itu adj.upper masih 0 sehingga
             // nilai scroll ter-clamp ke 0 dan animasi tidak bergerak
-            GLib.timeout_add(GLib.PRIORITY_DEFAULT, 80, () => {
+            cancelShow();
+            showTimer = GLib.timeout_add(GLib.PRIORITY_DEFAULT, 80, () => {
+                showTimer = 0;
                 slideTo(0, Math.min(Math.round(adj.page_size) || FULL,
                     adj.upper - adj.page_size));
                 return GLib.SOURCE_REMOVE;
@@ -577,10 +653,11 @@ export default () => {
         GLib.timeout_add(GLib.PRIORITY_DEFAULT, snoozeDuration(), () => {
             if (!items.some(entry => entry.seq === copy.seq)) {
                 const revived = { ...copy, bar: null };
-                items.unshift(revived);
-                items = items.slice(0, STACK_SIZE);
-                render();
-                show(revived);
+                items.push(revived);
+                if (items.length === 1) {
+                    render();
+                    show(revived);
+                }
             }
             return GLib.SOURCE_REMOVE;
         });
@@ -614,18 +691,76 @@ export default () => {
     latest.connect('changed', () => {
         const item = latest.value;
         if (!item) return;
-        if (item.seq === shownSeq) {
-            // id menyusul dari method return: simpan, jangan tampil ulang
-            const shown = items.find(entry => entry.seq === shownSeq);
-            if (shown) shown.id = item.id || shown.id;
+        // Update id untuk notifikasi yang sudah ada di antrean; jangan
+        // menambah kartu baru saat method_return menyusul.
+        const existing = items.find(entry => entry.seq === item.seq);
+        if (existing) {
+            if (item.id) existing.id = item.id;
             return;
         }
-        shownSeq = item.seq;
-        items.unshift(item);
-        items = items.slice(0, STACK_SIZE);
-        render();
-        show(item);
+        // Notifikasi yang sudah pernah ditutup tidak boleh hidup lagi hanya
+        // karena method_return-nya datang terlambat.
+        if (seen.has(item.seq)) return;
+        seen.add(item.seq);
+        if (seen.size > 200) {
+            const oldest = seen.values().next().value;
+            seen.delete(oldest);
+        }
+        // FIFO: yang pertama masuk menjadi kartu aktif; sisanya menunggu.
+        items.push(item);
+        if (items.length === 1) {
+            try {
+                render();
+                show(item);
+            } catch (error) {
+                console.error('[dyn-island] render popup gagal:', error);
+                items = [];
+                hide(true);
+            }
+        }
     });
+
+    // Jaring pengaman: rekonsiliasi state popup dengan antrean tiap detik.
+    // Tanpa ini, satu transisi yang terlewat (render gagal, animasi
+    // dihentikan, timer mati) membuat kartu menetap atau antrean berhenti.
+    GLib.timeout_add(GLib.PRIORITY_DEFAULT, 1000, () => {
+        try {
+            const active = items[0] || null;
+            if (!active) {
+                if (!hidden && !hiding) hide();
+                return GLib.SOURCE_CONTINUE;
+            }
+            if (hidden) {
+                render();
+                show(active);
+                return GLib.SOURCE_CONTINUE;
+            }
+            if (active.seq !== activeSeq) {
+                render();
+                startTimer(durationFor(active));
+                if (hiding) show(active);
+            } else if (!timer) {
+                resumeTimer();
+            }
+        } catch (error) {
+            console.error('[dyn-island] popup watchdog gagal:', error);
+        }
+        return GLib.SOURCE_CONTINUE;
+    });
+
+    win.debugState = () => ({
+        items: items.length,
+        hidden,
+        hiding,
+        hovered,
+        left: Math.round(left),
+        duration,
+        timer: !!timer,
+        showTimer: !!showTimer,
+        activeSeq,
+    });
+    // Uji jaring pengaman: matikan timer seperti state macet.
+    win.debugStall = () => stopTimer();
 
     return win;
 };
