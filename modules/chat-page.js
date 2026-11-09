@@ -30,7 +30,7 @@ const bubble = msg => {
     const content = Widget.Box({
         className: 'dyn-island-chat-stack',
         vertical: true,
-        spacing: 2,
+        spacing: 4,
         children: [
             Widget.Label({
                 className: 'dyn-island-chat-text',
@@ -50,7 +50,7 @@ const bubble = msg => {
     return Widget.Box({
         className: `dyn-island-chat-row ${msg.role}`,
         halign: isUser ? Gtk.Align.END : Gtk.Align.START,
-        spacing: 6,
+        spacing: 8,
         children: isUser ? [
             Widget.Box({ className: `dyn-island-chat-bubble ${msg.role}`, children: [content] }),
             avatar,
@@ -71,7 +71,7 @@ export default () => {
         propagateNaturalWidth: false,
         propagateNaturalHeight: false,
     });
-    const list = Widget.Box({ className: 'dyn-island-chat-list', vertical: true, spacing: 6 });
+    const list = Widget.Box({ className: 'dyn-island-chat-list', vertical: true, spacing: 8 });
     pane.child = list;
     pane.set_size_request(PANE_W, PANE_H);
 
@@ -158,7 +158,7 @@ export default () => {
         tooltipText: 'Buka jendela chat Gemini',
         child: Widget.Box({
             className: 'dyn-island-pill-content',
-            spacing: 6,
+            spacing: 8,
             children: [
                 Widget.Label({ className: 'dyn-island-pill-icon', label: '\uf075' }),
                 Widget.Label({ className: 'dyn-island-pill-label', label: 'Tanya Gemini' }),
@@ -187,7 +187,7 @@ export default () => {
 
     const foot = Widget.Box({
         className: 'dyn-island-chat-foot',
-        spacing: 6,
+        spacing: 8,
         children: [askBtn, retryBtn],
     });
     foot.set_size_request(PANE_W, -1);
@@ -246,7 +246,7 @@ export default () => {
     return Widget.Box({
         className: 'dyn-island-chat',
         vertical: true,
-        spacing: 6,
+        spacing: 8,
         halign: Gtk.Align.CENTER,
         valign: Gtk.Align.CENTER,
         children: [head, content, foot],
