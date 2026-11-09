@@ -52,13 +52,13 @@ const hourCell = hour => Widget.Box({
 const dayTile = value => Widget.Box({
     className: 'dyn-island-weather-tile',
     vertical: true,
-    spacing: 2,
+    spacing: 4,
     children: [
         Widget.Label({ className: 'dyn-island-weather-tile-day', label: value.day }),
         Widget.Label({ className: 'dyn-island-weather-tile-glyph', label: value.glyph }),
         Widget.Box({
             className: 'dyn-island-weather-tile-temps',
-            spacing: 3,
+            spacing: 4,
             halign: Gtk.Align.CENTER,
             children: [
                 tabular(Widget.Label({ className: 'dyn-island-weather-tile-max', label: `${value.max}°` })),
@@ -133,13 +133,13 @@ export default () => {
             Widget.Box({
                 className: 'dyn-island-weather-now',
                 vertical: true,
-                spacing: 2,
+                spacing: 4,
                 valign: Gtk.Align.CENTER,
                 widthRequest: 168,
                 children: [
                     Widget.Box({
                         className: 'dyn-island-weather-hero',
-                        spacing: 6,
+                        spacing: 8,
                         children: [glyph, temp],
                     }),
                     condition,
