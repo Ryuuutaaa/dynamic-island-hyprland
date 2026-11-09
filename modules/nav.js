@@ -1,5 +1,7 @@
 import GLib from 'gi://GLib';
 import Gtk from 'gi://Gtk?version=3.0';
+import Pango from 'gi://Pango';
+import PangoCairo from 'gi://PangoCairo';
 import Widget from 'resource:///com/github/Aylur/ags/widget.js';
 import { page, stepPage, pinPage, mediaView, PAGE_ORDER, isStickyPage } from '../state.js';
 
@@ -78,27 +80,60 @@ const navigate = name => {
     pinPage(name, { sticky: isStickyPage(name) });
 };
 
+const NAV_ICON_FONT = Pango.FontDescription.from_string('JetBrainsMono Nerd Font');
+NAV_ICON_FONT.set_absolute_size(13 * Pango.SCALE);
+
+// Glyph Nerd Font punya side-bearing yang berbeda-beda; label Pango hanya
+// memusatkan advance width, sehingga beberapa ikon tampak bergeser di dalam
+// kotak aktif. Gambar manual dan pusatkan berdasarkan ink extents.
+const NavIcon = () => {
+    let glyph = '';
+    return Widget.DrawingArea({
+        className: 'dyn-island-nav-icon',
+        setup: self => {
+            self.set_size_request(24, 24);
+            self.connect('state-flags-changed', () => self.queue_draw());
+            self.setGlyph = next => {
+                glyph = next;
+                self.queue_draw();
+            };
+        },
+        drawFn: (self, cr, width, height) => {
+            if (!glyph) return;
+            const layout = PangoCairo.create_layout(cr);
+            layout.set_font_description(NAV_ICON_FONT);
+            layout.set_text(glyph, -1);
+            const [ink] = layout.get_pixel_extents();
+            const context = self.get_style_context();
+            const color = context.get_color(context.get_state());
+            cr.setSourceRGBA(color.red, color.green, color.blue, color.alpha);
+            cr.moveTo((width - ink.width) / 2 - ink.x,
+                (height - ink.height) / 2 - ink.y);
+            PangoCairo.show_layout(cr, layout);
+        },
+    });
+};
+
 // Satu slot bisa berganti halaman saat jendela 7 ikon bergeser; widget-nya
 // tidak dibuat ulang supaya tidak ada alokasi/reparent per pindah halaman.
 const TabSlot = () => {
     let name = null;
-    const icon = Widget.Label({
-        className: 'dyn-island-nav-icon',
-        xalign: 0.5,
-        yalign: 0.5,
-    });
+    const icon = NavIcon();
     const button = Widget.Button({
         className: 'dyn-island-nav-tab',
         child: icon,
         visible: false,
     });
+    // Warna ikon mengikuti hover/aktif dari CSS tombol; DrawingArea perlu
+    // digambar ulang saat state tombol berubah.
+    button.connect('state-flags-changed', () => icon.queue_draw());
     bindPress(button, () => { if (name) navigate(name); });
 
     return {
         button,
         setName: next => {
             name = next;
-            icon.label = ICONS[next] ?? '·';
+            icon.setGlyph(ICONS[next] ?? '·');
             button.tooltipText = LABELS[next] ?? next;
             button.visible = true;
             button.show();
