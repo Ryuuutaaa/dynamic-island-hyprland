@@ -2,20 +2,10 @@ import GLib from 'gi://GLib';
 import Gtk from 'gi://Gtk?version=3.0';
 import Widget from 'resource:///com/github/Aylur/ags/widget.js';
 import { page, stepPage, pinPage, mediaView, PAGE_ORDER, isStickyPage } from '../state.js';
-import { palette, hexToRgb } from '../theme.js';
-import { roundedRect } from '../draw.js';
 
-// Navigasi gaya Poni: tab strip ikon 7 slot yang bergeser mengikuti halaman
-// aktif, panah untuk langkah satuan, dan titik halaman kecil di bawahnya saat
-// jumlah halaman lebih dari 7. Tujuh slot menjaga lebar pill tetap ±230px di
-// kartu 420 tanpa mengubah tinggi nav (24 ikon + 1 + 3 titik = 28px).
+// Navigasi: tab strip ikon 7 slot yang bergeser mengikuti halaman aktif,
+// dengan panah untuk langkah satuan.
 const SLOTS = 7;
-const DOT = 3;
-const DOT_ACTIVE = 8;
-const DOT_GAP = 2;
-const DOTS_HEIGHT = 3;
-
-const DOT_RGB = hexToRgb(palette.fg);
 
 const ICONS = {
     idle: '\uf017',
@@ -53,46 +43,6 @@ const LABELS = {
     prayer: 'Sholat',
     chat: 'Chat',
     settings: 'Pengaturan',
-};
-
-const DOTS_WIDTH = DOT * (PAGE_ORDER.length - 1)
-    + DOT_ACTIVE + DOT_GAP * (PAGE_ORDER.length - 1);
-
-// Titik halaman digambar satu per tab yang terlihat, sejajar tepian di
-// bawah tab aktif. Lebar widget disesuaikan dengan jumlah tab terlihat supaya
-// tidak ada offset seperti sebelumnya.
-const Dots = () => {
-    let active = 0;
-    let visible = SLOTS;
-    const tabWidth = 24;
-    const tabGap = 4;
-    const rowWidth = count => count * tabWidth + (count - 1) * tabGap;
-
-    return Widget.DrawingArea({
-        className: 'dyn-island-nav-dots',
-        setup: self => {
-            self.set_size_request(rowWidth(visible), DOTS_HEIGHT);
-            self.setActive = (a, v) => {
-                if (a === active && v === visible) return;
-                active = a;
-                visible = v;
-                self.set_size_request(rowWidth(visible), DOTS_HEIGHT);
-                self.queue_draw();
-            };
-        },
-        drawFn: (self, cr, width, height) => {
-            const y = (height - DOT) / 2;
-            for (let i = 0; i < visible; i++) {
-                const isActive = i === active;
-                const w = isActive ? DOT_ACTIVE : DOT;
-                const cx = i * (tabWidth + tabGap) + tabWidth / 2;
-                const x = cx - w / 2;
-                cr.setSourceRGBA(DOT_RGB[0], DOT_RGB[1], DOT_RGB[2], isActive ? 0.9 : 0.35);
-                roundedRect(cr, x, y, w, DOT, DOT / 2);
-                cr.fill();
-            }
-        },
-    });
 };
 
 // Aksi di PRESS, bukan release, karena pill nav ikut bergerak selama notch
@@ -166,17 +116,16 @@ const TabSlot = () => {
 };
 
 export default () => {
-    const dots = Dots();
     const slots = Array.from({ length: SLOTS }, () => TabSlot());
     const tabs = Widget.Box({
         className: 'dyn-island-nav-tabs',
-        spacing: 4,
+        spacing: 8,
         children: slots.map(slot => slot.button),
     });
 
     const row = Widget.Box({
         className: 'dyn-island-nav-row',
-        spacing: 8,
+        spacing: 12,
         halign: Gtk.Align.CENTER,
         children: [
             Arrow('\uf053', -1, 'Halaman sebelumnya'),
@@ -187,11 +136,9 @@ export default () => {
 
     const nav = Widget.Box({
         className: 'dyn-island-nav',
-        vertical: true,
-        spacing: 4,
         halign: Gtk.Align.CENTER,
         valign: Gtk.Align.END,
-        children: [row, dots],
+        children: [row],
     });
 
     const sync = () => {
@@ -211,11 +158,6 @@ export default () => {
             slot.setName(name);
             slot.setActive(name === PAGE_ORDER[active]);
         });
-
-        // titik hanya untuk >7 halaman (fallback sesuai audit)
-        const activeVisible = active - start;
-        dots.visible = count > SLOTS;
-        dots.setActive(activeVisible, visible);
     };
 
     sync();

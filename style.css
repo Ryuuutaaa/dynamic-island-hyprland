@@ -126,9 +126,9 @@ tooltip > box {
     background-image: none;
     box-shadow: none;
     border-radius: 999px;
-    /* 24px tab + 4px jarak + 3px titik = 31px; + 6px margin = 37 (NAV_SPACE) */
-    padding: 0px 8px;
-    margin-bottom: 6px;
+    /* 24px baris ikon + 8px margin = 32 (NAV_SPACE) */
+    padding: 0px 12px;
+    margin-bottom: 8px;
 }
 .dyn-island-nav-tab {
     min-width: 24px;
