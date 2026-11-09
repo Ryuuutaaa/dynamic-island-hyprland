@@ -65,11 +65,11 @@ export default () => {
         const widget = Widget.Box({
             className: 'standup-section',
             vertical: true,
-            spacing: 6,
+            spacing: 8,
             children: [
                 titleLabel,
                 pane,
-                Widget.Box({ className: 'standup-input-row', spacing: 6, children: [entry, add] }),
+                Widget.Box({ className: 'standup-input-row', spacing: 8, children: [entry, add] }),
             ],
         });
 
@@ -161,11 +161,11 @@ export default () => {
         children: [
             Widget.Box({
                 className: 'standup-head',
-                spacing: 10,
+                spacing: 8,
                 children: [
                     Widget.Box({
                         vertical: true,
-                        spacing: 1,
+                        spacing: 4,
                         children: [title, day],
                     }),
                     Widget.Label({ hexpand: true }),

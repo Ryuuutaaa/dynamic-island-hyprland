@@ -9,7 +9,7 @@ const makeChip = () => {
     const label = Widget.Label({ className: 'dyn-island-standup-chip-label' });
     const widget = Widget.Box({
         className: 'dyn-island-standup-chip',
-        spacing: 6,
+        spacing: 8,
         valign: Gtk.Align.CENTER,
         children: [icon, label],
     });
@@ -34,7 +34,7 @@ export default () => {
     const blockers = makeChip();
     const chips = Widget.Box({
         className: 'dyn-island-standup-chips',
-        spacing: 6,
+        spacing: 8,
         halign: Gtk.Align.CENTER,
         children: [yesterday.widget, today.widget, blockers.widget],
     });
@@ -67,7 +67,7 @@ export default () => {
         valign: Gtk.Align.CENTER,
         children: [
             bell,
-            Widget.Box({ vertical: true, spacing: 1, children: [title, sub] }),
+            Widget.Box({ vertical: true, spacing: 4, children: [title, sub] }),
             Widget.Label({ hexpand: true }),
             openBtn,
         ],
