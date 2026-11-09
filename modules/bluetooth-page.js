@@ -4,7 +4,7 @@ import Widget from 'resource:///com/github/Aylur/ags/widget.js';
 import Audio from 'resource:///com/github/Aylur/ags/service/audio.js';
 import Bluetooth from 'resource:///com/github/Aylur/ags/service/bluetooth.js';
 import { glyphFor, primaryDevice, sinkFor } from './bluetooth.js';
-import { eventButton, eventX } from './pointer.js';
+import { eventButton, eventX, scrollDelta } from './pointer.js';
 import { page } from '../state.js';
 import { palette, hexToRgb } from '../theme.js';
 import { roundedRect } from '../draw.js';
@@ -178,11 +178,7 @@ export default () => {
     pane.set_size_request(LIST_W, LIST_H);
 
     const scrollPane = event => {
-        let dy = 0;
-        try {
-            const deltas = event.get_scroll_deltas?.();
-            if (Array.isArray(deltas) && deltas[0]) dy = Number(deltas[2]) || 0;
-        } catch (_) { }
+        const dy = scrollDelta(event);
         if (!dy) return false;
         const adjustment = pane.get_vadjustment();
         if (!adjustment) return false;

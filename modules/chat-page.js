@@ -5,6 +5,7 @@ import * as Utils from 'resource:///com/github/Aylur/ags/utils.js';
 import CONFIG from '../config.js';
 import { hovered, page, pinPage } from '../state.js';
 import { chat, ask, retry, clearChat } from './chat.js';
+import { scrollDelta } from './pointer.js';
 
 const BODY_CHARS = 46;
 const PANE_W = 440;
@@ -79,11 +80,7 @@ export default () => {
     // pane. Handler dipasang juga di toplevel window (lihat setup) supaya
     // tetap bekerja. Fungsi ini dipakai kedua jalur.
     const scrollPane = event => {
-        let dy = 0;
-        try {
-            const deltas = event.get_scroll_deltas?.();
-            if (Array.isArray(deltas) && deltas[0]) dy = Number(deltas[2]) || 0;
-        } catch (_) { }
+        const dy = scrollDelta(event);
         if (!dy) return false;
         const adjustment = pane.get_vadjustment();
         if (!adjustment) return false;

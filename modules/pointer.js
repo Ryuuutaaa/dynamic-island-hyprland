@@ -44,3 +44,25 @@ export const rootY = event => {
     } catch (_) { }
     return eventY(event);
 };
+
+// Roda mouse klasik mengirim event diskret: get_scroll_deltas() mengembalikan
+// [false, 0, 0], jadi arah harus dibaca dari get_scroll_direction()
+// (GDK_SCROLL_UP = 0, GDK_SCROLL_DOWN = 1). Trackpad tetap memakai delta
+// halusnya. Nilai positif = gulir ke bawah.
+export const scrollDelta = event => {
+    try {
+        const deltas = event.get_scroll_deltas?.();
+        if (Array.isArray(deltas) && deltas[0]) {
+            const value = Number(deltas[2]) || 0;
+            if (value) return value;
+        }
+    } catch (_) { }
+    try {
+        const result = event.get_scroll_direction?.();
+        if (Array.isArray(result) && result[0]) {
+            if (result[1] === 0) return -1;
+            if (result[1] === 1) return 1;
+        }
+    } catch (_) { }
+    return 0;
+};

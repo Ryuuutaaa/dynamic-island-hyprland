@@ -2,6 +2,7 @@ import Gtk from 'gi://Gtk?version=3.0';
 import Widget from 'resource:///com/github/Aylur/ags/widget.js';
 import { page } from '../state.js';
 import { settings, saveSettings, unmuteApp, OPTIONS } from './settings.js';
+import { scrollDelta } from './pointer.js';
 
 // Sisakan ruang untuk scrollbar; 480 membuat value kanan tertutup scrollbar.
 const ROW_W = 466;
@@ -87,11 +88,7 @@ export default () => {
     pane.set_overlay_scrolling(false);
 
     const scrollPane = event => {
-        let dy = 0;
-        try {
-            const deltas = event.get_scroll_deltas?.();
-            if (Array.isArray(deltas) && deltas[0]) dy = Number(deltas[2]) || 0;
-        } catch (_) { }
+        const dy = scrollDelta(event);
         if (!dy) return false;
         const adjustment = pane.get_vadjustment();
         if (!adjustment) return false;

@@ -58,6 +58,7 @@ import {
 } from './modules/wifi.js';
 import { focusedRect, refresh as refreshMonitors, followFocused, applyFocused } from './modules/monitor.js';
 import { onResume } from './modules/timefmt.js';
+import { scrollDelta } from './modules/pointer.js';
 import ClickAway from './modules/clickaway.js';
 import NotificationPopup from './modules/notif-popup.js';
 import PomodoroOsd from './modules/pomodoro-osd.js';
@@ -913,17 +914,19 @@ function DynamicIsland() {
     island.connect('enter-notify-event', onIslandEnter);
     island.connect('leave-notify-event', onIslandLeave);
     // Wheel di atas notch = halaman berikut/sebelumnya. Halaman yang punya
-    // scroll internal (chat, todo, shelf, lirik) dibiarkan menangani wheel
-    // sendiri agar daftar di dalamnya tetap bisa digulir.
+    // scroll internal (chat, todo, shelf, bluetooth, wifi, lirik) dibiarkan
+    // menangani wheel sendiri agar daftar di dalamnya tetap bisa digulir.
+    let lastWheelAt = 0;
     island.connect('scroll-event', (_self, event) => {
         if (!hovered.value || !navActive) return false;
-        if (['chat', 'todo', 'shelf', 'settings', 'bluetooth'].includes(page.value) || inLyricsView()) return false;
-        let delta = 0;
-        try {
-            const deltas = event.get_scroll_deltas?.();
-            if (Array.isArray(deltas) && deltas[0]) delta = Number(deltas[2]) || 0;
-        } catch (_) { }
+        if (['chat', 'todo', 'shelf', 'settings', 'bluetooth', 'wifi'].includes(page.value) || inLyricsView()) return false;
+        const delta = scrollDelta(event);
         if (!delta) return false;
+        // Satu notch roda bisa tiba sebagai dua event (diskret + halus);
+        // tanpa dedupe halaman melompat dua langkah.
+        const now = GLib.get_monotonic_time() / 1000;
+        if (now - lastWheelAt < 60) return true;
+        lastWheelAt = now;
         stepPage(delta > 0 ? 1 : -1);
         return true;
     });

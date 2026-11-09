@@ -6,6 +6,7 @@ import { palette, hexToRgb } from '../theme.js';
 import { page } from '../state.js';
 import { todo, addTask, toggleTask, removeTask, doneCount, totalCount } from './todo.js';
 import { tabular } from './type.js';
+import { scrollDelta } from './pointer.js';
 
 const FG = hexToRgb(palette.fg);
 // hijau dari palet (bisa di-override wallust via `@define-color ok ...`)
@@ -135,11 +136,7 @@ export default () => {
     pane.set_size_request(LIST_W, LIST_H);
 
     const scrollPane = event => {
-        let dy = 0;
-        try {
-            const deltas = event.get_scroll_deltas?.();
-            if (Array.isArray(deltas) && deltas[0]) dy = Number(deltas[2]) || 0;
-        } catch (_) { }
+        const dy = scrollDelta(event);
         if (!dy) return false;
         const adjustment = pane.get_vadjustment();
         if (!adjustment) return false;

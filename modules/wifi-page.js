@@ -4,7 +4,7 @@ import {
     wifi, scan, connect, disconnect, toggleRadio, openPortal,
     securityLabel, isEnterprise,
 } from './wifi.js';
-import { eventButton } from './pointer.js';
+import { eventButton, scrollDelta } from './pointer.js';
 import { page } from '../state.js';
 
 const WIFI_GLYPH = '\uf1eb';
@@ -123,11 +123,7 @@ export default () => {
         widget.set_no_show_all(true);
 
     const scrollPane = event => {
-        let dy = 0;
-        try {
-            const deltas = event.get_scroll_deltas?.();
-            if (Array.isArray(deltas) && deltas[0]) dy = Number(deltas[2]) || 0;
-        } catch (_) { }
+        const dy = scrollDelta(event);
         if (!dy) return false;
         const adjustment = pane.get_vadjustment();
         if (!adjustment) return false;

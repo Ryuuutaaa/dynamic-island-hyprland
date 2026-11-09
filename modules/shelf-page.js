@@ -4,7 +4,7 @@ import Widget from 'resource:///com/github/Aylur/ags/widget.js';
 import * as Utils from 'resource:///com/github/Aylur/ags/utils.js';
 import { shelf, shelfDragOver, shelfUndo, removeItem, clearShelf, undoLast, formatSize } from './shelf.js';
 import { page } from '../state.js';
-import { eventButton } from './pointer.js';
+import { eventButton, scrollDelta } from './pointer.js';
 
 const CARD_W = 76;
 const CARD_H = 70;
@@ -178,11 +178,7 @@ export default () => {
         // external Scrollbar tetap memesan 4px tinggi; request 66 -> alokasi 70.
         pane.set_size_request(ZONE_W, CARD_H - 4);
         const scrollPane = event => {
-            let dy = 0;
-            try {
-                const deltas = event.get_scroll_deltas?.();
-                if (Array.isArray(deltas) && deltas[0]) dy = Number(deltas[2]) || 0;
-            } catch (_) { }
+            const dy = scrollDelta(event);
             if (!dy) return false;
             const adjustment = pane.get_hadjustment();
             if (!adjustment) return false;
@@ -231,11 +227,7 @@ export default () => {
                     if (!pane) return false;
                     const adjustment = pane.get_hadjustment?.();
                     if (!adjustment) return false;
-                    let dy = 0;
-                    try {
-                        const deltas = event.get_scroll_deltas?.();
-                        if (Array.isArray(deltas) && deltas[0]) dy = Number(deltas[2]) || 0;
-                    } catch (_) { }
+                    const dy = scrollDelta(event);
                     if (!dy) return false;
                     const max = Math.max(0, adjustment.upper - adjustment.page_size);
                     if (max <= 0) return false;
