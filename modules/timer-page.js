@@ -110,7 +110,7 @@ export default () => {
                     Widget.Box({
                         className: 'dyn-island-timer-modes',
                         spacing: 4,
-                        margin_top: 2,
+                        margin_top: 4,
                         children: [modeTimer, modeStopwatch],
                     }),
                 ],
