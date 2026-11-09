@@ -82,8 +82,8 @@ const STYLE_PATH = `${App.configDir}/dynamic-iland/style.css`;
 // chrome notch: padding 13+13 horizontal, 3+3 vertikal, tanpa border
 const CHROME_X = 32; // notch padding 16px kiri+kanan
 const CHROME_Y = 6;
-// tinggi pill nav (28) + margin-bottom CSS-nya (6)
-const NAV_SPACE = 34;
+// tinggi pill nav (31) + margin-bottom CSS-nya (6)
+const NAV_SPACE = 37;
 
 function applyStyle() {
     try {

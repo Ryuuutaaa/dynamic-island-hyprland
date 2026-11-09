@@ -188,7 +188,7 @@ export default () => {
     const nav = Widget.Box({
         className: 'dyn-island-nav',
         vertical: true,
-        spacing: 1,
+        spacing: 4,
         halign: Gtk.Align.CENTER,
         valign: Gtk.Align.END,
         children: [row, dots],
