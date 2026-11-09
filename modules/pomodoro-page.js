@@ -86,7 +86,7 @@ export default () => {
 
     return Widget.Box({
         className: 'dyn-island-pomodoro',
-        spacing: 22,
+        spacing: 24,
         halign: Gtk.Align.CENTER,
         valign: Gtk.Align.CENTER,
         children: [
@@ -94,7 +94,7 @@ export default () => {
             Widget.Box({
                 className: 'dyn-island-pomo-text',
                 vertical: true,
-                spacing: 2,
+                spacing: 4,
                 valign: Gtk.Align.CENTER,
                 children: [
                     Widget.Label({ className: 'dyn-island-pomo-title', label: 'Pomodoro', xalign: 0 }),
