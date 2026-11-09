@@ -71,7 +71,7 @@ const TaskRow = (task, editMode) => {
         tooltipText: `${task.text}${task.due ? ` · ${task.due}` : ''}\n`
             + (task.done ? 'Tandai belum selesai' : 'Tandai selesai'),
         child: Widget.Box({
-            spacing: 6,
+            spacing: 8,
             valign: Gtk.Align.CENTER,
             children: row,
         }),
@@ -106,7 +106,7 @@ const TaskRow = (task, editMode) => {
     });
     return Widget.Box({
         className: 'dyn-island-todo-rowline',
-        spacing: 2,
+        spacing: 4,
         children: [button, removeButton],
     });
 };
@@ -131,7 +131,7 @@ export default () => {
         hscroll: 'never',
         vscroll: 'external',
     });
-    const list = Widget.Box({ className: 'dyn-island-todo-list', vertical: true, spacing: 3 });
+    const list = Widget.Box({ className: 'dyn-island-todo-list', vertical: true, spacing: 4 });
     pane.child = list;
     pane.set_size_request(LIST_W, LIST_H);
 
@@ -197,11 +197,11 @@ export default () => {
             Widget.Box({
                 className: 'dyn-island-todo-meta',
                 vertical: true,
-                spacing: 6,
+                spacing: 8,
                 valign: Gtk.Align.CENTER,
                 children: [
                     Widget.Box({
-                        spacing: 6,
+                        spacing: 8,
                         children: [
                             Widget.Label({ className: 'dyn-island-todo-title', label: 'Tugas' }),
                             Widget.Label({ className: 'dyn-island-todo-title-sub', label: 'Daftar' }),
@@ -214,7 +214,7 @@ export default () => {
                             Widget.Label({ className: 'dyn-island-todo-done', label: 'Tugas selesai' }),
                         ],
                     }),
-                    Widget.Box({ spacing: 6, children: [add, edit] }),
+                    Widget.Box({ spacing: 8, children: [add, edit] }),
                 ],
             }),
             pane,
