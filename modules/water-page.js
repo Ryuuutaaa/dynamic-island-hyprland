@@ -192,7 +192,7 @@ export default () => {
                 valign: Gtk.Align.CENTER,
                 children: [
                     Widget.Box({
-                        spacing: 6,
+                        spacing: 8,
                         children: [
                             Widget.Label({ className: 'dyn-island-water-title', label: 'Air' }),
                             Widget.Label({ className: 'dyn-island-water-sub', label: 'Pengingat' }),
@@ -203,12 +203,12 @@ export default () => {
                     // di AGS, dan hexpand pada child Box AGS diabaikan)
                     Widget.CenterBox({
                         className: 'dyn-island-water-volrow',
-                        startWidget: Widget.Box({ spacing: 6, children: [volume, goal] }),
+                        startWidget: Widget.Box({ spacing: 8, children: [volume, goal] }),
                         endWidget: status,
                     }),
                     Progress(),
                     Widget.Box({
-                        spacing: 6,
+                        spacing: 8,
                         children: [
                             pill('\uf043 Minum', () => drink(), 'Tambah satu botol (250 ml)'),
                             // caption supaya jelas −/+ mengubah TARGET, bukan jumlah minum

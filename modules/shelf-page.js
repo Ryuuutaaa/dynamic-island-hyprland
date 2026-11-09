@@ -34,7 +34,7 @@ const Card = item => Widget.Button({
     tooltipText: `${shortenPath(item.path)}\n${item.missing ? 'File tidak ditemukan · ' : ''}klik: buka · seret: keluar · klik kanan: hapus`,
     child: Widget.Box({
         vertical: true,
-        spacing: 3,
+        spacing: 4,
         valign: Gtk.Align.CENTER,
         children: [
             Thumb(item),
@@ -85,7 +85,7 @@ const DropZone = (over, hasItems) => Widget.Box({
     child: Widget.Box({
         className: 'dyn-island-shelf-zone-inner',
         vertical: true,
-        spacing: 2,
+        spacing: 4,
         // AGS/Box memasang child dengan pack_start(expand=FALSE, fill=TRUE),
         // jadi box ini harus di-hexpand sendiri supaya label bisa center.
         hexpand: true,
@@ -163,7 +163,7 @@ export default () => {
 
         const list = Widget.Box({
             className: 'dyn-island-shelf-list',
-            spacing: 6,
+            spacing: 8,
             children: state.items.map(Card),
         });
         const pane = Widget.Scrollable({
