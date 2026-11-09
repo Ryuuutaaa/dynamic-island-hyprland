@@ -58,34 +58,39 @@ const LABELS = {
 const DOTS_WIDTH = DOT * (PAGE_ORDER.length - 1)
     + DOT_ACTIVE + DOT_GAP * (PAGE_ORDER.length - 1);
 
-// Titik halaman: hanya ditampilkan kalau halaman lebih banyak dari slot
-// (audit: dot tetap untuk >7 halaman). Digambar Cairo supaya bentuk aktif
-// (kapsul) dan non-aktif (bulat) konsisten dengan badan notch.
+// Titik halaman digambar satu per tab yang terlihat, sejajar tepian di
+// bawah tab aktif. Lebar widget disesuaikan dengan jumlah tab terlihat supaya
+// tidak ada offset seperti sebelumnya.
 const Dots = () => {
-    let active = Math.max(0, PAGE_ORDER.indexOf(page.value));
+    let active = 0;
+    let visible = SLOTS;
+    const tabWidth = 24;
+    const tabGap = 4;
+    const rowWidth = count => count * tabWidth + (count - 1) * tabGap;
 
     return Widget.DrawingArea({
         className: 'dyn-island-nav-dots',
         setup: self => {
-            self.set_size_request(DOTS_WIDTH, DOTS_HEIGHT);
-            self.setActive = index => {
-                if (index < 0 || index === active) return;
-                active = index;
+            self.set_size_request(rowWidth(visible), DOTS_HEIGHT);
+            self.setActive = (a, v) => {
+                if (a === active && v === visible) return;
+                active = a;
+                visible = v;
+                self.set_size_request(rowWidth(visible), DOTS_HEIGHT);
                 self.queue_draw();
             };
         },
         drawFn: (self, cr, width, height) => {
-            const widths = PAGE_ORDER.map((_, i) => (i === active ? DOT_ACTIVE : DOT));
-            const total = widths.reduce((sum, w) => sum + w, 0) + DOT_GAP * (widths.length - 1);
-            let x = Math.max(0, (width - total) / 2);
             const y = (height - DOT) / 2;
-
-            widths.forEach((w, i) => {
-                cr.setSourceRGBA(DOT_RGB[0], DOT_RGB[1], DOT_RGB[2], i === active ? 0.9 : 0.35);
+            for (let i = 0; i < visible; i++) {
+                const isActive = i === active;
+                const w = isActive ? DOT_ACTIVE : DOT;
+                const cx = i * (tabWidth + tabGap) + tabWidth / 2;
+                const x = cx - w / 2;
+                cr.setSourceRGBA(DOT_RGB[0], DOT_RGB[1], DOT_RGB[2], isActive ? 0.9 : 0.35);
                 roundedRect(cr, x, y, w, DOT, DOT / 2);
                 cr.fill();
-                x += w + DOT_GAP;
-            });
+            }
         },
     });
 };
@@ -208,8 +213,9 @@ export default () => {
         });
 
         // titik hanya untuk >7 halaman (fallback sesuai audit)
+        const activeVisible = active - start;
         dots.visible = count > SLOTS;
-        dots.setActive(active);
+        dots.setActive(activeVisible, visible);
     };
 
     sync();
