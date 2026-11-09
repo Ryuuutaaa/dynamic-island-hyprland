@@ -232,8 +232,8 @@ tooltip > box {
     color: __FG__;
 }
 .dyn-island-bt-power {
-    min-height: 22px;
-    padding: 0px 9px;
+    min-height: 24px;
+    padding: 0px 12px;
     border-radius: 8px;
     background-color: __SURFACE_DIM__;
     background-image: none;
@@ -264,9 +264,9 @@ tooltip > box {
     border: none;
 }
 .dyn-island-bt-device {
-    min-height: 26px;
-    padding: 0px 6px;
-    border-radius: 9px;
+    min-height: 28px;
+    padding: 0px 12px;
+    border-radius: 8px;
     background-color: transparent;
     background-image: none;
     border: none;
@@ -291,10 +291,10 @@ tooltip > box {
     color: __FG__;
 }
 .dyn-island-bt-badge {
-    min-height: 20px;
+    min-height: 24px;
     min-width: 56px;
-    padding: 0px 8px;
-    border-radius: 7px;
+    padding: 0px 12px;
+    border-radius: 8px;
     background-color: __SURFACE_DIM__;
     background-image: none;
     border: none;
@@ -316,7 +316,7 @@ tooltip > box {
 .dyn-island-bt-empty {
     font-size: 11px;
     color: __MUTED__;
-    padding: 2px 4px;
+    padding: 4px 8px;
 }
 .dyn-island-bt-head {
     min-width: 190px;
@@ -381,10 +381,10 @@ tooltip > box {
     color: __MUTED__;
 }
 .dyn-island-wf-iconbtn {
-    min-height: 22px;
-    min-width: 22px;
+    min-height: 24px;
+    min-width: 24px;
     padding: 0px;
-    border-radius: 7px;
+    border-radius: 8px;
     background-color: transparent;
     background-image: none;
     border: none;
@@ -398,8 +398,8 @@ tooltip > box {
     color: __MUTED__;
 }
 .dyn-island-wf-power {
-    min-height: 22px;
-    padding: 0px 9px;
+    min-height: 24px;
+    padding: 0px 12px;
     border-radius: 8px;
     background-color: __SURFACE_DIM__;
     background-image: none;
@@ -431,8 +431,8 @@ tooltip > box {
 }
 .dyn-island-wf-device {
     min-height: 28px;
-    padding: 0px 9px;
-    border-radius: 9px;
+    padding: 0px 12px;
+    border-radius: 8px;
     background-color: transparent;
     background-image: none;
     border: none;
@@ -468,10 +468,10 @@ tooltip > box {
     color: __MUTED__;
 }
 .dyn-island-wf-badge {
-    min-height: 22px;
+    min-height: 24px;
     min-width: 60px;
-    padding: 0px 9px;
-    border-radius: 7px;
+    padding: 0px 12px;
+    border-radius: 8px;
     background-color: __SURFACE_DIM__;
     background-image: none;
     border: none;
@@ -500,11 +500,11 @@ tooltip > box {
 .dyn-island-wf-empty {
     font-size: 11px;
     color: __MUTED__;
-    padding: 2px 4px;
+    padding: 4px 8px;
 }
 .dyn-island-wf-panel {
     min-height: 90px;
-    padding: 10px 14px;
+    padding: 12px;
     border-radius: 12px;
     background-color: __SURFACE_DIM__;
 }
@@ -558,8 +558,8 @@ tooltip > box {
     color: __MUTED__;
 }
 .dyn-island-wf-portal {
-    min-height: 26px;
-    margin-top: 2px;
+    min-height: 28px;
+    margin-top: 4px;
     border-radius: 8px;
     background-color: __ACCENT_SOFT__;
     background-image: none;
@@ -827,7 +827,7 @@ tooltip > box {
     background-color: transparent;
 }
 .dyn-island-todo-row {
-    padding: 1px 4px;
+    padding: 2px 8px;
     border-radius: 8px;
     transition: 140ms ease-out;
 }
@@ -881,7 +881,7 @@ tooltip > box {
     color: __MUTED__;
 }
 .dyn-island-chip {
-    padding: 1px 9px;
+    padding: 2px 12px;
     border-radius: 8px;
     background-color: __SURFACE__;
     transition: 140ms ease-out;
@@ -921,7 +921,7 @@ tooltip > box {
     background-color: transparent;
 }
 .dyn-island-shelf-card {
-    padding: 4px 2px;
+    padding: 6px 4px;
     border-radius: 12px;
     background-color: __SURFACE_DIM__;
     transition: 140ms ease-out;
@@ -1974,12 +1974,12 @@ tooltip > box {
     font-weight: 600;
     letter-spacing: 1.1px;
     color: __MUTED__;
-    padding: 3px 2px 1px 2px;
+    padding: 6px 4px 4px 4px;
 }
 
 .dyn-island-settings-row {
-    min-height: 24px;
-    padding: 0px 8px;
+    min-height: 28px;
+    padding: 0px 12px;
     border-radius: 8px;
     background-color: transparent;
     background-image: none;

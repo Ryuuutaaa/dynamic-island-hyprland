@@ -131,7 +131,7 @@ const DeviceRow = (device, selected, onSelect, onToggle) => {
     const row = Widget.EventBox({
         className: `dyn-island-bt-device${selected ? ' is-selected' : ''}`,
         child: Widget.CenterBox({
-            startWidget: Widget.Box({ spacing: 7, children: [icon, name] }),
+            startWidget: Widget.Box({ spacing: 8, children: [icon, name] }),
             endWidget: badge,
         }),
         setup: self => {
@@ -156,7 +156,7 @@ export default () => {
     const powerLabel = Widget.Label({ className: 'dyn-island-bt-power-label', label: 'Aktif' });
     const power = Widget.Button({
         className: 'dyn-island-bt-power',
-        child: Widget.Box({ spacing: 6, children: [powerDot, powerLabel] }),
+        child: Widget.Box({ spacing: 8, children: [powerDot, powerLabel] }),
         tooltipText: 'Nyalakan / matikan Bluetooth',
         onClicked: () => Bluetooth.toggle(),
     });
@@ -192,7 +192,7 @@ export default () => {
     const left = Widget.Box({
         className: 'dyn-island-bt-left',
         vertical: true,
-        spacing: 6,
+        spacing: 8,
         widthRequest: LIST_W,
         valign: Gtk.Align.CENTER,
         children: [header, pane],
@@ -216,7 +216,7 @@ export default () => {
     const statusText = Widget.Label({ className: 'dyn-island-bt-status-text' });
     const status = Widget.Box({
         className: 'dyn-island-bt-status',
-        spacing: 6,
+        spacing: 8,
         valign: Gtk.Align.CENTER,
         children: [statusDot, statusText],
     });
@@ -229,7 +229,7 @@ export default () => {
 
     const head = Widget.Box({
         className: 'dyn-island-bt-head',
-        spacing: 10,
+        spacing: 8,
         valign: Gtk.Align.CENTER,
         widthRequest: RIGHT_W,
         children: [
@@ -237,7 +237,7 @@ export default () => {
             Widget.Box({
                 className: 'dyn-island-bt-text',
                 vertical: true,
-                spacing: 1,
+                spacing: 4,
                 widthRequest: 132,
                 valign: Gtk.Align.CENTER,
                 children: [name, meta],
@@ -274,7 +274,7 @@ export default () => {
     const right = Widget.Box({
         className: 'dyn-island-bt-right',
         vertical: true,
-        spacing: 6,
+        spacing: 8,
         widthRequest: RIGHT_W,
         valign: Gtk.Align.CENTER,
         children: [head, status, volRow, hint],

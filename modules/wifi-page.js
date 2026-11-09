@@ -53,7 +53,7 @@ const DeviceRow = (item, selected, state, onSelect, onToggle) => {
     const badge = Widget.Button({
         className: `dyn-island-wf-badge ${badgeState}`.trim(),
         child: Widget.Box({
-            spacing: 5,
+            spacing: 8,
             halign: Gtk.Align.CENTER,
             children: badgeChildren,
         }),
@@ -105,8 +105,8 @@ export default () => {
     const title = Widget.Label({ className: 'dyn-island-wf-title', label: 'Wi-Fi' });
     const header = Widget.CenterBox({
         className: 'dyn-island-wf-header',
-        startWidget: Widget.Box({ spacing: 7, children: [title, scanningLabel] }),
-        endWidget: Widget.Box({ spacing: 4, children: [scanButton, power] }),
+        startWidget: Widget.Box({ spacing: 8, children: [title, scanningLabel] }),
+        endWidget: Widget.Box({ spacing: 8, children: [scanButton, power] }),
     });
     header.set_size_request(LIST_W, 22);
 
@@ -167,7 +167,7 @@ export default () => {
     });
     const status = Widget.CenterBox({
         className: 'dyn-island-wf-status',
-        startWidget: Widget.Box({ spacing: 6, children: [statusDot, statusText] }),
+        startWidget: Widget.Box({ spacing: 8, children: [statusDot, statusText] }),
         endWidget: ipLabel,
     });
     const portalButton = Widget.Button({
@@ -187,14 +187,14 @@ export default () => {
 
     const head = Widget.Box({
         className: 'dyn-island-wf-head',
-        spacing: 10,
+        spacing: 8,
         valign: Gtk.Align.CENTER,
         children: [
             icon,
             Widget.Box({
                 className: 'dyn-island-wf-text',
                 vertical: true,
-                spacing: 1,
+                spacing: 4,
                 widthRequest: 136,
                 valign: Gtk.Align.CENTER,
                 children: [name, meta],
@@ -205,7 +205,7 @@ export default () => {
     const detail = Widget.Box({
         className: 'dyn-island-wf-detail',
         vertical: true,
-        spacing: 7,
+        spacing: 8,
         children: [head, status, portalButton, hint],
     });
 
@@ -220,7 +220,7 @@ export default () => {
     const empty = Widget.Box({
         className: 'dyn-island-wf-empty-box',
         vertical: true,
-        spacing: 6,
+        spacing: 8,
         halign: Gtk.Align.CENTER,
         valign: Gtk.Align.CENTER,
         children: [emptyIcon, emptyTitle, emptyHint],
