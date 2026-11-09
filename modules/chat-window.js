@@ -41,7 +41,7 @@ export default () => {
         const content = Widget.Box({
             className: 'dyn-island-chat-stack',
             vertical: true,
-            spacing: 2,
+            spacing: 4,
             children: [
                 Widget.Label({
                     className: 'dyn-island-chat-text',
@@ -67,7 +67,7 @@ export default () => {
         return Widget.Box({
             className: `dyn-island-chat-row ${msg.role}`,
             halign: isUser ? Gtk.Align.END : Gtk.Align.START,
-            spacing: 6,
+            spacing: 8,
             children: isUser ? [
                 Widget.Box({ className: `dyn-island-chat-bubble ${msg.role}`, children: [content] }),
                 avatar,
@@ -82,7 +82,7 @@ export default () => {
     const emptyBox = Widget.Box({
         className: 'gemini-chat-empty',
         vertical: true,
-        spacing: 10,
+        spacing: 8,
         halign: Gtk.Align.CENTER,
         valign: Gtk.Align.CENTER,
         children: [
@@ -244,7 +244,7 @@ export default () => {
     const root = Widget.Box({
         className: 'gemini-chat',
         vertical: true,
-        spacing: 10,
+        spacing: 8,
         children: [
             header,
             sep(),
