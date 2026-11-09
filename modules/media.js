@@ -50,7 +50,7 @@ export default () => {
     const timeRow = Widget.CenterBox({
         className: 'dyn-island-media-timerow',
         startWidget: elapsed,
-        endWidget: Widget.Box({ spacing: 6, children: [total, source] }),
+        endWidget: Widget.Box({ spacing: 8, children: [total, source] }),
     });
 
     const refreshTimes = () => {
@@ -101,7 +101,7 @@ export default () => {
 
     const controls = Widget.Box({
         className: 'dyn-island-media-ctls',
-        spacing: 2,
+        spacing: 4,
         valign: Gtk.Align.CENTER,
         children: [
             control('\uf048', player => player.previous(), 'Sebelumnya'),
@@ -125,7 +125,7 @@ export default () => {
 
     return Widget.Box({
         className: 'dyn-island-media',
-        spacing: 14,
+        spacing: 12,
         halign: Gtk.Align.CENTER,
         valign: Gtk.Align.CENTER,
         children: [
@@ -133,7 +133,7 @@ export default () => {
             Widget.Box({
                 className: 'dyn-island-media-text',
                 vertical: true,
-                spacing: 6,
+                spacing: 8,
                 children: [title, artist, progress, timeRow],
             }),
             controls,

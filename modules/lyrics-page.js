@@ -166,16 +166,16 @@ export default () => {
                 spacing: 4,
                 children: [
                     Widget.Box({
-                        spacing: 10,
+                        spacing: 8,
                         children: [
                             cover,
-                            Widget.Box({ vertical: true, spacing: 2, children: [title, artist] }),
+                            Widget.Box({ vertical: true, spacing: 4, children: [title, artist] }),
                         ],
                     }),
                     Progress(150),
                     Widget.Box({
                         className: 'dyn-island-media-ctls',
-                        spacing: 2,
+                        spacing: 4,
                         children: [
                             // keluar dari tampilan lirik: kembali ke kartu media
                             Widget.Button({
