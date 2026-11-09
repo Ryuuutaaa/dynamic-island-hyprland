@@ -50,7 +50,7 @@ export default () => {
         className: 'dyn-island-pomo-osd',
         vertical: true,
         widthRequest: 320,
-        spacing: 6,
+        spacing: 8,
         children: [
             Widget.Box({
                 className: 'dyn-island-pomo-osd-head',
@@ -67,13 +67,13 @@ export default () => {
             }),
             Widget.Box({
                 className: 'dyn-island-pomo-osd-clock',
-                spacing: 10,
+                spacing: 8,
                 children: [time, modeText],
             }),
             bar,
             Widget.Box({
                 className: 'dyn-island-pomo-osd-actions',
-                spacing: 6,
+                spacing: 8,
                 children: [play, skip, redo],
             }),
         ],

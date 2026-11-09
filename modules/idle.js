@@ -73,7 +73,7 @@ export default () => {
             Widget.Box({
                 className: 'dyn-island-idle-stats',
                 vertical: true,
-                spacing: 7,
+                spacing: 8,
                 valign: Gtk.Align.CENTER,
                 children: [
                     statRow(battIcon, batt),

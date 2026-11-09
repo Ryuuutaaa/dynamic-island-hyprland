@@ -67,7 +67,7 @@ const DeviceRow = (item, selected, state, onSelect, onToggle) => {
     const row = Widget.EventBox({
         className: `dyn-island-wf-device${selected ? ' is-selected' : ''}`,
         child: Widget.CenterBox({
-            startWidget: Widget.Box({ spacing: 7, children: nameChildren }),
+            startWidget: Widget.Box({ spacing: 8, children: nameChildren }),
             endWidget: badge,
         }),
         setup: self => {
@@ -92,7 +92,7 @@ export default () => {
     const powerLabel = Widget.Label({ className: 'dyn-island-wf-power-label', label: 'Aktif' });
     const power = Widget.Button({
         className: 'dyn-island-wf-power',
-        child: Widget.Box({ spacing: 6, children: [powerDot, powerLabel] }),
+        child: Widget.Box({ spacing: 8, children: [powerDot, powerLabel] }),
         tooltipText: 'Nyalakan / matikan Wi-Fi',
         onClicked: () => toggleRadio(),
     });
@@ -343,7 +343,7 @@ export default () => {
 
     return Widget.Box({
         className: 'dyn-island-wifi',
-        spacing: 14,
+        spacing: 12,
         halign: Gtk.Align.CENTER,
         valign: Gtk.Align.CENTER,
         children: [left, right],

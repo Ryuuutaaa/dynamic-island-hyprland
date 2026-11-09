@@ -191,7 +191,7 @@ const buildCard = (item, index, { dismiss, open, close, dragMove, dragEnd }) => 
 
     const actionRow = Widget.Box({
         className: 'dyn-island-popup-actions',
-        spacing: 6,
+        spacing: 8,
         visible: false,
     });
     addActions(item, actionRow, dismiss);
@@ -199,7 +199,7 @@ const buildCard = (item, index, { dismiss, open, close, dragMove, dragEnd }) => 
     const clickArea = Widget.EventBox({
         className: 'dyn-island-popup-hit',
         child: Widget.Box({
-            spacing: 10,
+            spacing: 8,
             children: [
                 Widget.Box({
                     className: 'dyn-island-popup-iconbox',
@@ -212,7 +212,7 @@ const buildCard = (item, index, { dismiss, open, close, dragMove, dragEnd }) => 
                 Widget.Box({
                     className: 'dyn-island-popup-text',
                     vertical: true,
-                    spacing: 2,
+                    spacing: 4,
                     children: [appLabel, summary, body],
                 }),
             ],

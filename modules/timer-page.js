@@ -118,7 +118,7 @@ export default () => {
             Widget.Box({
                 className: 'dyn-island-timer-controls',
                 vertical: true,
-                spacing: 5,
+                spacing: 8,
                 valign: Gtk.Align.CENTER,
                 hexpand: true,
                 children: [

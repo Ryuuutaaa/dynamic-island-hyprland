@@ -71,12 +71,12 @@ export default () => {
         truncate: 'end',
         maxWidthChars: 46,
     });
-    const list = Widget.Box({ className: 'dyn-island-cal-list', vertical: true, spacing: 3 });
+    const list = Widget.Box({ className: 'dyn-island-cal-list', vertical: true, spacing: 4 });
 
     const content = Widget.Box({
         className: 'dyn-island-cal-content',
         vertical: true,
-        spacing: 2,
+        spacing: 4,
         halign: Gtk.Align.FILL,
         children: [title, when, list],
     });
