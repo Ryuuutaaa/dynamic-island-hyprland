@@ -73,7 +73,7 @@ export default () => {
     const list = Widget.Box({
         className: 'dyn-island-settings-list',
         vertical: true,
-        spacing: 1,
+        spacing: 4,
     });
     const pane = Widget.Scrollable({
         className: 'dyn-island-settings-pane',
@@ -146,7 +146,7 @@ export default () => {
             () => moveIndicator(index, 1));
         const rowBox = Widget.Box({
             className: 'dyn-island-settings-row dyn-island-settings-indicator',
-            spacing: 2,
+            spacing: 4,
             children: [label, up, down],
         });
         rowBox.set_size_request(ROW_W, -1);

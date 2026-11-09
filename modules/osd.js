@@ -187,7 +187,7 @@ export function VolumeOsd() {
 
     const top = Widget.Box({
         className: 'dyn-island-osd-top',
-        spacing: 10,
+        spacing: 8,
         halign: Gtk.Align.CENTER,
         children: [iconButton, progress, label],
     });
@@ -195,7 +195,7 @@ export function VolumeOsd() {
     return Widget.Box({
         className: 'dyn-island-osd',
         vertical: true,
-        spacing: 2,
+        spacing: 4,
         // compact & center: OSD juga dipakai di dalam kartu besar saat hover
         halign: Gtk.Align.CENTER,
         valign: Gtk.Align.CENTER,
@@ -283,7 +283,7 @@ export function BrightnessOsd() {
 
     const top = Widget.Box({
         className: 'dyn-island-osd-top',
-        spacing: 10,
+        spacing: 8,
         halign: Gtk.Align.CENTER,
         children: [icon, progress, label],
     });
@@ -291,7 +291,7 @@ export function BrightnessOsd() {
     return Widget.Box({
         className: 'dyn-island-osd',
         vertical: true,
-        spacing: 2,
+        spacing: 4,
         // compact & center: OSD juga dipakai di dalam kartu besar saat hover
         halign: Gtk.Align.CENTER,
         valign: Gtk.Align.CENTER,

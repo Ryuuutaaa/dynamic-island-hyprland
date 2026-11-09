@@ -305,7 +305,7 @@ export default () => {
 
     return Widget.Box({
         className: 'dyn-island-prayer',
-        spacing: 14,
+        spacing: 16,
         halign: Gtk.Align.CENTER,
         valign: Gtk.Align.CENTER,
         children: [info, chart],
