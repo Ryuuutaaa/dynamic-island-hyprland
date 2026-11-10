@@ -499,6 +499,15 @@ hari terpilih (read-only), serta catatan lokal yang bisa ditambah/dihapus.
   `dyn.calendarApi.update('2026-11-10', id, 'Meeting baru', '10:00')`,
   `dyn.calendarApi.remove('2026-11-10', id)`, `dyn.calendarApi.check()`.
 
+**Acara lokal**: section **ACARA** punya tombol **+ Tambah**; acara buatan
+sendiri disimpan di `~/.local/share/dynamic-iland/calendar-events.json`
+(`{ "YYYY-MM-DD": [{ id, title, time, end, notifiedAt }] }`). Jam mulai wajib,
+jam selesai opsional, dan pengingat dikirim pada jam mulai (catch-up yang sama
+dengan catatan). Acara iCal tetap read-only dan diberi badge `iCal`; acara
+lokal punya tombol edit/hapus dengan konfirmasi inline. Debug:
+`dyn.calendarApi.eventAdd('2026-11-10','Rapat','09:00','10:00')`,
+`eventUpdate(...)`, `eventRemove(...)`, `eventCheck()`.
+
 Uji parser dengan file lokal:
 
 ```bash

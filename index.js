@@ -70,6 +70,7 @@ import StatsPage from './modules/stats-page.js';
 import CalendarPage from './modules/calendar-page.js';
 import { watchCalendar, calendar as calendarState, refreshCalendar } from './modules/calendar.js';
 import { watchCalendarNotes, calendarNotes, addNote as calendarNoteAdd, updateNote as calendarNoteUpdate, removeNote as calendarNoteRemove, checkNotes as calendarNotesCheck, notesFor as calendarNotesFor } from './modules/calendar-notes.js';
+import { watchCalendarEvents, calendarEvents, addEvent as calendarEventAdd, updateEvent as calendarEventUpdate, removeEvent as calendarEventRemove, checkEvents as calendarEventsCheck, eventsFor as calendarEventsFor } from './modules/calendar-events.js';
 import { watchStats, stats as statsState } from './modules/sysstats.js';
 import { watchWellness, toggleWellness, wellness as wellnessState, reminderNow as wellnessReminder, onWellnessAction } from './modules/wellness.js';
 import { timer as timerState, restoreTimer, applyPreset as timerPreset, toggleRunning as timerToggle, resetTimer as timerReset, setMode as timerSetMode } from './modules/timer.js';
@@ -1279,10 +1280,15 @@ watchWellness();
 watchStats();
 watchCalendar();
 watchCalendarNotes();
+watchCalendarEvents();
 dyn.calendarNotes = calendarNotes;
+dyn.calendarEvents = calendarEvents;
 dyn.calendarApi = {
     add: calendarNoteAdd, update: calendarNoteUpdate, remove: calendarNoteRemove,
     check: calendarNotesCheck, notesFor: calendarNotesFor,
+    eventAdd: calendarEventAdd, eventUpdate: calendarEventUpdate,
+    eventRemove: calendarEventRemove, eventCheck: calendarEventsCheck,
+    eventsFor: calendarEventsFor,
 };
 dyn.notifInvoke = notifInvoke;
 dyn.standupApi = {

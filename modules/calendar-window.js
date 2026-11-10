@@ -8,6 +8,7 @@ import CONFIG from '../config.js';
 import { applyFocused } from './monitor.js';
 import { calendar } from './calendar.js';
 import { calendarNotes, addNote, updateNote, removeNote, isoDay, normalizeTime } from './calendar-notes.js';
+import { calendarEvents, addEvent, updateEvent, removeEvent } from './calendar-events.js';
 import { buildGrid, Legend, MONTHS } from './calendar-grid.js';
 import { tabular } from './type.js';
 
@@ -31,6 +32,8 @@ const eventDays = () => {
     const days = new Set();
     for (const event of calendar.value.events ?? [])
         days.add(isoDay(new Date(event.start)));
+    for (const day of Object.keys(calendarEvents.value))
+        days.add(day);
     return days;
 };
 const noteDays = () => new Set(Object.keys(calendarNotes.value));
@@ -40,10 +43,11 @@ export default () => {
     let viewYear = now.getFullYear();
     let viewMonth = now.getMonth();
     let selected = { year: viewYear, month: viewMonth, day: now.getDate() };
-    let composerOpen = false;
+    let composerMode = null; // 'note' | 'event'
+    let editingKind = null;  // 'note' | 'event'
     let editingId = null;
     let editDayKey = '';
-    let deletingId = null;
+    let deleting = null;     // { kind: 'note'|'event', id }
 
     const title = Widget.Label({ className: 'cal-title', xalign: 0 });
     const sub = Legend({ prefix: 'cal' });
@@ -91,8 +95,8 @@ export default () => {
         prefix: 'cal',
         onSelect: (year, month, day) => {
             // Edit terikat ke hari lama: batalkan saat pindah hari.
-            if (editingId !== null) closeComposer();
-            deletingId = null;
+            if (editingKind !== null) closeComposer();
+            deleting = null;
             selected = { year, month, day };
             render();
         },
@@ -113,6 +117,7 @@ export default () => {
         className: 'cal-entry cal-time-entry',
         placeholderText: '09:00',
         maxLength: 5,
+        widthChars: 5,
         tooltipText: 'Jam notifikasi (opsional)',
     });
     const timeIcon = Widget.Label({ className: 'cal-time-icon', label: '\uf017' });
@@ -125,13 +130,45 @@ export default () => {
     const saveButton = Widget.Button({
         className: 'cal-add-btn',
         child: saveLabel,
-        onClicked: () => submit(),
+        onClicked: () => submitNote(),
     });
-    const cancelButton = Widget.Button({
+
+    const eventTitleEntry = Widget.Entry({
+        className: 'cal-entry cal-event-title',
+        placeholderText: 'Judul acara…',
+        hexpand: true,
+    });
+    const eventStartEntry = Widget.Entry({
+        className: 'cal-entry cal-time-entry',
+        placeholderText: '09:00',
+        maxLength: 5,
+        widthChars: 5,
+        tooltipText: 'Jam mulai',
+    });
+    const eventEndEntry = Widget.Entry({
+        className: 'cal-entry cal-time-entry',
+        placeholderText: '10:00',
+        maxLength: 5,
+        widthChars: 5,
+        tooltipText: 'Jam selesai (opsional)',
+    });
+    const eventSaveLabel = Widget.Label({ className: 'cal-add-label', label: 'Tambah' });
+    const eventSaveButton = Widget.Button({
+        className: 'cal-add-btn',
+        child: eventSaveLabel,
+        onClicked: () => submitEvent(),
+    });
+    const eventIcon = Widget.Label({ className: 'cal-time-icon', label: '\uf073' });
+    const eventDash = Widget.Label({ className: 'cal-time-dash', label: '–' });
+
+    const cancelButton = () => Widget.Button({
         className: 'cal-cancel-btn',
         child: Widget.Label({ className: 'cal-cancel-label', label: 'Batal' }),
         onClicked: () => closeComposer(),
     });
+    const noteCancel = cancelButton();
+    const eventCancel = cancelButton();
+
     const hint = Widget.Label({ className: 'cal-hint', xalign: 0, label: '' });
     hint.visible = false;
     hint.set_no_show_all(true);
@@ -139,32 +176,52 @@ export default () => {
     const addRow = Widget.Box({
         className: 'cal-add-row',
         spacing: 8,
-        children: [timeIcon, timeEntry, textEntry, saveButton, cancelButton],
+        children: [timeIcon, timeEntry, textEntry, saveButton, noteCancel],
     });
     addRow.visible = false;
     addRow.set_no_show_all(true);
 
-    // Aksi tambah yang jelas; composer baru muncul setelah diklik.
-    const addTrigger = Widget.Button({
-        className: 'cal-add-trigger',
-        hexpand: true,
+    const eventRow = Widget.Box({
+        className: 'cal-add-row',
+        spacing: 8,
+        children: [
+            eventIcon, eventTitleEntry, eventStartEntry, eventDash,
+            eventEndEntry, eventSaveButton, eventCancel,
+        ],
+    });
+    eventRow.visible = false;
+    eventRow.set_no_show_all(true);
+
+    const sectionAdd = (tooltip, onAdd) => Widget.Button({
+        className: 'cal-section-add',
+        tooltipText: tooltip,
+        halign: Gtk.Align.END,
         child: Widget.Box({
-            spacing: 6,
-            halign: Gtk.Align.CENTER,
+            spacing: 4,
             children: [
-                Widget.Label({ className: 'cal-add-trigger-icon', label: '\uf067' }),
-                Widget.Label({ className: 'cal-add-trigger-label', label: 'Tambah catatan' }),
+                Widget.Label({ className: 'cal-section-add-icon', label: '\uf067' }),
+                Widget.Label({ className: 'cal-section-add-label', label: 'Tambah' }),
             ],
         }),
-        onClicked: () => openComposer(),
+        onClicked: onAdd,
     });
+    const sectionHeader = (label, button) => Widget.CenterBox({
+        className: 'cal-section-row',
+        startWidget: Widget.Label({ className: 'cal-section', label, xalign: 0 }),
+        endWidget: button,
+    });
+
+    const composerLabel = Widget.Label({ className: 'cal-composer-label', xalign: 0 });
+    composerLabel.visible = false;
+    composerLabel.set_no_show_all(true);
 
     const card = Widget.Box({
         className: 'cal-card',
         vertical: true,
         widthRequest: WIN_W,
         spacing: 8,
-        children: [header, grid, selectedLabel, detailScroll, addTrigger, addRow, hint],
+        children: [header, grid, selectedLabel, detailScroll,
+            composerLabel, addRow, eventRow, hint],
     });
 
     const win = Widget.Window({
@@ -190,7 +247,9 @@ export default () => {
 
     function focusTarget() {
         clearFocusTimers();
-        const target = composerOpen ? textEntry : addTrigger;
+        const target = composerMode === 'note' ? textEntry
+            : composerMode === 'event' ? eventTitleEntry
+                : todayButton;
         for (const delay of [0, 60, 180, 400]) {
             let id = 0;
             id = Utils.timeout(delay, () => {
@@ -201,30 +260,58 @@ export default () => {
         }
     }
 
-    function openComposer(note = null, key = null) {
-        composerOpen = true;
+    function openNoteComposer(note = null, key = null) {
+        composerMode = 'note';
+        editingKind = 'note';
         editingId = note ? note.id : null;
         editDayKey = note ? (key ?? '') : '';
-        deletingId = null;
+        deleting = null;
         timeEntry.text = note?.time ?? '';
         textEntry.text = note?.text ?? '';
         saveLabel.label = note ? 'Simpan' : 'Tambah';
-        addTrigger.visible = false;
+        composerLabel.label = note ? 'EDIT CATATAN' : 'CATATAN BARU';
+        composerLabel.visible = true;
+        composerLabel.show();
+        eventRow.visible = false;
         addRow.visible = true;
         addRow.show();
         clearHint();
         focusTarget();
     }
 
+    function openEventComposer(event = null, key = null) {
+        composerMode = 'event';
+        editingKind = 'event';
+        editingId = event ? event.id : null;
+        editDayKey = event ? (key ?? '') : '';
+        deleting = null;
+        eventTitleEntry.text = event?.title ?? '';
+        eventStartEntry.text = event?.time ?? '';
+        eventEndEntry.text = event?.end ?? '';
+        eventSaveLabel.label = event ? 'Simpan' : 'Tambah';
+        composerLabel.label = event ? 'EDIT ACARA' : 'ACARA BARU';
+        composerLabel.visible = true;
+        composerLabel.show();
+        addRow.visible = false;
+        eventRow.visible = true;
+        eventRow.show();
+        clearHint();
+        focusTarget();
+    }
+
     function closeComposer() {
-        composerOpen = false;
+        composerMode = null;
+        editingKind = null;
         editingId = null;
         editDayKey = '';
         timeEntry.text = '';
         textEntry.text = '';
+        eventTitleEntry.text = '';
+        eventStartEntry.text = '';
+        eventEndEntry.text = '';
         addRow.visible = false;
-        addTrigger.visible = true;
-        addTrigger.show();
+        eventRow.visible = false;
+        composerLabel.visible = false;
         clearHint();
         focusTarget();
     }
@@ -257,7 +344,30 @@ export default () => {
         hint.visible = false;
     }
 
-    const eventRow = event => Widget.Box({
+    const confirmRow = (text, onConfirm) => Widget.Box({
+        className: 'cal-delete-confirm',
+        spacing: 8,
+        children: [
+            Widget.Label({
+                className: 'cal-delete-text',
+                label: text,
+                xalign: 0,
+                hexpand: true,
+            }),
+            Widget.Button({
+                className: 'cal-chip',
+                child: Widget.Label({ className: 'cal-chip-label', label: 'Batal' }),
+                onClicked: () => { deleting = null; render(); },
+            }),
+            Widget.Button({
+                className: 'cal-delete-ok',
+                child: Widget.Label({ className: 'cal-delete-ok-label', label: 'Hapus' }),
+                onClicked: onConfirm,
+            }),
+        ],
+    });
+
+    const icalRow = event => Widget.Box({
         className: 'cal-detail-row',
         spacing: 8,
         children: [
@@ -271,38 +381,62 @@ export default () => {
                 xalign: 0,
                 hexpand: true,
                 wrap: true,
-                maxWidthChars: 48,
+                maxWidthChars: 46,
             }),
+            Widget.Label({ className: 'cal-detail-badge', label: 'iCal' }),
         ],
     });
 
+    const localEventRow = (key, event) => {
+        if (deleting?.kind === 'event' && deleting.id === event.id) {
+            return confirmRow('Hapus acara ini?', () => {
+                removeEvent(key, event.id);
+                deleting = null;
+                render();
+            });
+        }
+
+        const editButton = Widget.Button({
+            className: 'cal-note-action',
+            tooltipText: 'Edit acara',
+            child: Widget.Label({ className: 'cal-note-action-icon', label: '\uf044' }),
+            onClicked: () => openEventComposer(event, key),
+        });
+        const deleteButton = Widget.Button({
+            className: 'cal-note-action is-danger',
+            tooltipText: 'Hapus acara',
+            child: Widget.Label({ className: 'cal-note-action-icon', label: '\uf1f8' }),
+            onClicked: () => { deleting = { kind: 'event', id: event.id }; render(); },
+        });
+
+        return Widget.Box({
+            className: 'cal-note-row',
+            spacing: 8,
+            children: [
+                tabular(Widget.Label({
+                    className: 'cal-detail-time',
+                    label: event.end ? `${event.time}–${event.end}` : event.time,
+                })),
+                Widget.Label({
+                    className: 'cal-note-text',
+                    label: event.title,
+                    xalign: 0,
+                    hexpand: true,
+                    wrap: true,
+                    maxWidthChars: 34,
+                }),
+                editButton,
+                deleteButton,
+            ],
+        });
+    };
+
     const noteRow = (key, note) => {
-        if (deletingId === note.id) {
-            return Widget.Box({
-                className: 'cal-delete-confirm',
-                spacing: 8,
-                children: [
-                    Widget.Label({
-                        className: 'cal-delete-text',
-                        label: 'Hapus catatan ini?',
-                        xalign: 0,
-                        hexpand: true,
-                    }),
-                    Widget.Button({
-                        className: 'cal-chip',
-                        child: Widget.Label({ className: 'cal-chip-label', label: 'Batal' }),
-                        onClicked: () => { deletingId = null; render(); },
-                    }),
-                    Widget.Button({
-                        className: 'cal-delete-ok',
-                        child: Widget.Label({ className: 'cal-delete-ok-label', label: 'Hapus' }),
-                        onClicked: () => {
-                            removeNote(key, note.id);
-                            deletingId = null;
-                            render();
-                        },
-                    }),
-                ],
+        if (deleting?.kind === 'note' && deleting.id === note.id) {
+            return confirmRow('Hapus catatan ini?', () => {
+                removeNote(key, note.id);
+                deleting = null;
+                render();
             });
         }
 
@@ -310,13 +444,13 @@ export default () => {
             className: 'cal-note-action',
             tooltipText: 'Edit catatan',
             child: Widget.Label({ className: 'cal-note-action-icon', label: '\uf044' }),
-            onClicked: () => openComposer(note, key),
+            onClicked: () => openNoteComposer(note, key),
         });
         const deleteButton = Widget.Button({
             className: 'cal-note-action is-danger',
             tooltipText: 'Hapus catatan',
             child: Widget.Label({ className: 'cal-note-action-icon', label: '\uf1f8' }),
-            onClicked: () => { deletingId = note.id; render(); },
+            onClicked: () => { deleting = { kind: 'note', id: note.id }; render(); },
         });
 
         return Widget.Box({
@@ -333,7 +467,7 @@ export default () => {
                     xalign: 0,
                     hexpand: true,
                     wrap: true,
-                    maxWidthChars: 38,
+                    maxWidthChars: 34,
                 }),
                 editButton,
                 deleteButton,
@@ -358,19 +492,44 @@ export default () => {
         const events = (calendar.value.events ?? [])
             .filter(event => isoDay(new Date(event.start)) === key)
             .sort((a, b) => a.start - b.start);
+        const localEvents = calendarEvents.value[key] ?? [];
         const notes = calendarNotes.value[key] ?? [];
         const rows = [];
-        if (events.length) {
-            rows.push(Widget.Label({ className: 'cal-section', label: 'ACARA', xalign: 0 }));
-            rows.push(...events.map(eventRow));
+
+        rows.push(sectionHeader('ACARA',
+            sectionAdd('Tambah acara', () => openEventComposer())));
+        const merged = [
+            ...events.map(event => ({
+                kind: 'ical',
+                sort: event.allDay ? '00:00' : hhmm(event.start),
+                event,
+            })),
+            ...localEvents.map(event => ({
+                kind: 'local',
+                sort: event.time,
+                event,
+            })),
+        ].sort((a, b) => a.sort.localeCompare(b.sort));
+        if (merged.length) {
+            rows.push(...merged.map(entry => entry.kind === 'ical'
+                ? icalRow(entry.event)
+                : localEventRow(key, entry.event)));
+        } else {
+            rows.push(Widget.Label({
+                className: 'cal-empty',
+                label: 'Belum ada acara.',
+                xalign: 0,
+            }));
         }
-        rows.push(Widget.Label({ className: 'cal-section', label: 'CATATAN', xalign: 0 }));
+
+        rows.push(sectionHeader('CATATAN',
+            sectionAdd('Tambah catatan', () => openNoteComposer())));
         if (notes.length) {
             rows.push(...notes.map(note => noteRow(key, note)));
         } else {
             rows.push(Widget.Label({
                 className: 'cal-empty',
-                label: 'Belum ada catatan. Tambahkan di bawah.',
+                label: 'Belum ada catatan.',
                 xalign: 0,
             }));
         }
@@ -381,7 +540,7 @@ export default () => {
         detailScroll.set_size_request(-1, Math.min(DETAIL_H, Math.max(40, wanted)));
     }
 
-    function submit() {
+    function submitNote() {
         const text = String(textEntry.text ?? '').trim();
         if (!text) {
             showHint('Tulis catatan dulu.');
@@ -393,11 +552,42 @@ export default () => {
             showHint('Format jam harus HH:MM.');
             return;
         }
-        if (editingId !== null && editDayKey) {
+        if (editingKind === 'note' && editingId !== null && editDayKey) {
             updateNote(editDayKey, editingId, text, time);
         } else {
             const key = isoDay(new Date(selected.year, selected.month, selected.day));
             addNote(key, text, time);
+        }
+        closeComposer();
+        render();
+    }
+
+    function submitEvent() {
+        const title = String(eventTitleEntry.text ?? '').trim();
+        if (!title) {
+            showHint('Isi judul acara.');
+            return;
+        }
+        const start = normalizeTime(eventStartEntry.text);
+        if (!start) {
+            showHint('Isi jam mulai (HH:MM).');
+            return;
+        }
+        const rawEnd = String(eventEndEntry.text ?? '').trim();
+        const end = rawEnd ? normalizeTime(rawEnd) : null;
+        if (rawEnd && !end) {
+            showHint('Format jam selesai harus HH:MM.');
+            return;
+        }
+        if (end && end <= start) {
+            showHint('Jam selesai harus setelah jam mulai.');
+            return;
+        }
+        if (editingKind === 'event' && editingId !== null && editDayKey) {
+            updateEvent(editDayKey, editingId, title, start, end);
+        } else {
+            const key = isoDay(new Date(selected.year, selected.month, selected.day));
+            addEvent(key, title, start, end);
         }
         closeComposer();
         render();
@@ -408,21 +598,24 @@ export default () => {
         viewYear = date.getFullYear();
         viewMonth = date.getMonth();
         selected = { year: viewYear, month: viewMonth, day: date.getDate() };
-        composerOpen = false;
+        composerMode = null;
+        editingKind = null;
         editingId = null;
         editDayKey = '';
-        deletingId = null;
+        deleting = null;
         timeEntry.text = '';
         textEntry.text = '';
+        eventTitleEntry.text = '';
+        eventStartEntry.text = '';
+        eventEndEntry.text = '';
         addRow.visible = false;
-        addTrigger.visible = true;
-        addTrigger.show();
+        eventRow.visible = false;
         clearHint();
         render();
         try { await globalThis.dynIsland?.suppressNav?.(true); } catch (_) { }
         applyFocused(win, () => { }).catch(() => { });
         App.openWindow(NAME);
-        if (compose) openComposer();
+        if (compose) openNoteComposer();
         else focusTarget();
     }
 
@@ -434,12 +627,12 @@ export default () => {
 
     const onKey = (_widget, event) => {
         if (event.get_keyval() !== Gdk.KEY_Escape) return false;
-        if (deletingId !== null) {
-            deletingId = null;
+        if (deleting) {
+            deleting = null;
             render();
             return true;
         }
-        if (composerOpen) {
+        if (composerMode) {
             closeComposer();
             return true;
         }
@@ -447,15 +640,20 @@ export default () => {
         return true;
     };
     win.connect('key-press-event', onKey);
-    timeEntry.connect('key-press-event', onKey);
-    textEntry.connect('key-press-event', onKey);
+    for (const entry of [timeEntry, textEntry, eventTitleEntry, eventStartEntry, eventEndEntry])
+        entry.connect('key-press-event', onKey);
 
-    timeEntry.connect('activate', () => submit());
-    textEntry.connect('activate', () => submit());
+    timeEntry.connect('activate', () => submitNote());
+    textEntry.connect('activate', () => submitNote());
+    eventTitleEntry.connect('activate', () => submitEvent());
+    eventStartEntry.connect('activate', () => submitEvent());
+    eventEndEntry.connect('activate', () => submitEvent());
+
     win.connect('map', () => { render(); focusTarget(); });
     win.connect('unmap', () => clearFocusTimers());
     win.hook(calendar, () => { if (win.visible) render(); });
     win.hook(calendarNotes, () => { if (win.visible) render(); });
+    win.hook(calendarEvents, () => { if (win.visible) render(); });
 
     render();
 
@@ -466,6 +664,7 @@ export default () => {
         win,
         textEntry,
         timeEntry,
+        eventTitleEntry,
     };
 
     return win;
