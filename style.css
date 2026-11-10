@@ -1751,6 +1751,10 @@ tooltip > box {
 .dyn-island-timer-step:hover {
     background: __SURFACE_HOVER__;
 }
+.dyn-island-timer-step:disabled,
+.dyn-island-timer-reset:disabled {
+    opacity: 0.4;
+}
 .dyn-island-timer-step-label {
     font-size: 13px;
     color: __FG__;

@@ -58,6 +58,7 @@ export default () => {
     });
     const reset = Widget.Button({
         className: 'dyn-island-timer-reset',
+        tooltipText: 'Reset',
         child: Widget.Label({ label: '\uf021' }),
         onClicked: () => resetTimer(),
     });
@@ -69,13 +70,19 @@ export default () => {
         children: rows,
     });
 
+    const actions = Widget.Box({
+        className: 'dyn-island-timer-actions',
+        spacing: 4,
+        children: [minus, plus, play, reset],
+    });
+
     const refresh = () => {
         const value = timer.value;
         const isTimer = value.mode === 'timer';
         time.label = mmss(isTimer ? value.remaining : value.elapsed);
         sub.label = isTimer
-            ? `${Math.round(value.total / 60)} menit${value.running ? '' : ' · jeda'}`
-            : `Stopwatch${value.running ? ' · jalan' : ' · jeda'}`;
+            ? `${Math.round(value.total / 60)} menit · ${value.running ? 'berjalan' : 'jeda'}`
+            : value.running ? 'Berjalan' : value.elapsed > 0 ? 'Jeda' : 'Siap';
         play.child.label = value.running ? '\uf04c  Jeda' : '\uf04b  Mulai';
         const totalMinutes = Math.round(value.total / 60);
         for (const item of buttons) {
@@ -88,14 +95,22 @@ export default () => {
         modeTimer.className = isTimer ? 'dyn-island-timer-mode is-active' : 'dyn-island-timer-mode';
         modeStopwatch.className = isTimer ? 'dyn-island-timer-mode' : 'dyn-island-timer-mode is-active';
         presets.visible = isTimer;
+        // −/+ hanya relevan untuk timer. Di stopwatch keduanya disembunyikan,
+        // bukan sekadar disabled, supaya kolom kanan tidak terlihat penuh
+        // tombol yang tidak berguna.
+        minus.visible = isTimer;
+        plus.visible = isTimer;
         const canAdjust = isTimer && !value.running;
         minus.sensitive = canAdjust;
         plus.sensitive = canAdjust;
+        reset.sensitive = isTimer || value.running || value.elapsed > 0;
+        actions.set_spacing(isTimer ? 4 : 8);
     };
 
     return Widget.Box({
         className: 'dyn-island-timer',
         spacing: 16,
+        halign: Gtk.Align.CENTER,
         valign: Gtk.Align.CENTER,
         children: [
             Widget.Box({
@@ -120,15 +135,7 @@ export default () => {
                 vertical: true,
                 spacing: 8,
                 valign: Gtk.Align.CENTER,
-                hexpand: true,
-                children: [
-                    presets,
-                    Widget.Box({
-                        className: 'dyn-island-timer-actions',
-                        spacing: 4,
-                        children: [minus, plus, play, reset],
-                    }),
-                ],
+                children: [presets, actions],
             }),
         ],
         setup: self => {
