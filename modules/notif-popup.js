@@ -7,7 +7,7 @@ import * as Utils from 'resource:///com/github/Aylur/ags/utils.js';
 import { ramp } from '../spring.js';
 import { palette, hexToRgb } from '../theme.js';
 import { roundedRect } from '../draw.js';
-import { latest, invokeAction, closeNotification } from './notify.js';
+import { latest, notificationClosed, invokeAction, closeNotification } from './notify.js';
 import { followFocused } from './monitor.js';
 import { muteApp } from './settings.js';
 import { eventButton, rootX, rootY } from './pointer.js';
@@ -718,6 +718,18 @@ export default () => {
                 hide(true);
             }
         }
+    });
+
+    // Notifikasi bisa ditutup dari luar (tombol X swaync, TTL sweeper AGS,
+    // timer 6 jam `swaync-client --close-all`). Tanpa hook ini kartu popup
+    // island tetap menetap karena antreannya lokal, bukan milik swaync.
+    let lastClosedSeq = 0;
+    notificationClosed.connect('changed', () => {
+        const closed = notificationClosed.value;
+        if (!closed?.id || closed.seq === lastClosedSeq) return;
+        lastClosedSeq = closed.seq;
+        const item = items.find(entry => entry.id === closed.id);
+        if (item) dismiss(item);
     });
 
     // Jaring pengaman: rekonsiliasi state popup dengan antrean tiap detik.

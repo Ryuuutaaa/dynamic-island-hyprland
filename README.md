@@ -496,6 +496,9 @@ bar 10px, bar 310×3 (selebar isi kartu), sisa bawah 11px. Lebar kartu dipatok
   (`OnCalendar=*-*-* 00/6:00:00`, `Persistent=true`). Semua notifikasi di
   control center dihapus, bukan hanya yang lebih tua dari 6 jam. Service
   mencatat jumlah notifikasi sebelum/sesudah ke journal.
+- Popup island juga mendengarkan sinyal `NotificationClosed`: kartu yang
+  ditutup timer/TTL/daemon langsung dibuang dari antrean lokal (diuji
+  `items 1 → 0`, `hidden true`), tidak menunggu timeout kartu.
 - AGS juga menyapu notifikasi yang umurnya melewati `notifTtlHours`
   (default **6 jam**) tiap 60 detik lewat `CloseNotification`. Penghitung umur
   bersifat in-memory: notifikasi yang sudah ada sebelum AGS start tidak

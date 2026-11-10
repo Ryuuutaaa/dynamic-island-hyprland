@@ -16,6 +16,11 @@ export const current = Variable({ app: '', summary: '', body: '' });
 // `actions` = pasangan [key, label, ...] dari argumen Notify.
 export const latest = Variable(null);
 
+// Sinyal NotificationClosed: popup island memakai ini untuk membuang kartu
+// yang sudah ditutup timer/sweeper/daemon, bukan hanya mengandalkan timeout.
+export const notificationClosed = Variable({ id: 0, seq: 0 });
+let closedSeq = 0;
+
 // id -> app, dipakai untuk merutekan ActionInvoked dari notification daemon
 // (mis. klik notifikasi WiFi di control center swaync) ke aksi lokal AGS.
 const appById = new Map();
@@ -337,10 +342,12 @@ const parseLine = (line) => {
         return;
     }
     if (closingId) {
-        const closed = /^uint32 (\d+)$/.exec(line);
+        const closed = /(?:u?int32)\s+(\d+)/.exec(line);
         if (closed) {
             closingId = false;
-            notificationAges.delete(Number(closed[1]));
+            const id = Number(closed[1]);
+            notificationAges.delete(id);
+            notificationClosed.value = { id, seq: ++closedSeq };
         }
         return;
     }
