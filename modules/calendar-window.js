@@ -8,7 +8,7 @@ import CONFIG from '../config.js';
 import { applyFocused } from './monitor.js';
 import { calendar, refreshCalendar } from './calendar.js';
 import { calendarNotes, addNote, removeNote, isoDay, normalizeTime } from './calendar-notes.js';
-import { buildGrid, MONTHS } from './calendar-grid.js';
+import { buildGrid, Legend, MONTHS } from './calendar-grid.js';
 import { tabular } from './type.js';
 
 const NAME = 'dyn-island-calendar';
@@ -42,7 +42,7 @@ export default () => {
     let selected = { year: viewYear, month: viewMonth, day: now.getDate() };
 
     const title = Widget.Label({ className: 'cal-title', xalign: 0 });
-    const sub = Widget.Label({ className: 'cal-sub', xalign: 0, label: 'Kalender' });
+    const sub = Legend({ prefix: 'cal' });
 
     const todayButton = Widget.Button({
         className: 'cal-chip',

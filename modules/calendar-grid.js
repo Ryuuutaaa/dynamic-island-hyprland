@@ -68,23 +68,34 @@ export const buildGrid = ({
                     && selected.year === year
                     && selected.month === month
                     && selected.day === cell.day;
-                const marked = eventDays.has(key) || noteDays.has(key);
-
                 const number = Widget.Label({
                     className: `${prefix}-day-num`,
                     label: String(cell.day),
                     xalign: 0.5,
                 });
-                // Kotak fixed, bukan Label glyph: line-height Nerd Font membuat
-                // baris membengkak dari 30px menjadi 43px.
-                const dot = Widget.Box({ className: `${prefix}-day-dot` });
-                dot.set_size_request(4, 4);
+                // Dot fixed 4px: acara iCal = muted, catatan lokal = accent.
+                const dot = kind => {
+                    const box = Widget.Box({ className: `${prefix}-day-dot ${kind}` });
+                    box.set_size_request(4, 4);
+                    return box;
+                };
+                const marks = [];
+                if (eventDays.has(key)) marks.push(dot('is-event'));
+                if (noteDays.has(key)) marks.push(dot('is-note'));
+                const markRow = marks.length
+                    ? Widget.Box({
+                        spacing: 2,
+                        halign: Gtk.Align.CENTER,
+                        valign: Gtk.Align.CENTER,
+                        children: marks,
+                    })
+                    : null;
                 const content = Widget.Box({
                     vertical: true,
                     spacing: 0,
                     halign: Gtk.Align.CENTER,
                     valign: Gtk.Align.CENTER,
-                    children: marked ? [number, dot] : [number],
+                    children: markRow ? [number, markRow] : [number],
                 });
                 const className = `${prefix}-day`
                     + (cell.inMonth ? '' : ' is-outside')
@@ -121,4 +132,27 @@ export const buildGrid = ({
     };
 
     return { box, render };
+};
+
+// Legenda dot: acara iCal (muted) vs catatan lokal (accent).
+export const Legend = ({ prefix = 'cal' } = {}) => {
+    const item = (kind, label) => {
+        const dot = Widget.Box({ className: `${prefix}-day-dot ${kind}` });
+        dot.set_size_request(4, 4);
+        return Widget.Box({
+            spacing: 4,
+            children: [
+                dot,
+                Widget.Label({ className: `${prefix}-legend-label`, label }),
+            ],
+        });
+    };
+    return Widget.Box({
+        className: `${prefix}-legend`,
+        spacing: 10,
+        children: [
+            item('is-event', 'Acara'),
+            item('is-note', 'Catatan'),
+        ],
+    });
 };
