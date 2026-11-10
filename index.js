@@ -69,10 +69,12 @@ import TimerPage from './modules/timer-page.js';
 import StatsPage from './modules/stats-page.js';
 import CalendarPage from './modules/calendar-page.js';
 import { watchCalendar, calendar as calendarState, refreshCalendar } from './modules/calendar.js';
+import { watchCalendarNotes, calendarNotes, addNote as calendarNoteAdd, removeNote as calendarNoteRemove, checkNotes as calendarNotesCheck, notesFor as calendarNotesFor } from './modules/calendar-notes.js';
 import { watchStats, stats as statsState } from './modules/sysstats.js';
 import { watchWellness, toggleWellness, wellness as wellnessState, reminderNow as wellnessReminder, onWellnessAction } from './modules/wellness.js';
 import { timer as timerState, restoreTimer, applyPreset as timerPreset, toggleRunning as timerToggle, resetTimer as timerReset, setMode as timerSetMode } from './modules/timer.js';
 import StandupWindow from './modules/standup-window.js';
+import CalendarWindow from './modules/calendar-window.js';
 import { scheduleStandupReminder, titleForDay as standupTitle, addItem as standupAdd, removeItem as standupRemove, saveStandup as standupSave, loadStandup as standupLoad, remindNow as standupRemind, standup as standupStore } from './modules/standup.js';
 import GeminiChat from './modules/chat-window.js';
 import SettingsPage from './modules/settings-page.js';
@@ -501,7 +503,7 @@ function DynamicIsland() {
     const navVisibleFor = next =>
         PAGE_ORDER.includes(page.value)
         && (next === GEO.expanded || next === GEO.lyrics || next === GEO.prayer
-            || next === GEO.chat || next === GEO.settings);
+            || next === GEO.chat || next === GEO.settings || next === GEO.calendar);
 
     const applyGeometry = () => {
         const w = Math.max(1, Math.round(geo.w));
@@ -539,6 +541,8 @@ function DynamicIsland() {
             if (page.value === 'chat' && GEO.chat) return GEO.chat;
             // settings: daftar pengaturan yang bisa di-scroll
             if (page.value === 'settings' && GEO.settings) return GEO.settings;
+            // kalender: grid bulan 7 kolom x 6 baris
+            if (page.value === 'calendar' && GEO.calendar) return GEO.calendar;
             return GEO.expanded;
         }
         return GEO.closed;
@@ -1257,6 +1261,12 @@ dyn.standupWindow = globalThis.standupWindow;
 registerLocalAction('Wellness', onWellnessAction);
 dyn.standupWinWidget = standupWin;
 registerLocalAction('Standup', () => globalThis.standupWindow?.toggle?.());
+
+// Popup kalender: grid bulan + editor catatan per hari.
+const calendarWin = CalendarWindow();
+App.addWindow(calendarWin);
+dyn.calendarWindow = globalThis.calendarWindow;
+dyn.calendarWinWidget = calendarWin;
 // Notifikasi timer/pomodoro/water/prayer/calendar memakai app "Notch" dan
 // sebagian menulis "klik untuk membuka island"; registry ini yang menjalankan
 // janji tersebut (default action-nya membuka paksa island).
@@ -1268,6 +1278,12 @@ restoreTimer();
 watchWellness();
 watchStats();
 watchCalendar();
+watchCalendarNotes();
+dyn.calendarNotes = calendarNotes;
+dyn.calendarApi = {
+    add: calendarNoteAdd, remove: calendarNoteRemove,
+    check: calendarNotesCheck, notesFor: calendarNotesFor,
+};
 dyn.notifInvoke = notifInvoke;
 dyn.standupApi = {
     add: standupAdd, remove: standupRemove, save: standupSave,

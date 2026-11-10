@@ -14,7 +14,7 @@ const ALL_PAGES = ['idle', 'media', 'weather', 'calendar', 'pomodoro', 'timer', 
 const ALWAYS_ON = ['idle', 'media'];
 // Halaman dengan interaksi panjang bertahan sampai user pindah halaman;
 // halaman read-only tetap kembali setelah pinTimeout.
-const STICKY_PAGES = new Set(['chat', 'settings', 'todo', 'shelf', 'bluetooth', 'wifi']);
+const STICKY_PAGES = new Set(['chat', 'settings', 'todo', 'shelf', 'bluetooth', 'wifi', 'calendar']);
 export const isStickyPage = name => STICKY_PAGES.has(name);
 
 export const PAGE_ORDER = ALL_PAGES.filter(name =>
