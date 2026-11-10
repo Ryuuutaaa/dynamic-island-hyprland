@@ -73,10 +73,10 @@ export const buildGrid = ({
                     label: String(cell.day),
                     xalign: 0.5,
                 });
-                // Dot fixed 4px: acara iCal = muted, catatan lokal = accent.
+                // Dot fixed 5px: acara iCal = muted, catatan lokal = accent.
                 const dot = kind => {
                     const box = Widget.Box({ className: `${prefix}-day-dot ${kind}` });
-                    box.set_size_request(4, 4);
+                    box.set_size_request(5, 5);
                     return box;
                 };
                 const marks = [];
@@ -138,7 +138,7 @@ export const buildGrid = ({
 export const Legend = ({ prefix = 'cal' } = {}) => {
     const item = (kind, label) => {
         const dot = Widget.Box({ className: `${prefix}-day-dot ${kind}` });
-        dot.set_size_request(4, 4);
+        dot.set_size_request(5, 5);
         return Widget.Box({
             spacing: 4,
             children: [

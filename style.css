@@ -1986,9 +1986,9 @@ button.dyn-island-cal-day {
     color: __FG__;
 }
 .dyn-island-cal-day-dot {
-    min-width: 4px;
-    min-height: 4px;
-    border-radius: 2px;
+    min-width: 5px;
+    min-height: 5px;
+    border-radius: 2.5px;
 }
 .dyn-island-cal-day-dot.is-event {
     background-color: __MUTED__;
@@ -2126,9 +2126,9 @@ button.cal-day {
     color: __FG__;
 }
 .cal-day-dot {
-    min-width: 4px;
-    min-height: 4px;
-    border-radius: 2px;
+    min-width: 5px;
+    min-height: 5px;
+    border-radius: 2.5px;
 }
 .cal-day-dot.is-event {
     background-color: __MUTED__;
