@@ -28,6 +28,8 @@ export default {
         chat: { w: 520, h: 232, r: 32, ear: 22 },
         // settings: daftar baris yang bisa di-scroll
         settings: { w: 520, h: 232, r: 32, ear: 22 },
+        // kalender: grid bulan 7 kolom x 6 baris (30px per sel)
+        calendar: { w: 520, h: 272, r: 32, ear: 22 },
     },
 
     // MOTION (Nusa): width/height .62s cubic-bezier(.34,1.32,.5,1).
@@ -100,6 +102,10 @@ export default {
     calendar: {
         icsUrl: '',
         refreshMinutes: 30,
+        // Catatan tanpa jam mendapat pengingat pada jam ini.
+        noteDefaultHour: 8,
+        // Pengingat yang terlewat lebih dari ini ditandai terlewat (tidak spam).
+        noteCatchUpMinutes: 60,
     },
 
     // KESEHATAN RINGAN — jeda mata 20-20-20 dan pengingat gerak tiap jam.
