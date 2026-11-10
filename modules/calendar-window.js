@@ -6,7 +6,7 @@ import Widget from 'resource:///com/github/Aylur/ags/widget.js';
 import * as Utils from 'resource:///com/github/Aylur/ags/utils.js';
 import CONFIG from '../config.js';
 import { applyFocused } from './monitor.js';
-import { calendar, refreshCalendar } from './calendar.js';
+import { calendar } from './calendar.js';
 import { calendarNotes, addNote, removeNote, isoDay, normalizeTime } from './calendar-notes.js';
 import { buildGrid, Legend, MONTHS } from './calendar-grid.js';
 import { tabular } from './type.js';
@@ -106,7 +106,9 @@ export default () => {
         className: 'cal-entry cal-time-entry',
         placeholderText: '09:00',
         maxLength: 5,
+        tooltipText: 'Jam notifikasi (opsional)',
     });
+    const timeIcon = Widget.Label({ className: 'cal-time-icon', label: '\uf017' });
     const textEntry = Widget.Entry({
         className: 'cal-entry cal-text-entry',
         placeholderText: 'Catatan atau jadwal…',
@@ -118,29 +120,13 @@ export default () => {
         onClicked: () => submit(),
     });
     const hint = Widget.Label({ className: 'cal-hint', xalign: 0, label: '' });
+    hint.visible = false;
+    hint.set_no_show_all(true);
 
     const addRow = Widget.Box({
         className: 'cal-add-row',
         spacing: 8,
-        children: [timeEntry, textEntry, addButton],
-    });
-
-    const footer = Widget.Box({
-        className: 'cal-foot',
-        spacing: 8,
-        children: [
-            Widget.Button({
-                className: 'cal-chip',
-                child: Widget.Label({ className: 'cal-chip-label', label: 'Muat ulang' }),
-                onClicked: () => { refreshCalendar().catch(() => { }); },
-            }),
-            Widget.Label({ hexpand: true }),
-            Widget.Button({
-                className: 'cal-dismiss',
-                child: Widget.Label({ className: 'cal-dismiss-label', label: 'Tutup' }),
-                onClicked: () => close(),
-            }),
-        ],
+        children: [timeIcon, timeEntry, textEntry, addButton],
     });
 
     const card = Widget.Box({
@@ -148,7 +134,7 @@ export default () => {
         vertical: true,
         widthRequest: WIN_W,
         spacing: 8,
-        children: [header, grid, selectedLabel, detailScroll, addRow, hint, footer],
+        children: [header, grid, selectedLabel, detailScroll, addRow, hint],
     });
 
     const win = Widget.Window({
@@ -188,6 +174,8 @@ export default () => {
         const next = new Date(viewYear, viewMonth + delta, 1);
         viewYear = next.getFullYear();
         viewMonth = next.getMonth();
+        const lastDay = new Date(viewYear, viewMonth + 1, 0).getDate();
+        selected = { year: viewYear, month: viewMonth, day: Math.min(selected.day, lastDay) };
         render();
     }
 
@@ -199,13 +187,24 @@ export default () => {
         render();
     }
 
+    function showHint(message) {
+        hint.label = message;
+        hint.visible = true;
+        hint.show();
+    }
+
+    function clearHint() {
+        hint.label = '';
+        hint.visible = false;
+    }
+
     const eventRow = event => Widget.Box({
         className: 'cal-detail-row',
         spacing: 8,
         children: [
             tabular(Widget.Label({
                 className: 'cal-detail-time',
-                label: event.allDay ? '—' : hhmm(event.start),
+                label: event.allDay ? 'Sehari' : hhmm(event.start),
             })),
             Widget.Label({
                 className: 'cal-detail-text',
@@ -215,34 +214,56 @@ export default () => {
                 wrap: true,
                 maxWidthChars: 48,
             }),
-            Widget.Label({ className: 'cal-detail-badge', label: 'iCal' }),
         ],
     });
 
-    const noteRow = (key, note) => Widget.Box({
-        className: 'cal-note-row',
-        spacing: 8,
-        children: [
-            tabular(Widget.Label({
-                className: 'cal-detail-time',
-                label: noteTime(note),
-            })),
-            Widget.Label({
-                className: 'cal-note-text',
-                label: note.text,
-                xalign: 0,
-                hexpand: true,
-                wrap: true,
-                maxWidthChars: 44,
-            }),
-            Widget.Button({
-                className: 'cal-note-remove',
-                tooltipText: 'Hapus catatan',
-                child: Widget.Label({ className: 'cal-note-remove-label', label: '\uf00d' }),
-                onClicked: () => removeNote(key, note.id),
-            }),
-        ],
-    });
+    const noteRow = (key, note) => {
+        let armed = false;
+        let resetTimer = 0;
+        const icon = Widget.Label({ className: 'cal-note-remove-label', label: '\uf00d' });
+        const removeButton = Widget.Button({
+            className: 'cal-note-remove',
+            tooltipText: 'Hapus catatan',
+            child: icon,
+            onClicked: () => {
+                if (armed) {
+                    if (resetTimer) GLib.source_remove(resetTimer);
+                    removeNote(key, note.id);
+                    return;
+                }
+                armed = true;
+                icon.label = '\uf00c';
+                removeButton.tooltipText = 'Klik lagi untuk menghapus';
+                removeButton.toggleClassName('is-armed', true);
+                resetTimer = Utils.timeout(2500, () => {
+                    armed = false;
+                    icon.label = '\uf00d';
+                    removeButton.tooltipText = 'Hapus catatan';
+                    removeButton.toggleClassName('is-armed', false);
+                }, removeButton);
+            },
+        });
+
+        return Widget.Box({
+            className: 'cal-note-row',
+            spacing: 8,
+            children: [
+                tabular(Widget.Label({
+                    className: 'cal-detail-time',
+                    label: noteTime(note),
+                })),
+                Widget.Label({
+                    className: 'cal-note-text',
+                    label: note.text,
+                    xalign: 0,
+                    hexpand: true,
+                    wrap: true,
+                    maxWidthChars: 44,
+                }),
+                removeButton,
+            ],
+        });
+    };
 
     function render() {
         title.label = `${MONTHS[viewMonth]} ${viewYear}`;
@@ -262,14 +283,18 @@ export default () => {
             .filter(event => isoDay(new Date(event.start)) === key)
             .sort((a, b) => a.start - b.start);
         const notes = calendarNotes.value[key] ?? [];
-        const rows = [
-            ...events.slice(0, 5).map(eventRow),
-            ...notes.map(note => noteRow(key, note)),
-        ];
-        if (!rows.length) {
+        const rows = [];
+        if (events.length) {
+            rows.push(Widget.Label({ className: 'cal-section', label: 'ACARA', xalign: 0 }));
+            rows.push(...events.map(eventRow));
+        }
+        rows.push(Widget.Label({ className: 'cal-section', label: 'CATATAN', xalign: 0 }));
+        if (notes.length) {
+            rows.push(...notes.map(note => noteRow(key, note)));
+        } else {
             rows.push(Widget.Label({
                 className: 'cal-empty',
-                label: 'Belum ada catatan atau acara.',
+                label: 'Belum ada catatan. Tambahkan di bawah.',
                 xalign: 0,
             }));
         }
@@ -283,20 +308,20 @@ export default () => {
     function submit() {
         const text = String(textEntry.text ?? '').trim();
         if (!text) {
-            hint.label = 'Tulis catatan dulu.';
+            showHint('Tulis catatan dulu.');
             return;
         }
         const rawTime = String(timeEntry.text ?? '').trim();
         const time = rawTime ? normalizeTime(rawTime) : null;
         if (rawTime && !time) {
-            hint.label = 'Format jam harus HH:MM.';
+            showHint('Format jam harus HH:MM.');
             return;
         }
         const key = isoDay(new Date(selected.year, selected.month, selected.day));
         addNote(key, text, time);
         timeEntry.text = '';
         textEntry.text = '';
-        hint.label = '';
+        clearHint();
         textEntry.grab_focus();
         render();
     }
@@ -308,7 +333,7 @@ export default () => {
         selected = { year: viewYear, month: viewMonth, day: date.getDate() };
         timeEntry.text = '';
         textEntry.text = '';
-        hint.label = '';
+        clearHint();
         render();
         try { await globalThis.dynIsland?.suppressNav?.(true); } catch (_) { }
         applyFocused(win, () => { }).catch(() => { });

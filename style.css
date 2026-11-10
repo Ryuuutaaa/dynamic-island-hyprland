@@ -2140,7 +2140,7 @@ button.cal-day {
     min-height: 14px;
 }
 .cal-legend-label {
-    font-size: 9.5px;
+    font-size: 10px;
     color: __MUTED__;
 }
 
@@ -2186,10 +2186,6 @@ button.cal-day {
     font-size: 11px;
     color: __FG__;
 }
-.cal-detail-badge {
-    font-size: 9.5px;
-    color: __MUTED__;
-}
 .cal-note-text {
     font-size: 11px;
     color: __FG__;
@@ -2204,12 +2200,20 @@ button.cal-day {
     border: none;
     box-shadow: none;
 }
-.cal-note-remove:hover {
+.cal-note-remove:hover,
+.cal-note-remove.is-armed {
     background-color: __DANGER_SOFT__;
 }
 .cal-note-remove-label {
     font-size: 11px;
     color: __DANGER__;
+}
+.cal-section {
+    font-size: 9.5px;
+    font-weight: 600;
+    letter-spacing: 1.1px;
+    color: __MUTED__;
+    padding: 4px 0px 1px 0px;
 }
 .cal-empty {
     font-size: 11px;
@@ -2228,6 +2232,10 @@ button.cal-day {
 }
 .cal-time-entry {
     min-width: 56px;
+}
+.cal-time-icon {
+    font-size: 11px;
+    color: __MUTED__;
 }
 
 .cal-add-btn {
@@ -2250,26 +2258,6 @@ button.cal-day {
 .cal-hint {
     font-size: 9.5px;
     color: __DANGER__;
-}
-
-.cal-foot {
-    min-height: 24px;
-}
-.cal-dismiss {
-    min-height: 24px;
-    padding: 0px 12px;
-    border-radius: 8px;
-    background-color: __SURFACE__;
-    background-image: none;
-    border: none;
-    box-shadow: none;
-}
-.cal-dismiss:hover {
-    background-color: __SURFACE_HOVER__;
-}
-.cal-dismiss-label {
-    font-size: 10px;
-    color: __FG__;
 }
 
 /* ── Pengaturan ───────────────────────────────────────────────── */
