@@ -1914,7 +1914,7 @@ tooltip > box {
     background-color: __SURFACE_DIM__;
 }
 .dyn-island-cal-nav-icon {
-    font-size: 9.5px;
+    font-size: 10.5px;
     color: __FG__;
 }
 
@@ -1929,6 +1929,12 @@ tooltip > box {
 }
 .dyn-island-cal-chip:hover {
     background-color: __SURFACE_HOVER__;
+}
+.dyn-island-cal-chip.is-primary {
+    background-color: __ACCENT_SOFT__;
+}
+.dyn-island-cal-chip.is-primary .dyn-island-cal-chip-label {
+    color: __ACCENT__;
 }
 .dyn-island-cal-chip-label {
     font-size: 10px;
@@ -2049,7 +2055,7 @@ button.dyn-island-cal-day {
     background-color: __SURFACE_DIM__;
 }
 .cal-nav-label {
-    font-size: 9.5px;
+    font-size: 10.5px;
     color: __FG__;
 }
 

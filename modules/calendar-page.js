@@ -39,6 +39,8 @@ export default () => {
             render();
         },
     });
+    const prevButton = navButton('\uf053', -1, 'Bulan sebelumnya');
+    const nextButton = navButton('\uf054', 1, 'Bulan berikutnya');
 
     const todayButton = Widget.Button({
         className: 'dyn-island-cal-chip',
@@ -51,9 +53,10 @@ export default () => {
         },
     });
 
-    const editButton = Widget.Button({
-        className: 'dyn-island-cal-chip',
-        child: Widget.Label({ className: 'dyn-island-cal-chip-label', label: 'Edit' }),
+    const notesButton = Widget.Button({
+        className: 'dyn-island-cal-chip is-primary',
+        tooltipText: 'Buka catatan kalender',
+        child: Widget.Label({ className: 'dyn-island-cal-chip-label', label: 'Catatan' }),
         onClicked: () => {
             const today = new Date();
             const target = year === today.getFullYear() && month === today.getMonth()
@@ -65,15 +68,13 @@ export default () => {
 
     const header = Widget.CenterBox({
         className: 'dyn-island-cal-month-head',
-        startWidget: monthLabel,
+        startWidget: Widget.Box({
+            spacing: 4,
+            children: [monthLabel, prevButton, nextButton],
+        }),
         endWidget: Widget.Box({
             spacing: 4,
-            children: [
-                todayButton,
-                navButton('\uf053', -1, 'Bulan sebelumnya'),
-                navButton('\uf054', 1, 'Bulan berikutnya'),
-                editButton,
-            ],
+            children: [todayButton, notesButton],
         }),
     });
 
