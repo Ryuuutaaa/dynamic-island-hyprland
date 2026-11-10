@@ -54,7 +54,7 @@ import { btPreview, watchAudioRouting } from './modules/bluetooth.js';
 import {
     watchWifi, wifi as wifiState,
     connect as wifiConnect, disconnect as wifiDisconnect,
-    scan as wifiScan, openPortal as wifiPortal,
+    scan as wifiScan, openPortal as wifiPortal, detectPortal as wifiDetectPortal,
 } from './modules/wifi.js';
 import { focusedRect, refresh as refreshMonitors, followFocused, applyFocused } from './modules/monitor.js';
 import { onResume } from './modules/timefmt.js';
@@ -1000,7 +1000,7 @@ const dyn = {
     page, hovered, showTransient, refreshBase, config: CONFIG,
     notif: notifCurrent, notifLatest, notifSweep,
     wifi: wifiState,
-    wifiConnect, wifiDisconnect, wifiScan, wifiPortal,
+    wifiConnect, wifiDisconnect, wifiScan, wifiPortal, wifiDetectPortal,
     stepPage, pinPage, PAGE_ORDER, isPinned, mediaView, btPreview,
     lyrics: lyricsStore, retryLyrics, pomodoro,
     prayer: prayerState, prayerNotify: notifyPrayer,
@@ -1262,6 +1262,8 @@ dyn.standupWindow = globalThis.standupWindow;
 registerLocalAction('Wellness', onWellnessAction);
 dyn.standupWinWidget = standupWin;
 registerLocalAction('Standup', () => globalThis.standupWindow?.toggle?.());
+// Notifikasi portal WiFi: klik kartu/chip "Buka login" membuka halaman login.
+registerLocalAction('WiFi', () => wifiPortal());
 
 // Popup kalender: grid bulan + editor catatan per hari.
 const calendarWin = CalendarWindow();

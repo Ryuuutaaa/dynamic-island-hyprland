@@ -25,6 +25,7 @@ export const wifi = Variable({
     error: '',
     scanning: false,
     portalOpened: '',
+    portalUrl: '',
 });
 
 const update = patch => { wifi.value = { ...wifi.value, ...patch }; };
@@ -48,6 +49,23 @@ const splitTerse = line => {
 };
 
 let savedProfiles = new Set();
+let portalNotified = '';
+
+// Notifikasi portal memakai app "WiFi"; index.js mendaftarkan aksi lokal
+// 'WiFi' supaya klik kartu (default action) maupun chip "Buka login"
+// langsung memanggil openPortal().
+const notifyPortal = ssid => {
+    Utils.execAsync([
+        'gdbus', 'call', '--session',
+        '--dest', 'org.freedesktop.Notifications',
+        '--object-path', '/org/freedesktop/Notifications',
+        '--method', 'org.freedesktop.Notifications.Notify',
+        'WiFi', '0', 'network-wireless',
+        'WiFi butuh login',
+        `${ssid} · klik untuk membuka halaman login`,
+        "['default', 'Buka login']", '{}', '15000',
+    ]).catch(() => { });
+};
 
 const refreshProfiles = async () => {
     try {
@@ -168,6 +186,24 @@ export async function refreshConnection() {
 
     if (connected !== wifi.value.connected && wifi.value.portalOpened && connected !== wifi.value.portalOpened)
         update({ portalOpened: '' });
+
+    if (connectivity !== 'portal') {
+        portalNotified = '';
+        if (wifi.value.portalUrl) update({ portalUrl: '' });
+    } else if (connected && portalNotified !== connected) {
+        // Sekali per sesi portal. detectPortal() mencoba meng-cache URL login
+        // lebih awal supaya klik notifikasi tidak perlu menunggu curl.
+        portalNotified = connected;
+        notifyPortal(connected);
+        detectPortal().catch(() => { });
+        // Auto-open juga di sini: NM kadang baru melaporkan "portal" beberapa
+        // detik setelah connect(), jadi cek sekali di connect() saja tidak cukup.
+        if (AUTO_PORTAL() && wifi.value.portalOpened !== connected) {
+            update({ portalOpened: connected });
+            openPortal();
+        }
+    }
+
     update({ enabled, iface, connected, ip, connectivity });
 }
 
@@ -277,7 +313,8 @@ export async function disconnect() {
     } catch (error) {
         update({ error: friendlyError(error) });
     }
-    update({ portalOpened: '' });
+    update({ portalOpened: '', portalUrl: '' });
+    portalNotified = '';
     await refreshConnection();
     await scan(false);
 }
@@ -293,18 +330,59 @@ export async function toggleRadio() {
     if (next === 'on') await scan(true);
 }
 
-// Buka halaman login captive portal. URL final diambil dari header Location
-// pada request ke URI connectivity-check; kalau portal tidak me-redirect,
-// URL bawaan tetap dibuka dan portal biasanya mencegatnya.
-export async function openPortal() {
+// URL login portal: Location (absolut/relatif), meta refresh, atau anchor
+// pertama di halaman captive. Semua URL relatif di-resolve terhadap URI
+// connectivity-check, bukan dibuang (dulu URL relatif jatuh ke halaman cek).
+const PORTAL_UA = 'Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0 Safari/537.36';
+
+const resolvePortalUrl = (base, raw) => {
+    const value = String(raw ?? '').trim().replace(/^["']|["']$/g, '');
+    if (!value) return base;
+    try {
+        return GLib.Uri.resolve_relative(base, value, GLib.UriFlags.NONE);
+    } catch (_) {
+        return /^https?:\/\//i.test(value) ? value : base;
+    }
+};
+
+export async function detectPortal() {
     const uri = CHECK_URL();
     let target = uri;
     try {
-        const headers = await Utils.execAsync(
-            ['curl', '-sS', '-o', '/dev/null', '-D', '-', '-m', '6', uri]);
-        const match = /^location:\s*(\S+)/im.exec(headers);
-        if (match && /^https?:\/\//i.test(match[1])) target = match[1];
+        const response = await Utils.execAsync([
+            'curl', '-sS', '--compressed', '-A', PORTAL_UA,
+            '-D', '-', '-m', '6', uri,
+        ]);
+        const split = response.indexOf('\r\n\r\n');
+        const headers = split >= 0 ? response.slice(0, split) : response;
+        const body = split >= 0 ? response.slice(split + 4) : '';
+        const location = /^location:\s*(.+)$/im.exec(headers);
+        if (location) {
+            target = resolvePortalUrl(uri, location[1]);
+        } else {
+            const metaTags = body.match(/<meta\b[^>]*>/gi) || [];
+            for (const tag of metaTags) {
+                if (!/http-equiv=["']?refresh/i.test(tag)) continue;
+                const content = /content=["']([^"']*)["']/i.exec(tag);
+                const url = content ? /url\s*=\s*([^"';\s>]+)/i.exec(content[1]) : null;
+                if (url) {
+                    target = resolvePortalUrl(uri, url[1]);
+                    break;
+                }
+            }
+            if (target === uri) {
+                const anchor = /<a\b[^>]*\bhref=["']([^"']+)["']/i.exec(body);
+                if (anchor) target = resolvePortalUrl(uri, anchor[1]);
+            }
+        }
     } catch (_) { }
+    update({ portalUrl: target });
+    return target;
+}
+
+export async function openPortal(url = null) {
+    let target = url || wifi.value.portalUrl;
+    if (!target || !/^https?:\/\//i.test(target)) target = await detectPortal();
     try {
         await Utils.execAsync(['xdg-open', target]);
         update({ error: '' });

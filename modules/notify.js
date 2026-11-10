@@ -16,6 +16,10 @@ export const current = Variable({ app: '', summary: '', body: '' });
 // `actions` = pasangan [key, label, ...] dari argumen Notify.
 export const latest = Variable(null);
 
+// id -> app, dipakai untuk merutekan ActionInvoked dari notification daemon
+// (mis. klik notifikasi WiFi di control center swaync) ke aksi lokal AGS.
+const appById = new Map();
+
 let capturing = false;
 let fields = [];
 let actions = [];
@@ -30,6 +34,7 @@ let replacesId = 0;
 let inHints = false;
 let hintKey = '';
 let desktopEntry = '';
+let actionSignal = null;
 // dbus-monitor mencetak isi string APA ADANYA: newline dari aplikasi menjadi
 // baris baru di output (tidak di-escape). Notifikasi web Chromium berbentuk
 // "<origin>\n\n<body>", jadi body-nya selalu multi-baris. Dulu regex
@@ -166,6 +171,8 @@ const latestWithId = (id) => {
     const item = latest.value;
     if (!item || item.id) return;
     latest.value = { ...item, id };
+    appById.set(id, item.app);
+    if (appById.size > 40) appById.delete(appById.keys().next().value);
     if (item.body) lastBodyById.set(id, item.body);
     if (lastBodyById.size > 30) lastBodyById.delete(lastBodyById.keys().next().value);
 };
@@ -274,6 +281,30 @@ const flush = () => {
 };
 
 const parseLine = (line) => {
+    // Sinyal ActionInvoked: id (uint32) lalu key (string). Kalau app-nya punya
+    // aksi lokal, jalankan langsung supaya klik di control center juga bekerja.
+    if (line.includes('member=ActionInvoked')
+        && line.includes('org.freedesktop.Notifications')) {
+        actionSignal = { id: 0, key: '' };
+        return;
+    }
+    if (actionSignal) {
+        // dbus-monitor bisa mencetak id sebagai int32 atau uint32 tergantung
+        // bagaimana sinyal dikirim; terima keduanya.
+        const idMatch = /(?:u?int32)\s+(\d+)/.exec(line);
+        if (idMatch && !actionSignal.id) {
+            actionSignal.id = Number(idMatch[1]);
+            return;
+        }
+        const keyMatch = /string\s+"([^"]+)"/.exec(line);
+        if (keyMatch) {
+            const { id, key } = actionSignal;
+            actionSignal = null;
+            if (id) handleActionSignal(id, key || keyMatch[1]);
+            return;
+        }
+        return;
+    }
     if (line.includes('member=Notify')) {
         // jaring pengaman: payload sebelumnya yang tidak ditutup int32
         flush();
@@ -399,6 +430,17 @@ const localActions = new Map();
 
 export function registerLocalAction(app, handler) {
     if (app && handler) localActions.set(app, handler);
+}
+
+function handleActionSignal(id, key) {
+    const app = appById.get(id);
+    const handler = app ? localActions.get(app) : null;
+    if (!handler) return;
+    try {
+        handler(key);
+    } catch (error) {
+        console.error('[dyn-island] aksi lokal dari D-Bus gagal:', error);
+    }
 }
 
 export function invokeAction(id, key, appHint = null) {

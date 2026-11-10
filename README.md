@@ -250,6 +250,38 @@ Baris ringkas di halaman idle tetap ada (hanya saat ada device) dan sekarang
   `ags -r "globalThis.dynIsland.btPreview.value=[{name:'X', icon_name:'audio-headset', battery_percentage:80}]"`
   — kosongkan lagi dengan `=[]`.
 
+## Wi-Fi
+
+**Config**: `wifi.scanSeconds` (default 20), `wifi.autoPortal` (default true),
+`wifi.portalUrl` (default `http://connectivity-check.ubuntu.com/`).
+
+**Halaman**: daftar jaringan dari `nmcli` (satu baris per SSID, sinyal
+terkuat), badge **Sambung/Putus**, panel detail dengan keamanan, sinyal, IP,
+dan status. Password WPA/WPA2/WPA3 diminta lewat rofi (window island
+`keymode: none`) dan dikirim ke `nmcli --ask` lewat stdin dari file `0600`,
+bukan argumen proses. Jaringan 802.1X ditandai **Manual**; hidden SSID tidak
+ditampilkan.
+
+**Captive portal**: saat NetworkManager melaporkan connectivity `portal`, AGS
+mengirim notifikasi app **WiFi** dengan aksi **Buka login**. Klik kartu
+(default action) atau chip **Buka login** memanggil `openPortal()`; notifikasi
+yang sama juga bisa diklik dari control center swaync karena
+`modules/notify.js` merutekan sinyal `ActionInvoked` ke aksi lokal.
+`openPortal()` membaca `Location` (absolut/relatif), meta refresh, atau anchor
+pertama dari `wifi.portalUrl`, me-resolve URL relatif dengan
+`GLib.Uri.resolve_relative`, lalu membuka browser. `wifi.autoPortal` juga
+membuka portal otomatis begitu connectivity berubah menjadi `portal`, bukan
+hanya tepat setelah `connect()`. URL hasil deteksi di-cache di
+`wifi.value.portalUrl` dan dibersihkan saat koneksi keluar dari portal.
+
+**Debug**:
+
+```bash
+ags -r "globalThis.dynIsland.wifi.value"
+ags -r "await globalThis.dynIsland.wifiDetectPortal()"
+ags -r "await globalThis.dynIsland.wifiPortal()"
+```
+
 ## Jadwal Sholat
 
 Halaman `prayer` (kartu **580×156**) menghitung waktu sholat **lokal tanpa
