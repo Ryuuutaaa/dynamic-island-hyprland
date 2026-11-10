@@ -51,7 +51,7 @@ export default {
     notifyTimeout: 4200,
     // Hapus notifikasi dari control center setelah umurnya melewati ini (jam).
     // 0 = tidak pernah dibersihkan otomatis.
-    notifTtlHours: 3,
+    notifTtlHours: 6,
 
     // halaman pilihan manual (panah) bertahan sebentar lalu kembali
     pinTimeout: 10000,

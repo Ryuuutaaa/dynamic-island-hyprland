@@ -51,8 +51,8 @@ const lastBodyById = new Map();
 // berjalan: id -> waktu pertama terlihat.
 const notificationAges = new Map();
 const notifTtlHours = () => {
-    const hours = Number(CONFIG.notifTtlHours ?? 3);
-    return Number.isFinite(hours) ? hours : 3;
+    const hours = Number(CONFIG.notifTtlHours ?? 6);
+    return Number.isFinite(hours) ? hours : 6;
 };
 let started = false;
 

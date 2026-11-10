@@ -490,6 +490,22 @@ bar 10px, bar 310×3 (selebar isi kartu), sisa bawah 11px. Lebar kartu dipatok
   `uninstall.sh` menghapusnya.
 - Uji: `./tools/test-popup.sh` (butuh sesi tidak terkunci).
 
+**Pembersihan riwayat notifikasi**:
+- `notif-history-clear.timer` (systemd user) menjalankan
+  `swaync-client --close-all` pada **00:00, 06:00, 12:00, 18:00**
+  (`OnCalendar=*-*-* 00/6:00:00`, `Persistent=true`). Semua notifikasi di
+  control center dihapus, bukan hanya yang lebih tua dari 6 jam. Service
+  mencatat jumlah notifikasi sebelum/sesudah ke journal.
+- AGS juga menyapu notifikasi yang umurnya melewati `notifTtlHours`
+  (default **6 jam**) tiap 60 detik lewat `CloseNotification`. Penghitung umur
+  bersifat in-memory: notifikasi yang sudah ada sebelum AGS start tidak
+  terlacak, jadi timer 6 jam adalah backstop yang tetap berlaku setelah
+  restart. `CloseNotification` menghapus entri dari control center (diuji:
+  count 29 → 28).
+- Uji timer tanpa menunggu jadwal:
+  `systemctl --user start notif-history-clear.service` lalu
+  `journalctl --user -u notif-history-clear.service -n 10`.
+
 ## Kalender (iCal)
 
 **Config**: `calendar.icsUrl` — satu URL iCal (Google/Outlook "secret
