@@ -496,6 +496,7 @@ hari terpilih (read-only), serta catatan lokal yang bisa ditambah/dihapus.
   saat AGS restart/resume. Klik notifikasi membuka island.
 - Data murni lokal: tidak masuk repo dan tidak dikirim ke jaringan.
 - Debug: `dyn.calendarApi.add('2026-11-10','Meeting','09:00')`,
+  `dyn.calendarApi.update('2026-11-10', id, 'Meeting baru', '10:00')`,
   `dyn.calendarApi.remove('2026-11-10', id)`, `dyn.calendarApi.check()`.
 
 Uji parser dengan file lokal:

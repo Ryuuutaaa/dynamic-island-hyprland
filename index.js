@@ -69,7 +69,7 @@ import TimerPage from './modules/timer-page.js';
 import StatsPage from './modules/stats-page.js';
 import CalendarPage from './modules/calendar-page.js';
 import { watchCalendar, calendar as calendarState, refreshCalendar } from './modules/calendar.js';
-import { watchCalendarNotes, calendarNotes, addNote as calendarNoteAdd, removeNote as calendarNoteRemove, checkNotes as calendarNotesCheck, notesFor as calendarNotesFor } from './modules/calendar-notes.js';
+import { watchCalendarNotes, calendarNotes, addNote as calendarNoteAdd, updateNote as calendarNoteUpdate, removeNote as calendarNoteRemove, checkNotes as calendarNotesCheck, notesFor as calendarNotesFor } from './modules/calendar-notes.js';
 import { watchStats, stats as statsState } from './modules/sysstats.js';
 import { watchWellness, toggleWellness, wellness as wellnessState, reminderNow as wellnessReminder, onWellnessAction } from './modules/wellness.js';
 import { timer as timerState, restoreTimer, applyPreset as timerPreset, toggleRunning as timerToggle, resetTimer as timerReset, setMode as timerSetMode } from './modules/timer.js';
@@ -1281,7 +1281,7 @@ watchCalendar();
 watchCalendarNotes();
 dyn.calendarNotes = calendarNotes;
 dyn.calendarApi = {
-    add: calendarNoteAdd, remove: calendarNoteRemove,
+    add: calendarNoteAdd, update: calendarNoteUpdate, remove: calendarNoteRemove,
     check: calendarNotesCheck, notesFor: calendarNotesFor,
 };
 dyn.notifInvoke = notifInvoke;

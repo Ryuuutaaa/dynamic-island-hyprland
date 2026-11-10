@@ -7,7 +7,7 @@ import * as Utils from 'resource:///com/github/Aylur/ags/utils.js';
 import CONFIG from '../config.js';
 import { applyFocused } from './monitor.js';
 import { calendar } from './calendar.js';
-import { calendarNotes, addNote, removeNote, isoDay, normalizeTime } from './calendar-notes.js';
+import { calendarNotes, addNote, updateNote, removeNote, isoDay, normalizeTime } from './calendar-notes.js';
 import { buildGrid, Legend, MONTHS } from './calendar-grid.js';
 import { tabular } from './type.js';
 
@@ -40,6 +40,10 @@ export default () => {
     let viewYear = now.getFullYear();
     let viewMonth = now.getMonth();
     let selected = { year: viewYear, month: viewMonth, day: now.getDate() };
+    let composerOpen = false;
+    let editingId = null;
+    let editDayKey = '';
+    let deletingId = null;
 
     const title = Widget.Label({ className: 'cal-title', xalign: 0 });
     const sub = Legend({ prefix: 'cal' });
@@ -86,6 +90,9 @@ export default () => {
         spacing: 4,
         prefix: 'cal',
         onSelect: (year, month, day) => {
+            // Edit terikat ke hari lama: batalkan saat pindah hari.
+            if (editingId !== null) closeComposer();
+            deletingId = null;
             selected = { year, month, day };
             render();
         },
@@ -114,10 +121,16 @@ export default () => {
         placeholderText: 'Catatan atau jadwal…',
         hexpand: true,
     });
-    const addButton = Widget.Button({
+    const saveLabel = Widget.Label({ className: 'cal-add-label', label: 'Tambah' });
+    const saveButton = Widget.Button({
         className: 'cal-add-btn',
-        child: Widget.Label({ className: 'cal-add-label', label: 'Tambah' }),
+        child: saveLabel,
         onClicked: () => submit(),
+    });
+    const cancelButton = Widget.Button({
+        className: 'cal-cancel-btn',
+        child: Widget.Label({ className: 'cal-cancel-label', label: 'Batal' }),
+        onClicked: () => closeComposer(),
     });
     const hint = Widget.Label({ className: 'cal-hint', xalign: 0, label: '' });
     hint.visible = false;
@@ -126,7 +139,24 @@ export default () => {
     const addRow = Widget.Box({
         className: 'cal-add-row',
         spacing: 8,
-        children: [timeIcon, timeEntry, textEntry, addButton],
+        children: [timeIcon, timeEntry, textEntry, saveButton, cancelButton],
+    });
+    addRow.visible = false;
+    addRow.set_no_show_all(true);
+
+    // Aksi tambah yang jelas; composer baru muncul setelah diklik.
+    const addTrigger = Widget.Button({
+        className: 'cal-add-trigger',
+        hexpand: true,
+        child: Widget.Box({
+            spacing: 6,
+            halign: Gtk.Align.CENTER,
+            children: [
+                Widget.Label({ className: 'cal-add-trigger-icon', label: '\uf067' }),
+                Widget.Label({ className: 'cal-add-trigger-label', label: 'Tambah catatan' }),
+            ],
+        }),
+        onClicked: () => openComposer(),
     });
 
     const card = Widget.Box({
@@ -134,7 +164,7 @@ export default () => {
         vertical: true,
         widthRequest: WIN_W,
         spacing: 8,
-        children: [header, grid, selectedLabel, detailScroll, addRow, hint],
+        children: [header, grid, selectedLabel, detailScroll, addTrigger, addRow, hint],
     });
 
     const win = Widget.Window({
@@ -158,16 +188,45 @@ export default () => {
         focusTimers = [];
     }
 
-    function focusText() {
+    function focusTarget() {
         clearFocusTimers();
+        const target = composerOpen ? textEntry : addTrigger;
         for (const delay of [0, 60, 180, 400]) {
             let id = 0;
             id = Utils.timeout(delay, () => {
                 focusTimers = focusTimers.filter(timer => timer !== id);
-                try { textEntry.grab_focus(); } catch (_) { }
+                try { target.grab_focus(); } catch (_) { }
             });
             focusTimers.push(id);
         }
+    }
+
+    function openComposer(note = null, key = null) {
+        composerOpen = true;
+        editingId = note ? note.id : null;
+        editDayKey = note ? (key ?? '') : '';
+        deletingId = null;
+        timeEntry.text = note?.time ?? '';
+        textEntry.text = note?.text ?? '';
+        saveLabel.label = note ? 'Simpan' : 'Tambah';
+        addTrigger.visible = false;
+        addRow.visible = true;
+        addRow.show();
+        clearHint();
+        focusTarget();
+    }
+
+    function closeComposer() {
+        composerOpen = false;
+        editingId = null;
+        editDayKey = '';
+        timeEntry.text = '';
+        textEntry.text = '';
+        addRow.visible = false;
+        addTrigger.visible = true;
+        addTrigger.show();
+        clearHint();
+        focusTarget();
     }
 
     function shiftMonth(delta) {
@@ -218,30 +277,46 @@ export default () => {
     });
 
     const noteRow = (key, note) => {
-        let armed = false;
-        let resetTimer = 0;
-        const icon = Widget.Label({ className: 'cal-note-remove-label', label: '\uf00d' });
-        const removeButton = Widget.Button({
-            className: 'cal-note-remove',
+        if (deletingId === note.id) {
+            return Widget.Box({
+                className: 'cal-delete-confirm',
+                spacing: 8,
+                children: [
+                    Widget.Label({
+                        className: 'cal-delete-text',
+                        label: 'Hapus catatan ini?',
+                        xalign: 0,
+                        hexpand: true,
+                    }),
+                    Widget.Button({
+                        className: 'cal-chip',
+                        child: Widget.Label({ className: 'cal-chip-label', label: 'Batal' }),
+                        onClicked: () => { deletingId = null; render(); },
+                    }),
+                    Widget.Button({
+                        className: 'cal-delete-ok',
+                        child: Widget.Label({ className: 'cal-delete-ok-label', label: 'Hapus' }),
+                        onClicked: () => {
+                            removeNote(key, note.id);
+                            deletingId = null;
+                            render();
+                        },
+                    }),
+                ],
+            });
+        }
+
+        const editButton = Widget.Button({
+            className: 'cal-note-action',
+            tooltipText: 'Edit catatan',
+            child: Widget.Label({ className: 'cal-note-action-icon', label: '\uf044' }),
+            onClicked: () => openComposer(note, key),
+        });
+        const deleteButton = Widget.Button({
+            className: 'cal-note-action is-danger',
             tooltipText: 'Hapus catatan',
-            child: icon,
-            onClicked: () => {
-                if (armed) {
-                    if (resetTimer) GLib.source_remove(resetTimer);
-                    removeNote(key, note.id);
-                    return;
-                }
-                armed = true;
-                icon.label = '\uf00c';
-                removeButton.tooltipText = 'Klik lagi untuk menghapus';
-                removeButton.toggleClassName('is-armed', true);
-                resetTimer = Utils.timeout(2500, () => {
-                    armed = false;
-                    icon.label = '\uf00d';
-                    removeButton.tooltipText = 'Hapus catatan';
-                    removeButton.toggleClassName('is-armed', false);
-                }, removeButton);
-            },
+            child: Widget.Label({ className: 'cal-note-action-icon', label: '\uf1f8' }),
+            onClicked: () => { deletingId = note.id; render(); },
         });
 
         return Widget.Box({
@@ -258,9 +333,10 @@ export default () => {
                     xalign: 0,
                     hexpand: true,
                     wrap: true,
-                    maxWidthChars: 44,
+                    maxWidthChars: 38,
                 }),
-                removeButton,
+                editButton,
+                deleteButton,
             ],
         });
     };
@@ -317,28 +393,37 @@ export default () => {
             showHint('Format jam harus HH:MM.');
             return;
         }
-        const key = isoDay(new Date(selected.year, selected.month, selected.day));
-        addNote(key, text, time);
-        timeEntry.text = '';
-        textEntry.text = '';
-        clearHint();
-        textEntry.grab_focus();
+        if (editingId !== null && editDayKey) {
+            updateNote(editDayKey, editingId, text, time);
+        } else {
+            const key = isoDay(new Date(selected.year, selected.month, selected.day));
+            addNote(key, text, time);
+        }
+        closeComposer();
         render();
     }
 
-    async function open(day = new Date()) {
+    async function open(day = new Date(), compose = false) {
         const date = day instanceof Date && !Number.isNaN(day.getTime()) ? day : new Date();
         viewYear = date.getFullYear();
         viewMonth = date.getMonth();
         selected = { year: viewYear, month: viewMonth, day: date.getDate() };
+        composerOpen = false;
+        editingId = null;
+        editDayKey = '';
+        deletingId = null;
         timeEntry.text = '';
         textEntry.text = '';
+        addRow.visible = false;
+        addTrigger.visible = true;
+        addTrigger.show();
         clearHint();
         render();
         try { await globalThis.dynIsland?.suppressNav?.(true); } catch (_) { }
         applyFocused(win, () => { }).catch(() => { });
         App.openWindow(NAME);
-        focusText();
+        if (compose) openComposer();
+        else focusTarget();
     }
 
     function close() {
@@ -348,11 +433,18 @@ export default () => {
     }
 
     const onKey = (_widget, event) => {
-        if (event.get_keyval() === Gdk.KEY_Escape) {
-            close();
+        if (event.get_keyval() !== Gdk.KEY_Escape) return false;
+        if (deletingId !== null) {
+            deletingId = null;
+            render();
             return true;
         }
-        return false;
+        if (composerOpen) {
+            closeComposer();
+            return true;
+        }
+        close();
+        return true;
     };
     win.connect('key-press-event', onKey);
     timeEntry.connect('key-press-event', onKey);
@@ -360,7 +452,7 @@ export default () => {
 
     timeEntry.connect('activate', () => submit());
     textEntry.connect('activate', () => submit());
-    win.connect('map', () => { render(); focusText(); });
+    win.connect('map', () => { render(); focusTarget(); });
     win.connect('unmap', () => clearFocusTimers());
     win.hook(calendar, () => { if (win.visible) render(); });
     win.hook(calendarNotes, () => { if (win.visible) render(); });
@@ -373,6 +465,7 @@ export default () => {
         toggle: () => (win.visible ? close() : open()),
         win,
         textEntry,
+        timeEntry,
     };
 
     return win;

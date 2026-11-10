@@ -62,7 +62,7 @@ export default () => {
             const target = year === today.getFullYear() && month === today.getMonth()
                 ? today
                 : new Date(year, month, 1);
-            try { globalThis.calendarWindow?.open?.(target); } catch (_) { }
+            try { globalThis.calendarWindow?.open?.(target, true); } catch (_) { }
         },
     });
 

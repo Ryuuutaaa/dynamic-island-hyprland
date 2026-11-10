@@ -156,6 +156,35 @@ export function addNote(day, text, time) {
     return note;
 }
 
+export function updateNote(day, id, text, time) {
+    const cleanText = String(text ?? '').replace(/\s+/g, ' ').trim();
+    if (!cleanText) return null;
+
+    const store = { ...calendarNotes.value };
+    const list = store[day];
+    if (!Array.isArray(list)) return null;
+    const index = list.findIndex(note => note.id === Number(id));
+    if (index < 0) return null;
+
+    const previous = list[index];
+    const nextTime = normalizeTime(time);
+    const timeChanged = previous.time !== nextTime;
+    let notifiedAt = previous.notifiedAt;
+    if (timeChanged) {
+        notifiedAt = 0;
+        const scheduled = scheduledEpoch(day, nextTime);
+        if (Date.now() >= scheduled + catchUpMs()) notifiedAt = -1;
+    }
+
+    const updated = { ...previous, text: cleanText, time: nextTime, notifiedAt };
+    const next = [...list];
+    next[index] = updated;
+    store[day] = next.sort((a, b) =>
+        (a.time ?? '99:99').localeCompare(b.time ?? '99:99'));
+    publish(store);
+    return updated;
+}
+
 export function removeNote(day, id) {
     const store = { ...calendarNotes.value };
     const list = (store[day] ?? []).filter(note => note.id !== Number(id));
