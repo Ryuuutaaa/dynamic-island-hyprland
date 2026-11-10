@@ -221,15 +221,19 @@ tooltip > box {
 }
 
 .dyn-island-bluetooth {
-    min-width: 402px;
+    min-width: 428px;
 }
 .dyn-island-bt-header {
-    min-width: 200px;
+    min-width: 428px;
 }
 .dyn-island-bt-title {
     font-size: 13px;
     font-weight: 700;
     color: __FG__;
+}
+.dyn-island-bt-context {
+    font-size: 9.5px;
+    color: __MUTED__;
 }
 .dyn-island-bt-power {
     min-height: 24px;
@@ -278,6 +282,7 @@ tooltip > box {
 }
 .dyn-island-bt-device.is-selected {
     background-color: __SURFACE__;
+    box-shadow: inset 2px 0 0 __ACCENT__;
 }
 .dyn-island-bt-device-icon {
     font-size: 13px;
@@ -287,8 +292,12 @@ tooltip > box {
     color: __OK__;
 }
 .dyn-island-bt-device-name {
-    font-size: 11px;
+    font-size: 12px;
     color: __FG__;
+}
+.dyn-island-bt-meta {
+    font-size: 9.5px;
+    color: __MUTED__;
 }
 .dyn-island-bt-badge {
     min-height: 24px;
@@ -306,8 +315,14 @@ tooltip > box {
 .dyn-island-bt-badge.is-on {
     background-color: __SURFACE_STRONG__;
 }
+.dyn-island-bt-badge.is-busy {
+    opacity: 0.6;
+}
+.dyn-island-bt-badge:disabled {
+    opacity: 0.4;
+}
 .dyn-island-bt-badge-label {
-    font-size: 9.5px;
+    font-size: 10.5px;
     color: __FG__;
 }
 .dyn-island-bt-badge.is-on .dyn-island-bt-badge-label {
@@ -318,45 +333,9 @@ tooltip > box {
     color: __MUTED__;
     padding: 4px 8px;
 }
-.dyn-island-bt-head {
-    min-width: 190px;
-}
-.dyn-island-bt-text {
-    min-width: 132px;
-}
-.dyn-island-bt-icon {
-    font-size: 26px;
-    color: __ACCENT2__;
-}
-.dyn-island-bt-name {
-    font-size: 13px;
-    font-weight: 700;
-    color: __FG__;
-}
-.dyn-island-bt-meta {
-    font-size: 9.5px;
-    color: __MUTED__;
-}
-.dyn-island-bt-status {
-    min-height: 14px;
-}
-.dyn-island-bt-status-dot {
-    font-size: 8px;
-    color: __MUTED__;
-}
-.dyn-island-bt-status-dot.is-on {
-    color: __OK__;
-}
-.dyn-island-bt-status-text {
-    font-size: 10px;
-    color: __MUTED__;
-}
-.dyn-island-bt-hint {
-    font-size: 10px;
-    color: __MUTED__;
-}
 .dyn-island-bt-vol {
-    min-width: 190px;
+    min-width: 404px;
+    padding: 0px 12px;
 }
 .dyn-island-bt-vol-text {
     font-size: 9.5px;
@@ -369,16 +348,22 @@ tooltip > box {
     min-width: 428px;
 }
 .dyn-island-wf-header {
-    min-width: 210px;
+    min-width: 428px;
 }
 .dyn-island-wf-title {
     font-size: 13px;
     font-weight: 700;
     color: __FG__;
 }
-.dyn-island-wf-scanning {
+.dyn-island-wf-context {
     font-size: 9.5px;
     color: __MUTED__;
+}
+.dyn-island-wf-context.is-error {
+    color: __DANGER__;
+}
+.dyn-island-wf-context.is-portal {
+    color: __ACCENT__;
 }
 .dyn-island-wf-iconbtn {
     min-height: 24px;
@@ -423,6 +408,23 @@ tooltip > box {
     font-size: 10px;
     color: __FG__;
 }
+.dyn-island-wf-login {
+    min-height: 24px;
+    padding: 0px 10px;
+    border-radius: 8px;
+    background-color: __ACCENT_SOFT__;
+    background-image: none;
+    border: none;
+    box-shadow: none;
+}
+.dyn-island-wf-login:hover {
+    background-color: __SURFACE_HOVER__;
+}
+.dyn-island-wf-login label {
+    font-size: 10px;
+    font-weight: 600;
+    color: __ACCENT__;
+}
 .dyn-island-wf-pane,
 .dyn-island-wf-pane viewport,
 .dyn-island-wf-list {
@@ -442,7 +444,7 @@ tooltip > box {
 .dyn-island-wf-device:hover {
     background-color: __SURFACE_DIM__;
 }
-.dyn-island-wf-device.is-selected {
+.dyn-island-wf-device.is-connected {
     background-color: __SURFACE__;
     box-shadow: inset 2px 0 0 __ACCENT__;
 }
@@ -473,15 +475,12 @@ tooltip > box {
     padding: 0px 12px;
     border-radius: 8px;
     background-color: __SURFACE_DIM__;
-    background-image: none;
-    border: none;
-    box-shadow: none;
-}
-.dyn-island-wf-badge:hover {
-    background-color: __SURFACE_HOVER__;
 }
 .dyn-island-wf-badge.is-on {
     background-color: __SURFACE_STRONG__;
+}
+.dyn-island-wf-badge.is-busy {
+    opacity: 0.6;
 }
 .dyn-island-wf-badge-dot {
     font-size: 6px;
@@ -502,101 +501,6 @@ tooltip > box {
     color: __MUTED__;
     padding: 4px 8px;
 }
-.dyn-island-wf-panel {
-    min-height: 90px;
-    padding: 12px;
-    border-radius: 12px;
-    background-color: __SURFACE_DIM__;
-}
-.dyn-island-wf-detail {
-    min-width: 176px;
-}
-.dyn-island-wf-head {
-    min-width: 176px;
-}
-.dyn-island-wf-text {
-    min-width: 136px;
-}
-.dyn-island-wf-icon {
-    font-size: 30px;
-    color: __MUTED__;
-}
-.dyn-island-wf-icon.is-strong {
-    color: __OK__;
-}
-.dyn-island-wf-icon.is-mid {
-    color: __ACCENT__;
-}
-.dyn-island-wf-name {
-    font-size: 13px;
-    font-weight: 700;
-    color: __FG__;
-}
-.dyn-island-wf-meta {
-    font-size: 10px;
-    color: __MUTED__;
-}
-.dyn-island-wf-status {
-    min-height: 15px;
-}
-.dyn-island-wf-status-dot {
-    font-size: 8px;
-    color: __MUTED__;
-}
-.dyn-island-wf-status-dot.is-on {
-    color: __OK__;
-}
-.dyn-island-wf-status-dot.is-portal {
-    color: __ACCENT__;
-}
-.dyn-island-wf-status-text {
-    font-size: 11px;
-    color: __MUTED__;
-}
-.dyn-island-wf-ip {
-    font-size: 10px;
-    color: __MUTED__;
-}
-.dyn-island-wf-portal {
-    min-height: 28px;
-    margin-top: 4px;
-    border-radius: 8px;
-    background-color: __ACCENT_SOFT__;
-    background-image: none;
-    border: none;
-    box-shadow: none;
-}
-.dyn-island-wf-portal:hover {
-    background-color: __SURFACE_HOVER__;
-}
-.dyn-island-wf-portal-label {
-    font-size: 10.5px;
-    color: __ACCENT__;
-}
-.dyn-island-wf-hint {
-    font-size: 10.5px;
-    color: __MUTED__;
-}
-.dyn-island-wf-hint.is-error {
-    color: __DANGER__;
-}
-.dyn-island-wf-empty-icon {
-    font-size: 30px;
-    color: __MUTED__;
-}
-.dyn-island-wf-empty-icon.is-off {
-    color: __MUTED__;
-}
-.dyn-island-wf-empty-title {
-    font-size: 13px;
-    font-weight: 700;
-    color: __FG__;
-}
-.dyn-island-wf-empty-hint {
-    font-size: 10.5px;
-    color: __MUTED__;
-}
-
 /* ── jadwal sholat ──────────────────────────────────────────── */
 .dyn-island-prayer {
     min-width: 520px;
