@@ -74,6 +74,7 @@ export default () => {
         }),
         endWidget: Widget.Box({
             spacing: 4,
+            halign: Gtk.Align.END,
             children: [todayButton, notesButton],
         }),
     });
