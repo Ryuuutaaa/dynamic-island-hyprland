@@ -477,11 +477,26 @@ DAILY/WEEKLY/MONTHLY/YEARLY dengan `INTERVAL`, `COUNT`, `UNTIL`, `BYDAY`,
 `BYMONTH`, `BYMONTHDAY`, serta `EXDATE`. Occurrence diekspansi sampai 400 hari
 ke depan; single event yang lebih jauh tetap disimpan.
 
-**Halaman**: acara berikutnya menampilkan judul, hari (`Hari ini`/`Besok`/
-nama hari), jam, dan status (`dalam …`/`berakhir dalam …`). All-day memakai
-`sepanjang hari` + label hari. Countdown diperbarui tiap 30 detik dan otomatis
-pindah ke acara berikutnya. Empty state punya ikon, petunjuk config, dan tombol
-**Muat ulang** saat feed gagal; error mentah dipotong 90 karakter.
+**Halaman**: grid bulan penuh (7 kolom × 6 baris, Senin–Minggu). Hari ini
+ditandai, hari dengan acara iCal atau catatan lokal punya dot aksen. Tombol
+**Hari ini** kembali ke bulan berjalan; `‹`/`›` pindah bulan; klik hari
+membuka popup editor. Popup `dyn-island-calendar` memakai `keymode: exclusive`
+(station island tidak menerima keyboard) dan berisi grid yang sama, acara iCal
+hari terpilih (read-only), serta catatan lokal yang bisa ditambah/dihapus.
+
+**Catatan per hari**: disimpan di
+`~/.local/share/dynamic-iland/calendar-notes.json` dengan bentuk
+`{ "YYYY-MM-DD": [{ id, text, time, notifiedAt }] }`.
+
+- `time` opsional (`HH:MM`). Tanpa jam, pengingat memakai
+  `calendar.noteDefaultHour` (default 08:00).
+- Catatan dicek tiap 30 detik. Jadwal yang terlewat ≤
+  `calendar.noteCatchUpMinutes` (default 60) memicu
+  `notify-send -a Notch`; yang lebih lama ditandai terlewat supaya tidak spam
+  saat AGS restart/resume. Klik notifikasi membuka island.
+- Data murni lokal: tidak masuk repo dan tidak dikirim ke jaringan.
+- Debug: `dyn.calendarApi.add('2026-11-10','Meeting','09:00')`,
+  `dyn.calendarApi.remove('2026-11-10', id)`, `dyn.calendarApi.check()`.
 
 Uji parser dengan file lokal:
 
