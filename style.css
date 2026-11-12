@@ -66,8 +66,11 @@
 .dyn-island-bt-row,
 .dyn-island-lyric,
 .dyn-island-lyrics-retry,
-.dyn-island-todo-row,
-.dyn-island-todo-remove,
+.dyn-island-todo-main,
+.dyn-island-todo-action,
+.dyn-island-todo-add,
+.dyn-island-todo-confirm-cancel,
+.dyn-island-todo-confirm-ok,
 .dyn-island-timer-mode,
 .dyn-island-timer-preset,
 .dyn-island-timer-play,
@@ -80,7 +83,7 @@
 
 .dyn-island-nav-btn,
 .dyn-island-ctl,
-.dyn-island-todo-remove,
+.dyn-island-todo-action,
 .dyn-island-popup-close {
     min-width: 24px;
 }
@@ -705,70 +708,266 @@ tooltip > box {
 }
 
 /* ── todo ───────────────────────────────────────────────────── */
+.dyn-island-todo {
+    min-width: 428px;
+}
+.dyn-island-todo-header {
+    min-width: 428px;
+}
 .dyn-island-todo-title {
     font-size: 13px;
     font-weight: 700;
     color: __FG__;
 }
-.dyn-island-todo-title-sub {
-    font-size: 11px;
+.dyn-island-todo-context {
+    font-size: 9.5px;
     color: __MUTED__;
 }
-.dyn-island-todo-count {
-    font-size: 22px;
-    font-weight: 700;
-    color: __FG__;
+.dyn-island-todo-add {
+    min-height: 24px;
+    padding: 0px 10px;
+    border-radius: 8px;
+    background-color: __ACCENT_SOFT__;
+    background-image: none;
+    border: none;
+    box-shadow: none;
 }
-.dyn-island-todo-done {
-    font-size: 11px;
-    color: __MUTED__;
+.dyn-island-todo-add:hover {
+    background-color: __SURFACE_HOVER__;
 }
-.dyn-island-todo-meta {
-    min-width: 170px;
+.dyn-island-todo-add-icon {
+    font-size: 9.5px;
+    color: __ACCENT__;
+}
+.dyn-island-todo-add-label {
+    font-size: 10px;
+    font-weight: 600;
+    color: __ACCENT__;
 }
 .dyn-island-todo-pane,
-.dyn-island-todo-pane viewport {
+.dyn-island-todo-pane viewport,
+.dyn-island-todo-list {
     background-color: transparent;
+    border: none;
 }
-.dyn-island-todo-row {
-    padding: 2px 8px;
+.dyn-island-todo-task {
+    min-height: 28px;
+}
+.dyn-island-todo-main {
+    min-height: 28px;
+    padding: 0px 8px;
     border-radius: 8px;
+    background-color: transparent;
+    background-image: none;
+    border: none;
+    box-shadow: none;
     transition: 140ms ease-out;
 }
-.dyn-island-todo-row:hover {
+.dyn-island-todo-main:hover {
     background-color: __SURFACE_DIM__;
 }
 .dyn-island-todo-text {
-    font-size: 11px;
+    font-size: 12px;
     color: __FG__;
 }
 .dyn-island-todo-text.done {
-    color: __MUTED__;
+    color: __FG__;
+    opacity: 0.62;
     text-decoration: line-through;
 }
 /* jatuh tempo: label terpisah supaya tidak ikut terpotong bersama teks tugas */
 .dyn-island-todo-due {
     font-size: 9.5px;
-    color: __MUTED__;
+    color: __FG__;
+    opacity: 0.6;
 }
 .dyn-island-todo-due.done {
-    color: __MUTED__;
+    opacity: 0.45;
     text-decoration: line-through;
 }
-.dyn-island-todo-remove {
-    padding: 1px 4px;
+.dyn-island-todo-action {
+    min-width: 24px;
+    min-height: 24px;
+    padding: 0px;
     border-radius: 8px;
+    background-color: transparent;
+    background-image: none;
+    border: none;
+    box-shadow: none;
 }
-.dyn-island-todo-remove:hover {
+.dyn-island-todo-action:hover {
+    background-color: __SURFACE__;
+}
+.dyn-island-todo-action.is-danger:hover {
     background-color: __DANGER_SOFT__;
 }
-.dyn-island-todo-remove-label {
+.dyn-island-todo-action-icon {
+    font-size: 10px;
+    color: __FG__;
+    opacity: 0.55;
+}
+.dyn-island-todo-action:hover .dyn-island-todo-action-icon {
+    color: __FG__;
+    opacity: 1;
+}
+.dyn-island-todo-action.is-danger:hover .dyn-island-todo-action-icon {
+    color: __DANGER__;
+    opacity: 1;
+}
+.dyn-island-todo-confirm {
+    min-height: 28px;
+    padding: 0px 12px;
+    border-radius: 8px;
+    background-color: __DANGER_SOFT__;
+}
+.dyn-island-todo-confirm-text {
     font-size: 11px;
     color: __DANGER__;
+}
+.dyn-island-todo-confirm-cancel {
+    min-height: 24px;
+    padding: 0px 10px;
+    border-radius: 8px;
+    background-color: __SURFACE__;
+    background-image: none;
+    border: none;
+    box-shadow: none;
+}
+.dyn-island-todo-confirm-cancel:hover {
+    background-color: __SURFACE_HOVER__;
+}
+.dyn-island-todo-confirm-cancel-label {
+    font-size: 10px;
+    color: __FG__;
+    opacity: 0.72;
+}
+.dyn-island-todo-confirm-ok {
+    min-height: 24px;
+    padding: 0px 12px;
+    border-radius: 8px;
+    background-color: __DANGER__;
+    background-image: none;
+    border: none;
+    box-shadow: none;
+}
+.dyn-island-todo-confirm-ok:hover {
+    background-color: __DANGER_SOFT__;
+}
+.dyn-island-todo-confirm-ok-label {
+    font-size: 10px;
+    font-weight: 700;
+    color: __BG_SOLID__;
 }
 .dyn-island-todo-empty {
     font-size: 11px;
     color: __MUTED__;
+    padding: 4px 8px;
+}
+
+/* ── Editor tugas ───────────────────────────────────────────── */
+.todo-window {
+    background: transparent;
+}
+.todo-card {
+    background: __BG_SOLID__;
+    border: 1px solid __SURFACE_STRONG__;
+    border-radius: 16px;
+    padding: 14px 16px 12px 16px;
+    box-shadow: 0 18px 48px rgba(0, 0, 0, 0.55);
+    font-family: "Ubuntu", "Noto Sans", "DejaVu Sans", "JetBrainsMono Nerd Font", sans-serif;
+}
+.todo-editor-head {
+    min-height: 26px;
+}
+.todo-editor-title {
+    font-size: 13px;
+    font-weight: 700;
+    color: __FG__;
+}
+.todo-editor-close {
+    min-width: 24px;
+    min-height: 24px;
+    padding: 0px;
+    border-radius: 8px;
+    background-color: transparent;
+    background-image: none;
+    border: none;
+    box-shadow: none;
+}
+.todo-editor-close:hover {
+    background-color: __SURFACE_DIM__;
+}
+.todo-editor-close-icon {
+    font-size: 11px;
+    color: __MUTED__;
+}
+.todo-entry {
+    background-color: __SURFACE__;
+    border: none;
+    border-radius: 8px;
+    padding: 7px 10px;
+    font-size: 12px;
+    color: __FG__;
+    caret-color: __ACCENT__;
+}
+.todo-entry:focus {
+    box-shadow: inset 0 0 0 1px __ACCENT__;
+}
+.todo-time-entry {
+    min-width: 64px;
+}
+.todo-field-row {
+    min-height: 26px;
+}
+.todo-field-icon {
+    font-size: 11px;
+    color: __MUTED__;
+}
+.todo-field-label {
+    font-size: 9.5px;
+    color: __FG__;
+    opacity: 0.6;
+}
+.todo-hint {
+    font-size: 9.5px;
+    color: __DANGER__;
+}
+.todo-actions {
+    min-height: 28px;
+}
+.todo-save {
+    min-height: 28px;
+    padding: 0px 14px;
+    border-radius: 8px;
+    background-color: __ACCENT__;
+    background-image: none;
+    border: none;
+    box-shadow: none;
+}
+.todo-save:hover {
+    background-color: __ACCENT_SOFT__;
+}
+.todo-save-label {
+    font-size: 11px;
+    font-weight: 700;
+    color: __BG_SOLID__;
+}
+.todo-cancel {
+    min-height: 28px;
+    padding: 0px 12px;
+    border-radius: 8px;
+    background-color: __SURFACE__;
+    background-image: none;
+    border: none;
+    box-shadow: none;
+}
+.todo-cancel:hover {
+    background-color: __SURFACE_HOVER__;
+}
+.todo-cancel-label {
+    font-size: 11px;
+    color: __FG__;
+    opacity: 0.72;
 }
 
 /* ── shelf ──────────────────────────────────────────────────── */

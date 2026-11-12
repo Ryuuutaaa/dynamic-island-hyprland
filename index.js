@@ -42,7 +42,8 @@ import {
     addPaths as shelfAdd, removeItem as shelfRemove, clearShelf as shelfClear,
 } from './modules/shelf.js';
 import {
-    todo, watchTodo, addTask as todoAdd, toggleTask as todoToggle, removeTask as todoRemove,
+    todo, watchTodo, addTask as todoAdd, addTaskWithDue as todoAddWithDue,
+    updateTask as todoUpdate, toggleTask as todoToggle, removeTask as todoRemove,
 } from './modules/todo.js';
 import {
     water, watchWater, drink as waterDrink, setGoal as waterSetGoal,
@@ -76,6 +77,7 @@ import { watchWellness, toggleWellness, wellness as wellnessState, reminderNow a
 import { timer as timerState, restoreTimer, applyPreset as timerPreset, toggleRunning as timerToggle, resetTimer as timerReset, setMode as timerSetMode } from './modules/timer.js';
 import StandupWindow from './modules/standup-window.js';
 import CalendarWindow from './modules/calendar-window.js';
+import TodoWindow from './modules/todo-window.js';
 import { scheduleStandupReminder, titleForDay as standupTitle, addItem as standupAdd, removeItem as standupRemove, saveStandup as standupSave, loadStandup as standupLoad, remindNow as standupRemind, standup as standupStore } from './modules/standup.js';
 import GeminiChat from './modules/chat-window.js';
 import SettingsPage from './modules/settings-page.js';
@@ -1008,7 +1010,7 @@ const dyn = {
     sky, skyRefresh: refreshSky,
     pomodoroModes, pomodoroSetMode, pomodoroToggle, pomodoroReset,
     water, waterDrink, waterSetGoal, waterToggleReminder,
-    todo, todoAdd, todoToggle, todoRemove,
+    todo, todoAdd, todoAddWithDue, todoUpdate, todoToggle, todoRemove,
     shelf, shelfAdd, shelfRemove, shelfClear, shelfDragOver, shelfUndo, shelfUndoLast,
     toggleOpen, closeIsland,
     weather: weatherState, refreshWeather,
@@ -1270,6 +1272,12 @@ const calendarWin = CalendarWindow();
 App.addWindow(calendarWin);
 dyn.calendarWindow = globalThis.calendarWindow;
 dyn.calendarWinWidget = calendarWin;
+
+// Editor tugas: form Create/Update (keymode exclusive), dibuka dari halaman todo.
+const todoWin = TodoWindow();
+App.addWindow(todoWin);
+dyn.todoWindow = globalThis.todoWindow;
+dyn.todoWinWidget = todoWin;
 // Notifikasi timer/pomodoro/water/prayer/calendar memakai app "Notch" dan
 // sebagian menulis "klik untuk membuka island"; registry ini yang menjalankan
 // janji tersebut (default action-nya membuka paksa island).

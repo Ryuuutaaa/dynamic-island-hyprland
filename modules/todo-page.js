@@ -1,19 +1,15 @@
-import GLib from 'gi://GLib';
 import Gtk from 'gi://Gtk?version=3.0';
 import Widget from 'resource:///com/github/Aylur/ags/widget.js';
-import * as Utils from 'resource:///com/github/Aylur/ags/utils.js';
 import { palette, hexToRgb } from '../theme.js';
 import { page } from '../state.js';
-import { todo, addTask, toggleTask, removeTask, doneCount, totalCount } from './todo.js';
-import { tabular } from './type.js';
+import { todo, toggleTask, removeTask, doneCount, totalCount } from './todo.js';
 import { scrollDelta } from './pointer.js';
 
 const FG = hexToRgb(palette.fg);
-// hijau dari palet (bisa di-override wallust via `@define-color ok ...`)
 const GREEN = hexToRgb(palette.ok);
 
-const LIST_W = 186;
-const LIST_H = 92;
+const PAGE_W = 428;
+const LIST_H = 88;
 
 // Checkbox bulat: kosong saat belum selesai, hijau + centang saat selesai.
 const Check = done => Widget.DrawingArea({
@@ -46,94 +42,44 @@ const Check = done => Widget.DrawingArea({
     },
 });
 
-const TaskRow = (task, editMode) => {
-    const label = Widget.Label({
-        className: `dyn-island-todo-text${task.done ? ' done' : ''}`,
-        label: task.text,
-        xalign: 0,
-        truncate: 'end',
-        maxWidthChars: 20,
-    });
-
-    const row = [Check(task.done), label];
-    // jatuh tempo dipisah dari teks supaya tidak ikut terpotong saat
-    // judul tugasnya panjang (dulu satu label: `teks · due`)
-    if (task.due) {
-        row.push(Widget.Label({
-            className: `dyn-island-todo-due${task.done ? ' done' : ''}`,
-            label: task.due,
-            xalign: 1,
-        }));
-    }
-
-    const button = Widget.Button({
-        className: 'dyn-island-todo-row',
-        tooltipText: `${task.text}${task.due ? ` · ${task.due}` : ''}\n`
-            + (task.done ? 'Tandai belum selesai' : 'Tandai selesai'),
-        child: Widget.Box({
-            spacing: 8,
-            valign: Gtk.Align.CENTER,
-            children: row,
-        }),
-        onClicked: () => toggleTask(task.id),
-    });
-
-    if (!editMode) return button;
-
-    let armed = false;
-    let resetTimer = 0;
-    const removeIcon = Widget.Label({ className: 'dyn-island-todo-remove-label', label: '\uf00d' });
-    const removeButton = Widget.Button({
-        className: 'dyn-island-todo-remove',
-        tooltipText: `Hapus: ${task.text}`,
-        child: removeIcon,
-        onClicked: () => {
-            if (armed) {
-                if (resetTimer) GLib.source_remove(resetTimer);
-                removeTask(task.id);
-                return;
-            }
-            armed = true;
-            removeIcon.label = '\uf00c';
-            removeButton.tooltipText = 'Klik lagi untuk menghapus tugas';
-            resetTimer = Utils.timeout(2500, () => {
-                armed = false;
-                resetTimer = 0;
-                removeIcon.label = '\uf00d';
-                removeButton.tooltipText = `Hapus: ${task.text}`;
-            }, removeButton);
-        },
-    });
-    return Widget.Box({
-        className: 'dyn-island-todo-rowline',
-        spacing: 4,
-        children: [button, removeButton],
-    });
-};
-
-const pill = (label, onClicked, tooltip = null) => Widget.Button({
-    className: 'dyn-island-pill',
-    tooltipText: tooltip,
-    child: Widget.Label({ className: 'dyn-island-pill-label', label }),
-    onClicked,
-});
+const icon = (className, label) => Widget.Label({ className, label });
 
 export default () => {
-    let editMode = false;
+    let pendingDelete = null;
 
-    const count = tabular(Widget.Label({ className: 'dyn-island-todo-count' }));
-    const editLabel = Widget.Label({ className: 'dyn-island-pill-label', label: 'Ubah' });
+    const title = Widget.Label({ className: 'dyn-island-todo-title', label: 'Tugas' });
+    const context = Widget.Label({
+        className: 'dyn-island-todo-context',
+        truncate: 'end',
+        maxWidthChars: 30,
+    });
+    const add = Widget.Button({
+        className: 'dyn-island-todo-add',
+        tooltipText: 'Tambah tugas',
+        child: Widget.Box({
+            spacing: 4,
+            children: [
+                icon('dyn-island-todo-add-icon', '\uf067'),
+                Widget.Label({ className: 'dyn-island-todo-add-label', label: 'Tambah' }),
+            ],
+        }),
+        onClicked: () => globalThis.todoWindow?.open?.(null),
+    });
+    const header = Widget.CenterBox({
+        className: 'dyn-island-todo-header',
+        startWidget: Widget.Box({ spacing: 8, children: [title, context] }),
+        endWidget: add,
+    });
+    header.set_size_request(PAGE_W, 24);
 
-    // Panel tugas: ScrolledWindow nested (vscroll external supaya minimum
-    // tingginya kecil dan scrollbar tidak digambar).
     const pane = Widget.Scrollable({
         className: 'dyn-island-todo-pane',
         hscroll: 'never',
         vscroll: 'external',
     });
-    const list = Widget.Box({ className: 'dyn-island-todo-list', vertical: true, spacing: 4 });
+    const list = Widget.Box({ className: 'dyn-island-todo-list', vertical: true, spacing: 2 });
     pane.child = list;
-    pane.set_size_request(LIST_W, LIST_H);
+    pane.set_size_request(PAGE_W, LIST_H);
 
     const scrollPane = event => {
         const dy = scrollDelta(event);
@@ -147,83 +93,143 @@ export default () => {
     };
     pane.connect('scroll-event', (_self, event) => scrollPane(event));
 
-    const rebuild = () => {
-        const state = todo.value;
-        count.label = `${doneCount(state)}/${totalCount(state)}`;
-        if (!state.tasks.length) {
-            list.children = [Widget.Label({
-                className: 'dyn-island-todo-empty',
-                label: 'Belum ada tugas',
-                xalign: 0,
-            })];
-            return;
+    const TaskRow = task => {
+        const text = Widget.Label({
+            className: `dyn-island-todo-text${task.done ? ' done' : ''}`,
+            label: task.text,
+            xalign: 0,
+            hexpand: true,
+            truncate: 'end',
+            maxWidthChars: 40,
+        });
+        const children = [Check(task.done), text];
+        if (task.due) {
+            children.push(Widget.Label({
+                className: `dyn-island-todo-due${task.done ? ' done' : ''}`,
+                label: task.due,
+            }));
         }
-        list.children = state.tasks.map(task => TaskRow(task, editMode));
+
+        const main = Widget.Button({
+            className: 'dyn-island-todo-main',
+            hexpand: true,
+            tooltipText: `${task.text}${task.due ? ` · ${task.due}` : ''}\n`
+                + (task.done ? 'Tandai belum selesai' : 'Tandai selesai'),
+            child: Widget.Box({
+                spacing: 8,
+                valign: Gtk.Align.CENTER,
+                children,
+            }),
+            onClicked: () => toggleTask(task.id),
+        });
+        const edit = Widget.Button({
+            className: 'dyn-island-todo-action',
+            tooltipText: 'Edit tugas',
+            child: icon('dyn-island-todo-action-icon', '\uf044'),
+            onClicked: () => globalThis.todoWindow?.open?.(task),
+        });
+        const remove = Widget.Button({
+            className: 'dyn-island-todo-action is-danger',
+            tooltipText: 'Hapus tugas',
+            child: icon('dyn-island-todo-action-icon', '\uf1f8'),
+            onClicked: () => {
+                pendingDelete = task.id;
+                rebuild();
+            },
+        });
+
+        return Widget.Box({
+            className: 'dyn-island-todo-task',
+            spacing: 2,
+            hexpand: true,
+            children: [main, edit, remove],
+        });
     };
 
-    const add = pill('\uf067 Tambah', () => {
-        // input teks lewat rofi (layer-shell window ini keymode: none,
-        // jadi tidak bisa menerima keyboard tanpa mengubah fokus)
-        Utils.execAsync(['rofi', '-dmenu', '-p', 'Tugas baru', '-l', '0'])
-            .then(text => { addTask(text); })
-            .catch(error => {
-                // batal (exit 1) bukan error; rofi yang tidak ada baru dilaporkan
-                if (/not found|No such file|Failed to execute/i.test(String(error))) {
-                    Utils.execAsync([
-                        'notify-send', '-a', 'Notch', 'Tidak bisa membuka rofi',
-                        'Pastikan rofi terpasang untuk menambah tugas.',
-                    ]).catch(() => { });
-                }
-            });
-    }, 'Tugas baru — bisa pakai @HH:MM untuk jatuh tempo');
+    const DeleteRow = task => {
+        const cancel = Widget.Button({
+            className: 'dyn-island-todo-confirm-cancel',
+            child: Widget.Label({ className: 'dyn-island-todo-confirm-cancel-label', label: 'Batal' }),
+            onClicked: () => {
+                pendingDelete = null;
+                rebuild();
+            },
+        });
+        const confirm = Widget.Button({
+            className: 'dyn-island-todo-confirm-ok',
+            child: Widget.Label({ className: 'dyn-island-todo-confirm-ok-label', label: 'Hapus' }),
+            onClicked: () => {
+                removeTask(task.id);
+                pendingDelete = null;
+                rebuild();
+            },
+        });
+        return Widget.Box({
+            className: 'dyn-island-todo-confirm',
+            spacing: 8,
+            hexpand: true,
+            children: [
+                Widget.Label({
+                    className: 'dyn-island-todo-confirm-text',
+                    label: `Hapus “${task.text}”?`,
+                    xalign: 0,
+                    hexpand: true,
+                    truncate: 'end',
+                    maxWidthChars: 38,
+                }),
+                cancel,
+                confirm,
+            ],
+        });
+    };
 
-    const edit = Widget.Button({
-        className: 'dyn-island-pill',
-        tooltipText: 'Tampilkan tombol hapus per tugas',
-        child: editLabel,
-        onClicked: () => {
-            editMode = !editMode;
-            editLabel.label = editMode ? 'Selesai' : 'Ubah';
-            rebuild();
-        },
-    });
+    const rebuild = () => {
+        const state = todo.value;
+        const total = totalCount(state);
+        const done = doneCount(state);
+        context.label = total ? `${done}/${total} selesai` : 'Belum ada tugas';
+
+        if (pendingDelete !== null
+            && !state.tasks.some(task => task.id === pendingDelete)) {
+            pendingDelete = null;
+        }
+
+        // Aktif dulu, selesai di bawah; yang terbaru di atas agar tugas baru
+        // langsung terlihat tanpa perlu scroll.
+        const ordered = state.tasks.slice().sort((a, b) =>
+            (Number(a.done) - Number(b.done))
+            || (Number(b.id) - Number(a.id)));
+
+        list.children = ordered.length
+            ? ordered.map(task => (pendingDelete === task.id
+                ? DeleteRow(task)
+                : TaskRow(task)))
+            : [Widget.Label({
+                className: 'dyn-island-todo-empty',
+                label: 'Belum ada tugas',
+                xalign: 0.5,
+                halign: Gtk.Align.CENTER,
+                valign: Gtk.Align.CENTER,
+                vexpand: true,
+            })];
+    };
 
     return Widget.Box({
         className: 'dyn-island-todo',
-        spacing: 16,
+        vertical: true,
+        spacing: 4,
         halign: Gtk.Align.CENTER,
         valign: Gtk.Align.CENTER,
-        children: [
-            Widget.Box({
-                className: 'dyn-island-todo-meta',
-                vertical: true,
-                spacing: 8,
-                valign: Gtk.Align.CENTER,
-                children: [
-                    Widget.Box({
-                        spacing: 8,
-                        children: [
-                            Widget.Label({ className: 'dyn-island-todo-title', label: 'Tugas' }),
-                            Widget.Label({ className: 'dyn-island-todo-title-sub', label: 'Daftar' }),
-                        ],
-                    }),
-                    Widget.Box({
-                        spacing: 8,
-                        children: [
-                            count,
-                            Widget.Label({ className: 'dyn-island-todo-done', label: 'Tugas selesai' }),
-                        ],
-                    }),
-                    Widget.Box({ spacing: 8, children: [add, edit] }),
-                ],
-            }),
-            pane,
-        ],
+        children: [header, pane],
         setup: self => {
             rebuild();
-            self.hook(todo, () => rebuild());
-            // inner clip menelan wheel; handler toplevel menjaga pane tetap
-            // bisa digulir walau pointer berada di atas daftar.
+            self.hook(todo, rebuild);
+            self.hook(page, () => {
+                if (page.value !== 'todo' && pendingDelete !== null) {
+                    pendingDelete = null;
+                    rebuild();
+                }
+            });
             self.connect('map', () => {
                 const top = self.get_toplevel();
                 if (!top || top.__todoScrollHooked) return;

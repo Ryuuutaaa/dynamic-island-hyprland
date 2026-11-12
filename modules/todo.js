@@ -80,14 +80,62 @@ const parse = raw => {
     };
 };
 
-export function addTask(raw) {
-    const { text, due } = parse(raw);
-    if (!text) return null;
+export const normalizeDue = value => {
+    const match = /^(\d{1,2})[:.](\d{2})$/.exec(String(value ?? '').trim());
+    if (!match) return null;
+    const hours = Number(match[1]);
+    const minutes = Number(match[2]);
+    if (hours > 23 || minutes > 59) return null;
+    return `${String(hours).padStart(2, '0')}:${String(minutes).padStart(2, '0')}`;
+};
+
+const createTask = (text, due) => {
     const state = todo.value;
     const task = { id: nextId(state), text, done: false, due, notified: false };
     todo.value = { ...state, tasks: [...state.tasks, task] };
     persist();
     return task;
+};
+
+export function addTask(raw) {
+    const { text, due } = parse(raw);
+    if (!text) return null;
+    return createTask(text, due);
+}
+
+export function addTaskWithDue(text, due) {
+    const clean = String(text ?? '').trim();
+    if (!clean) return null;
+    const raw = String(due ?? '').trim();
+    const time = raw ? normalizeDue(raw) : null;
+    if (raw && !time) return null;
+    return createTask(clean, time);
+}
+
+export function updateTask(id, text, due) {
+    const clean = String(text ?? '').trim();
+    if (!clean) return null;
+    const raw = String(due ?? '').trim();
+    const time = raw ? normalizeDue(raw) : null;
+    if (raw && !time) return null;
+
+    const state = todo.value;
+    let updated = null;
+    const tasks = state.tasks.map(task => {
+        if (task.id !== Number(id)) return task;
+        const dueChanged = task.due !== time;
+        updated = {
+            ...task,
+            text: clean,
+            due: time,
+            notified: dueChanged ? false : task.notified,
+        };
+        return updated;
+    });
+    if (!updated) return null;
+    todo.value = { ...state, tasks };
+    persist();
+    return updated;
 }
 
 export function toggleTask(id) {
