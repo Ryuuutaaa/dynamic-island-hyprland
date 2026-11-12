@@ -184,22 +184,18 @@ tooltip > box {
     color: __FG__;
 }
 
-/* ── idle (ringkasan dashboard) ──────────────────────────────── */
+/* ── idle (ringkasan minimalis) ─────────────────────────────── */
 .dyn-island-idle {
     min-width: 428px;
 }
 .dyn-island-idle-left {
-    min-width: 132px;
+    min-width: 180px;
 }
 .dyn-island-idle-right {
-    min-width: 272px;
-}
-.dyn-island-idle-greeting {
-    font-size: 10.5px;
-    color: __ACCENT2__;
+    min-width: 207px;
 }
 .dyn-island-idle-time {
-    font-size: 38px;
+    font-size: 40px;
     font-weight: 700;
     letter-spacing: 1px;
     color: __FG__;
@@ -207,6 +203,12 @@ tooltip > box {
 .dyn-island-idle-date {
     font-size: 12px;
     color: __MUTED__;
+}
+.dyn-island-idle-divider {
+    min-width: 1px;
+    min-height: 64px;
+    border-radius: 1px;
+    background-color: __SURFACE_STRONG__;
 }
 .dyn-island-idle-agenda {
     min-height: 16px;
@@ -222,52 +224,29 @@ tooltip > box {
     font-size: 10px;
     color: __ACCENT2__;
 }
-.dyn-island-idle-agenda-when {
-    font-size: 9.5px;
-    color: __MUTED__;
-}
-.dyn-island-idle-agenda-title {
+.dyn-island-idle-agenda-text {
     font-size: 10.5px;
     color: __FG__;
 }
-.dyn-island-idle-agenda.is-empty .dyn-island-idle-agenda-title {
-    color: __MUTED__;
-}
-.dyn-island-idle-card {
-    min-height: 44px;
-    padding: 4px;
+.dyn-island-idle-row {
+    min-height: 24px;
+    padding: 0px 4px;
     border-radius: 8px;
-    background-color: __SURFACE_DIM__;
+    background-color: transparent;
     transition: 140ms ease-out;
 }
-.dyn-island-idle-card.is-action:hover {
-    background-color: __SURFACE__;
+.dyn-island-idle-row:hover {
+    background-color: __SURFACE_DIM__;
 }
-.dyn-island-idle-card-head {
-    min-height: 12px;
-}
-.dyn-island-idle-card-icon {
-    font-size: 10px;
-    color: __ACCENT2__;
-}
-.dyn-island-idle-card-label {
-    font-size: 9.5px;
-    color: __MUTED__;
-}
-.dyn-island-idle-card-value {
-    font-size: 14px;
-    font-weight: 600;
-    color: __FG__;
-}
-.dyn-island-idle-progress {
-    min-height: 2px;
-}
-/* dipakai bar Bluetooth ringkas di halaman idle */
-.dyn-island-idle-stat-icon {
+.dyn-island-idle-row-icon {
     font-size: 11px;
     color: __ACCENT2__;
 }
-.dyn-island-idle-stat {
+.dyn-island-idle-row-label {
+    font-size: 11px;
+    color: __MUTED__;
+}
+.dyn-island-idle-row-value {
     font-size: 13px;
     color: __FG__;
 }
