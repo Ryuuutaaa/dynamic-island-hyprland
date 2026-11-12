@@ -147,9 +147,21 @@ const agendaPartsFor = event => {
 };
 
 export default () => {
-    const greeting = Widget.Label({ className: 'dyn-island-idle-greeting', xalign: 0 });
-    const time = tabular(Widget.Label({ className: 'dyn-island-idle-time', xalign: 0 }));
-    const date = Widget.Label({ className: 'dyn-island-idle-date', xalign: 0 });
+    const greeting = Widget.Label({
+        className: 'dyn-island-idle-greeting',
+        xalign: 1,
+        hexpand: true,
+    });
+    const time = tabular(Widget.Label({
+        className: 'dyn-island-idle-time',
+        xalign: 1,
+        hexpand: true,
+    }));
+    const date = Widget.Label({
+        className: 'dyn-island-idle-date',
+        xalign: 1,
+        hexpand: true,
+    });
 
     const agendaWhen = Widget.Label({
         className: 'dyn-island-idle-agenda-when',
@@ -174,6 +186,7 @@ export default () => {
         tooltipText: 'Buka kalender',
         child: Widget.Box({
             spacing: 6,
+            halign: Gtk.Align.END,
             valign: Gtk.Align.CENTER,
             children: [
                 agendaIcon,
@@ -235,13 +248,18 @@ export default () => {
         hexpand: true,
         children: [weatherCard.widget, batteryCard.widget],
     });
+    const grid = Widget.Box({
+        vertical: true,
+        spacing: 8,
+        children: [gridTop, gridBottom],
+    });
 
     const left = Widget.Box({
         className: 'dyn-island-idle-left',
         vertical: true,
         spacing: 2,
-        widthRequest: 156,
-        valign: Gtk.Align.CENTER,
+        widthRequest: 132,
+        valign: Gtk.Align.START,
         children: [greeting, time, date, agenda],
     });
 
@@ -249,9 +267,9 @@ export default () => {
         className: 'dyn-island-idle-right',
         vertical: true,
         spacing: 4,
-        widthRequest: 248,
-        valign: Gtk.Align.CENTER,
-        children: [gridTop, gridBottom, BluetoothBar()],
+        widthRequest: 272,
+        valign: Gtk.Align.START,
+        children: [grid, BluetoothBar()],
     });
 
     const refreshClock = () => {

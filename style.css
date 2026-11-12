@@ -189,10 +189,10 @@ tooltip > box {
     min-width: 428px;
 }
 .dyn-island-idle-left {
-    min-width: 156px;
+    min-width: 132px;
 }
 .dyn-island-idle-right {
-    min-width: 248px;
+    min-width: 272px;
 }
 .dyn-island-idle-greeting {
     font-size: 10.5px;
