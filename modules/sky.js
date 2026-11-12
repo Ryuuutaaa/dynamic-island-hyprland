@@ -149,18 +149,25 @@ export const drawSky = (cr, width, height, radius, state, accent = null) => {
         cr.paint();
     }
 
-    if (accent && accent.length === 3) {
-        const [ar, ag, ab] = accent;
+    const bloom = (color, cx, cy, radius, alpha) => {
+        const [r, g, b] = color;
         // Bloom dari tepi bawah: pusat sedikit DI BAWAH kartu supaya warna
         // hanya merembes ke bagian bawah dan teks tetap bersih.
-        const glow = new Cairo.RadialGradient(
-            width / 2, height * 1.08, 0,
-            width / 2, height * 1.08, width * 0.62);
-        glow.addColorStopRGBA(0, ar, ag, ab, 0.30);
-        glow.addColorStopRGBA(0.5, ar, ag, ab, 0.10);
-        glow.addColorStopRGBA(1, ar, ag, ab, 0);
+        const glow = new Cairo.RadialGradient(cx, cy, 0, cx, cy, radius);
+        glow.addColorStopRGBA(0, r, g, b, alpha);
+        glow.addColorStopRGBA(0.5, r, g, b, alpha * 0.33);
+        glow.addColorStopRGBA(1, r, g, b, 0);
         cr.setSource(glow);
         cr.paint();
+    };
+
+    if (accent?.primary && accent?.secondary) {
+        // Dua bloom: warna utama di kiri, aksen kedua di kanan.
+        bloom(accent.secondary, width * 0.68, height * 1.08, width * 0.52, 0.18);
+        bloom(accent.primary, width * 0.32, height * 1.06, width * 0.58, 0.28);
+    } else if (Array.isArray(accent) && accent.length === 3) {
+        // fallback untuk coverColor lama / debug.
+        bloom(accent, width / 2, height * 1.08, width * 0.62, 0.30);
     }
 
     if (state.stars > 0.01) {

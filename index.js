@@ -36,7 +36,7 @@ import {
 } from './modules/chat.js';
 import { watchPrayer, prayer as prayerState, notifyPrayer } from './modules/prayer.js';
 import { sky, watchSky, drawSky, refreshSky } from './modules/sky.js';
-import { coverColor } from './modules/cover-color.js';
+import { coverColor, coverPalette } from './modules/cover-color.js';
 import {
     shelf, shelfDragOver, shelfUndo, undoLast as shelfUndoLast,
     addPaths as shelfAdd, removeItem as shelfRemove, clearShelf as shelfClear,
@@ -232,12 +232,12 @@ function DynamicIsland() {
             self.get_allocated_height(),
             self.skyRadius,
             sky.value,
-            glowEnabled.value ? coverColor.value : null,
+            glowEnabled.value ? (coverPalette.value ?? coverColor.value) : null,
         );
         return false;
     });
 
-    notch.hook(coverColor, () => notch.queue_draw());
+    notch.hook(coverPalette, () => notch.queue_draw());
     notch.hook(glowEnabled, () => notch.queue_draw());
 
     const stack = Widget.Stack({
@@ -1018,7 +1018,7 @@ const dyn = {
     wellness: wellnessState, wellnessToggle: toggleWellness, wellnessReminder,
     stats: statsState,
     calendar: calendarState, refreshCalendar,
-    coverColor,
+    coverColor, coverPalette,
 };
 globalThis.dynIsland = dyn;
 
@@ -1141,12 +1141,12 @@ function buildMirror(index) {
             self.get_allocated_height(),
             self.skyRadius,
             sky.value,
-            glowEnabled.value ? coverColor.value : null,
+            glowEnabled.value ? (coverPalette.value ?? coverColor.value) : null,
         );
         return false;
     });
     notch.hook(sky, () => notch.queue_draw());
-    notch.hook(coverColor, () => notch.queue_draw());
+    notch.hook(coverPalette, () => notch.queue_draw());
     notch.hook(glowEnabled, () => notch.queue_draw());
     notch.child = Closed();
 
