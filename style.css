@@ -407,30 +407,24 @@ tooltip > box {
     color: __MUTED__;
 }
 .dyn-island-wf-power {
+    min-width: 24px;
     min-height: 24px;
-    padding: 0px 12px;
+    padding: 0px;
     border-radius: 8px;
-    background-color: __SURFACE_DIM__;
+    background-color: transparent;
     background-image: none;
     border: none;
     box-shadow: none;
 }
 .dyn-island-wf-power:hover {
-    background-color: __SURFACE_HOVER__;
+    background-color: __SURFACE_DIM__;
 }
-.dyn-island-wf-power.is-on {
-    background-color: __ACCENT_SOFT__;
-}
-.dyn-island-wf-power-dot {
-    font-size: 8px;
+.dyn-island-wf-power-icon {
+    font-size: 11px;
     color: __MUTED__;
 }
-.dyn-island-wf-power-dot.is-on {
+.dyn-island-wf-power.is-on .dyn-island-wf-power-icon {
     color: __OK__;
-}
-.dyn-island-wf-power-label {
-    font-size: 10px;
-    color: __FG__;
 }
 .dyn-island-wf-login {
     min-height: 24px;
@@ -493,32 +487,21 @@ tooltip > box {
     font-size: 9.5px;
     color: __MUTED__;
 }
-.dyn-island-wf-badge {
-    min-height: 24px;
-    min-width: 60px;
-    padding: 0px 12px;
-    border-radius: 8px;
-    background-color: __SURFACE_DIM__;
-}
-.dyn-island-wf-badge.is-on {
-    background-color: __SURFACE_STRONG__;
-}
-.dyn-island-wf-badge.is-busy {
-    opacity: 0.6;
-}
-.dyn-island-wf-badge-dot {
-    font-size: 6px;
-    color: __OK__;
-}
-.dyn-island-wf-badge-label {
+.dyn-island-wf-action {
     font-size: 10.5px;
     color: __FG__;
+    opacity: 0.72;
 }
-.dyn-island-wf-badge.is-on .dyn-island-wf-badge-label {
+.dyn-island-wf-action.is-on {
     color: __OK__;
+    opacity: 1;
 }
-.dyn-island-wf-badge.is-manual .dyn-island-wf-badge-label {
+.dyn-island-wf-action.is-manual {
     color: __MUTED__;
+    opacity: 1;
+}
+.dyn-island-wf-action.is-busy {
+    opacity: 0.6;
 }
 .dyn-island-wf-empty {
     font-size: 11px;

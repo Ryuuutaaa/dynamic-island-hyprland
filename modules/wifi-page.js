@@ -17,18 +17,18 @@ const LIST_H = 88;
 const signalClass = signal =>
     signal >= 65 ? 'is-strong' : signal >= 40 ? 'is-mid' : 'is-weak';
 
-const badgeFor = (item, state) => {
-    if (state.busy === item.ssid) return ['…', 'is-busy', false];
-    if (state.connected === item.ssid) return ['Putus', 'is-on', true];
-    if (isEnterprise(item.security)) return ['Manual', 'is-manual', false];
-    return ['Sambung', '', false];
+const actionFor = (item, state) => {
+    if (state.busy === item.ssid) return ['…', 'is-busy'];
+    if (state.connected === item.ssid) return ['Putus', 'is-on'];
+    if (isEnterprise(item.security)) return ['Manual', 'is-manual'];
+    return ['Sambung', ''];
 };
 
 // Satu baris = satu jaringan. Seluruh baris adalah target klik
-// (sambung/putus); badge di kanan hanya penanda visual, bukan tombol kedua.
+// (sambung/putus); teks action di kanan hanya penanda visual.
 const DeviceRow = (item, state, onToggle) => {
     const connected = state.connected === item.ssid;
-    const [badgeText, badgeState, showDot] = badgeFor(item, state);
+    const [actionText, actionState] = actionFor(item, state);
     const signal = Widget.Label({
         className: `dyn-island-wf-signal ${signalClass(item.signal)}`,
         label: WIFI_GLYPH,
@@ -39,22 +39,15 @@ const DeviceRow = (item, state, onToggle) => {
         truncate: 'end',
         maxWidthChars: 30,
         xalign: 0,
+        hexpand: true,
     });
     const nameChildren = [signal, name];
     if (item.security)
         nameChildren.push(Widget.Label({ className: 'dyn-island-wf-lock', label: LOCK_GLYPH }));
 
-    const badgeLabel = Widget.Label({
-        className: 'dyn-island-wf-badge-label',
-        label: badgeText,
-    });
-    const badgeChildren = showDot
-        ? [Widget.Label({ className: 'dyn-island-wf-badge-dot', label: '●' }), badgeLabel]
-        : [badgeLabel];
-    const badge = Widget.Box({
-        className: `dyn-island-wf-badge ${badgeState}`.trim(),
-        halign: Gtk.Align.CENTER,
-        children: [Widget.Box({ spacing: 5, children: badgeChildren })],
+    const action = Widget.Label({
+        className: `dyn-island-wf-action ${actionState}`.trim(),
+        label: actionText,
     });
 
     const meta = `${securityLabel(item.security)} · ${item.signal}%`
@@ -63,9 +56,10 @@ const DeviceRow = (item, state, onToggle) => {
         className: `dyn-island-wf-device${connected ? ' is-connected' : ''}`,
         tooltipText: `${item.ssid}\n${meta}`
             + (isEnterprise(item.security) ? '\n802.1X butuh pengaturan identitas.' : ''),
-        child: Widget.CenterBox({
-            startWidget: Widget.Box({ spacing: 8, children: nameChildren }),
-            endWidget: badge,
+        child: Widget.Box({
+            spacing: 8,
+            valign: Gtk.Align.CENTER,
+            children: [...nameChildren, action],
         }),
         setup: self => {
             self.connect('button-press-event', (_w, event) => {
@@ -88,11 +82,13 @@ export default () => {
         maxWidthChars: 34,
     });
 
-    const powerDot = Widget.Label({ className: 'dyn-island-wf-power-dot', label: '●' });
-    const powerLabel = Widget.Label({ className: 'dyn-island-wf-power-label', label: 'Aktif' });
+    const powerIcon = Widget.Label({
+        className: 'dyn-island-wf-power-icon',
+        label: '\uf011',
+    });
     const power = Widget.Button({
         className: 'dyn-island-wf-power',
-        child: Widget.Box({ spacing: 8, children: [powerDot, powerLabel] }),
+        child: powerIcon,
         tooltipText: 'Nyalakan / matikan Wi-Fi',
         onClicked: () => toggleRadio(),
     });
@@ -148,9 +144,9 @@ export default () => {
 
     const refresh = () => {
         const state = wifi.value;
-        powerLabel.label = state.enabled ? 'Aktif' : 'Mati';
         power.className = `dyn-island-wf-power${state.enabled ? ' is-on' : ''}`;
-        powerDot.className = `dyn-island-wf-power-dot${state.enabled ? ' is-on' : ''}`;
+        powerIcon.className = `dyn-island-wf-power-icon${state.enabled ? ' is-on' : ''}`;
+        power.tooltipText = state.enabled ? 'Matikan Wi-Fi' : 'Nyalakan Wi-Fi';
         scanButton.sensitive = state.enabled && !state.scanning;
 
         const error = String(state.error ?? '').trim();
