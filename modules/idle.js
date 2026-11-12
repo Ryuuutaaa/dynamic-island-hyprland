@@ -130,7 +130,7 @@ const nextEvent = (now = Date.now()) => {
     return candidates[0] ?? null;
 };
 
-const agendaTextFor = event => {
+const agendaPartsFor = event => {
     const start = new Date(event.start);
     const now = new Date();
     const startOfDay = value =>
@@ -143,7 +143,7 @@ const agendaTextFor = event => {
     else if (diff === 1) when = event.allDay ? 'Besok' : `Besok ${clock}`;
     else when = event.allDay ? formatDateShort(start) : `${formatDateShort(start)} ${clock}`;
 
-    return `${when} · ${event.title}`;
+    return { when, title: event.title };
 };
 
 export default () => {
@@ -151,11 +151,19 @@ export default () => {
     const time = tabular(Widget.Label({ className: 'dyn-island-idle-time', xalign: 0 }));
     const date = Widget.Label({ className: 'dyn-island-idle-date', xalign: 0 });
 
-    const agendaText = Widget.Label({
-        className: 'dyn-island-idle-agenda-text',
+    const agendaWhen = Widget.Label({
+        className: 'dyn-island-idle-agenda-when',
         xalign: 0,
         truncate: 'end',
-        maxWidthChars: 20,
+        maxWidthChars: 22,
+    });
+    agendaWhen.visible = false;
+    agendaWhen.set_no_show_all(true);
+    const agendaTitle = Widget.Label({
+        className: 'dyn-island-idle-agenda-title',
+        xalign: 0,
+        truncate: 'end',
+        maxWidthChars: 24,
     });
     const agendaIcon = Widget.Label({
         className: 'dyn-island-idle-agenda-icon',
@@ -167,7 +175,15 @@ export default () => {
         child: Widget.Box({
             spacing: 6,
             valign: Gtk.Align.CENTER,
-            children: [agendaIcon, agendaText],
+            children: [
+                agendaIcon,
+                Widget.Box({
+                    vertical: true,
+                    spacing: 0,
+                    valign: Gtk.Align.CENTER,
+                    children: [agendaWhen, agendaTitle],
+                }),
+            ],
         }),
         setup: self => self.connect('button-press-event', () => {
             openPage('calendar');
@@ -248,15 +264,20 @@ export default () => {
     const refreshAgenda = () => {
         const event = nextEvent();
         if (!event) {
-            agendaText.label = 'Tidak ada acara';
+            agendaWhen.label = '';
+            agendaWhen.visible = false;
+            agendaTitle.label = 'Tidak ada acara';
             agenda.className = 'dyn-island-idle-agenda is-empty';
             agenda.tooltipText = 'Buka kalender';
             return;
         }
-        const text = agendaTextFor(event);
-        agendaText.label = text;
+        const parts = agendaPartsFor(event);
+        agendaWhen.label = parts.when;
+        agendaWhen.visible = true;
+        agendaWhen.show();
+        agendaTitle.label = parts.title;
         agenda.className = 'dyn-island-idle-agenda';
-        agenda.tooltipText = `${text}\nKlik untuk buka kalender`;
+        agenda.tooltipText = `${parts.when} · ${parts.title}\nKlik untuk buka kalender`;
     };
 
     const refreshStats = () => {

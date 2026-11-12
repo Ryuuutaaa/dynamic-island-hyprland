@@ -222,11 +222,15 @@ tooltip > box {
     font-size: 10px;
     color: __ACCENT2__;
 }
-.dyn-island-idle-agenda-text {
+.dyn-island-idle-agenda-when {
+    font-size: 9.5px;
+    color: __MUTED__;
+}
+.dyn-island-idle-agenda-title {
     font-size: 10.5px;
     color: __FG__;
 }
-.dyn-island-idle-agenda.is-empty .dyn-island-idle-agenda-text {
+.dyn-island-idle-agenda.is-empty .dyn-island-idle-agenda-title {
     color: __MUTED__;
 }
 .dyn-island-idle-card {
