@@ -14,9 +14,9 @@ const MUTED = hexToRgb(palette.muted);
 const ACCENT = hexToRgb(palette.accent2);
 
 const CHART_W = 360;
-const CHART_H = 82;
+const CHART_H = 86;
 const BASE_Y = 38;
-const LABEL_Y = 48;
+const LABEL_Y = 50;
 const DAY_NAMES = ['Minggu', 'Senin', 'Selasa', 'Rabu', 'Kamis', 'Jumat', 'Sabtu'];
 const MONTH_NAMES = ['Januari', 'Februari', 'Maret', 'April', 'Mei', 'Juni', 'Juli',
     'Agustus', 'September', 'Oktober', 'November', 'Desember'];
@@ -202,7 +202,7 @@ const SkyChart = () => {
                 paint(cr, item.nameLayout,
                     item.center - item.nameWidth / 2, LABEL_Y, color, alpha);
                 paint(cr, item.timeLayout,
-                    item.center - item.timeWidth / 2, LABEL_Y + 12, color, alpha);
+                    item.center - item.timeWidth / 2, LABEL_Y + 14, color, alpha);
             }
         },
     });
@@ -231,7 +231,7 @@ export default () => {
     const info = Widget.Box({
         className: 'dyn-island-prayer-info',
         vertical: true,
-        spacing: 0,
+        spacing: 3,
         widthRequest: 150,
         valign: Gtk.Align.CENTER,
         children: [date, nextName, countdown, city],
@@ -267,7 +267,7 @@ export default () => {
 
     return Widget.Box({
         className: 'dyn-island-prayer',
-        spacing: 16,
+        spacing: 20,
         halign: Gtk.Align.CENTER,
         valign: Gtk.Align.CENTER,
         children: [info, chart],
