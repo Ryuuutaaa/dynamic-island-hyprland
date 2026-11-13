@@ -1697,43 +1697,53 @@ tooltip > box {
     color: __ACCENT__;
 }
 
-.standup-page-bell {
-    font-size: 20px;
-    color: __ACCENT__;
+.dyn-island-standup-page {
+    min-width: 428px;
 }
-
+.standup-page-header {
+    min-width: 428px;
+    min-height: 24px;
+}
 .standup-page-title {
     font-size: 13px;
-    font-weight: 600;
+    font-weight: 700;
     color: __FG__;
 }
-
 .standup-page-sub {
-    font-size: 11px;
+    font-size: 9.5px;
     color: __MUTED__;
 }
-
-.dyn-island-standup-chip {
+.standup-page-open {
     min-height: 24px;
-    padding: 0px 8px;
-    border-radius: 12px;
-    background: __SURFACE_DIM__;
+    padding: 0px 12px;
+    border-radius: 8px;
+    background-color: __ACCENT_SOFT__;
+    background-image: none;
+    border: none;
+    box-shadow: none;
 }
-
-.dyn-island-standup-chip-icon {
-    font-size: 11px;
+.standup-page-open:hover {
+    background-color: __SURFACE_HOVER__;
+}
+.standup-page-open-label {
+    font-size: 10px;
+    font-weight: 600;
+    color: __ACCENT__;
+}
+.standup-page-summary {
+    min-width: 428px;
+}
+.standup-page-summary-icon {
+    font-size: 10px;
     color: __MUTED__;
 }
-
-.dyn-island-standup-chip-icon.done {
+.standup-page-summary-icon.done {
     color: __OK__;
 }
-
-.dyn-island-standup-chip-icon.warn {
+.standup-page-summary-icon.warn {
     color: __DANGER__;
 }
-
-.dyn-island-standup-chip-label {
+.standup-page-summary-text {
     font-size: 11px;
     color: __FG__;
 }

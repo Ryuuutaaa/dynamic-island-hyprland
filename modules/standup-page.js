@@ -2,48 +2,69 @@ import Gtk from 'gi://Gtk?version=3.0';
 import Widget from 'resource:///com/github/Aylur/ags/widget.js';
 import { standup } from './standup.js';
 
-// Halaman ringkas di island: status pengisian + tiga chip progres + tombol
-// membuka popup.
-const makeChip = () => {
-    const icon = Widget.Label({ className: 'dyn-island-standup-chip-icon' });
-    const label = Widget.Label({ className: 'dyn-island-standup-chip-label' });
+const summaryItem = () => {
+    const icon = Widget.Label({ className: 'standup-page-summary-icon' });
+    const text = Widget.Label({ className: 'standup-page-summary-text' });
     const widget = Widget.Box({
-        className: 'dyn-island-standup-chip',
-        spacing: 8,
+        spacing: 6,
         valign: Gtk.Align.CENTER,
-        children: [icon, label],
+        children: [icon, text],
     });
-    return { widget, icon, label };
+    return { widget, icon, text };
 };
 
 export default () => {
-    const bell = Widget.Label({ className: 'standup-page-bell', label: '\uf0f3' });
-    const title = Widget.Label({ className: 'standup-page-title', label: 'Standup Harian', xalign: 0 });
-    const sub = Widget.Label({ className: 'standup-page-sub', xalign: 0 });
-
-    const openBtn = Widget.Button({
-        className: 'dyn-island-pill',
-        child: Widget.Label({ className: 'dyn-island-pill-label', label: 'Isi' }),
+    const title = Widget.Label({
+        className: 'standup-page-title',
+        label: 'Standup',
+        xalign: 0,
+    });
+    const sub = Widget.Label({
+        className: 'standup-page-sub',
+        xalign: 0,
+    });
+    const openButton = Widget.Button({
+        className: 'standup-page-open',
+        tooltipText: 'Buka form Daily Standup',
+        child: Widget.Label({
+            className: 'standup-page-open-label',
+            label: 'Isi',
+        }),
         onClicked: () => {
             try { globalThis.dynIsland?.standupWindow?.open?.(); } catch (_) { }
         },
     });
 
-    const yesterday = makeChip();
-    const today = makeChip();
-    const blockers = makeChip();
-    const chips = Widget.Box({
-        className: 'dyn-island-standup-chips',
+    const header = Widget.Box({
+        className: 'standup-page-header',
         spacing: 8,
-        halign: Gtk.Align.CENTER,
+        valign: Gtk.Align.CENTER,
+        children: [
+            Widget.Box({
+                vertical: true,
+                spacing: 2,
+                children: [title, sub],
+            }),
+            Widget.Label({ hexpand: true }),
+            openButton,
+        ],
+    });
+
+    const yesterday = summaryItem();
+    const today = summaryItem();
+    const blockers = summaryItem();
+    const summary = Widget.Box({
+        className: 'standup-page-summary',
+        spacing: 20,
         children: [yesterday.widget, today.widget, blockers.widget],
     });
 
-    const setChip = (chip, state, text) => {
-        chip.icon.label = state === 'done' ? '\uf00c'
+    const setItem = (item, state, text) => {
+        item.icon.label = state === 'done' ? '\uf00c'
             : state === 'warn' ? '\uf071' : '\uf10c';
-        chip.icon.className = `dyn-island-standup-chip-icon${state === 'done' ? ' done' : state === 'warn' ? ' warn' : ''}`;
-        chip.label.label = text;
+        item.icon.className = 'standup-page-summary-icon'
+            + (state === 'done' ? ' done' : state === 'warn' ? ' warn' : '');
+        item.text.label = text;
     };
 
     const refresh = () => {
@@ -52,33 +73,23 @@ export default () => {
         const y = count(value.yesterday);
         const t = count(value.today);
         const b = count(value.blockers);
-        setChip(yesterday, y > 0 ? 'done' : 'empty', `Kemarin ${y}`);
-        setChip(today, t > 0 ? 'done' : 'empty', `Hari ini ${t}`);
-        setChip(blockers, b > 0 ? 'warn' : 'done', `Hambatan ${b}`);
-        sub.label = value.dayLabel
-            ? `${value.dayLabel}${value.saved ? ' · tersimpan' : ''}`
-            : (value.saved ? 'Tersimpan' : 'Belum diisi');
-        openBtn.child.label = value.saved ? 'Lihat' : 'Isi';
+
+        setItem(yesterday, y > 0 ? 'done' : 'empty', `Kemarin ${y}`);
+        setItem(today, t > 0 ? 'done' : 'empty', `Hari ini ${t}`);
+        setItem(blockers, b > 0 ? 'warn' : 'done', `Hambatan ${b}`);
+
+        const day = value.dayLabel ?? '';
+        const status = value.saved ? 'tersimpan' : 'belum diisi';
+        sub.label = day ? `${day} · ${status}` : status;
+        openButton.child.label = value.saved ? 'Lihat' : 'Isi';
     };
 
-    const top = Widget.Box({
-        className: 'dyn-island-standup-top',
-        spacing: 12,
-        valign: Gtk.Align.CENTER,
-        children: [
-            bell,
-            Widget.Box({ vertical: true, spacing: 4, children: [title, sub] }),
-            Widget.Label({ hexpand: true }),
-            openBtn,
-        ],
-    });
-
     return Widget.Box({
-        className: 'standup-page',
+        className: 'dyn-island-standup-page',
         vertical: true,
-        spacing: 4,
+        spacing: 8,
         valign: Gtk.Align.CENTER,
-        children: [top, chips],
+        children: [header, summary],
         setup: self => {
             refresh();
             self.hook(standup, refresh);
