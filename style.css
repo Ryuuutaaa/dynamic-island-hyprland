@@ -1730,22 +1730,31 @@ tooltip > box {
     font-weight: 600;
     color: __ACCENT__;
 }
-.standup-page-summary {
+.dyn-island-standup-list {
     min-width: 428px;
 }
-.standup-page-summary-icon {
-    font-size: 10px;
+.standup-page-row {
+    min-height: 28px;
+    padding: 0px 12px;
+    border-radius: 8px;
+}
+.standup-page-row-icon {
+    font-size: 13px;
     color: __MUTED__;
 }
-.standup-page-summary-icon.done {
+.standup-page-row-icon.done {
     color: __OK__;
 }
-.standup-page-summary-icon.warn {
+.standup-page-row-icon.warn {
     color: __DANGER__;
 }
-.standup-page-summary-text {
-    font-size: 11px;
+.standup-page-row-label {
+    font-size: 12px;
     color: __FG__;
+}
+.standup-page-row-count {
+    font-size: 12px;
+    color: __MUTED__;
 }
 
 /* ── Cuaca v3 ─────────────────────────────────────────────────── */

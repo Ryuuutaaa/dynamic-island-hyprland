@@ -1,16 +1,26 @@
 import Gtk from 'gi://Gtk?version=3.0';
 import Widget from 'resource:///com/github/Aylur/ags/widget.js';
 import { standup } from './standup.js';
+import { tabular } from './type.js';
 
-const summaryItem = () => {
-    const icon = Widget.Label({ className: 'standup-page-summary-icon' });
-    const text = Widget.Label({ className: 'standup-page-summary-text' });
-    const widget = Widget.Box({
-        spacing: 6,
-        valign: Gtk.Align.CENTER,
-        children: [icon, text],
+const summaryRow = () => {
+    const icon = Widget.Label({ className: 'standup-page-row-icon' });
+    const label = Widget.Label({
+        className: 'standup-page-row-label',
+        xalign: 0,
+        hexpand: true,
     });
-    return { widget, icon, text };
+    const count = tabular(Widget.Label({
+        className: 'standup-page-row-count',
+        xalign: 1,
+    }));
+    const widget = Widget.Box({
+        className: 'standup-page-row',
+        spacing: 8,
+        valign: Gtk.Align.CENTER,
+        children: [icon, label, count],
+    });
+    return { widget, icon, label, count };
 };
 
 export default () => {
@@ -40,31 +50,30 @@ export default () => {
         spacing: 8,
         valign: Gtk.Align.CENTER,
         children: [
-            Widget.Box({
-                vertical: true,
-                spacing: 2,
-                children: [title, sub],
-            }),
+            title,
+            sub,
             Widget.Label({ hexpand: true }),
             openButton,
         ],
     });
 
-    const yesterday = summaryItem();
-    const today = summaryItem();
-    const blockers = summaryItem();
-    const summary = Widget.Box({
-        className: 'standup-page-summary',
-        spacing: 20,
+    const yesterday = summaryRow();
+    const today = summaryRow();
+    const blockers = summaryRow();
+    const list = Widget.Box({
+        className: 'dyn-island-standup-list',
+        vertical: true,
+        spacing: 2,
         children: [yesterday.widget, today.widget, blockers.widget],
     });
 
-    const setItem = (item, state, text) => {
+    const setItem = (item, state, label, value) => {
         item.icon.label = state === 'done' ? '\uf00c'
             : state === 'warn' ? '\uf071' : '\uf10c';
-        item.icon.className = 'standup-page-summary-icon'
+        item.icon.className = 'standup-page-row-icon'
             + (state === 'done' ? ' done' : state === 'warn' ? ' warn' : '');
-        item.text.label = text;
+        item.label.label = label;
+        item.count.label = String(value);
     };
 
     const refresh = () => {
@@ -74,9 +83,9 @@ export default () => {
         const t = count(value.today);
         const b = count(value.blockers);
 
-        setItem(yesterday, y > 0 ? 'done' : 'empty', `Kemarin ${y}`);
-        setItem(today, t > 0 ? 'done' : 'empty', `Hari ini ${t}`);
-        setItem(blockers, b > 0 ? 'warn' : 'done', `Hambatan ${b}`);
+        setItem(yesterday, y > 0 ? 'done' : 'empty', 'Kemarin', y);
+        setItem(today, t > 0 ? 'done' : 'empty', 'Hari ini', t);
+        setItem(blockers, b > 0 ? 'warn' : 'done', 'Hambatan', b);
 
         const day = value.dayLabel ?? '';
         const status = value.saved ? 'tersimpan' : 'belum diisi';
@@ -87,9 +96,9 @@ export default () => {
     return Widget.Box({
         className: 'dyn-island-standup-page',
         vertical: true,
-        spacing: 8,
+        spacing: 4,
         valign: Gtk.Align.CENTER,
-        children: [header, summary],
+        children: [header, list],
         setup: self => {
             refresh();
             self.hook(standup, refresh);
