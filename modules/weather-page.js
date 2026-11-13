@@ -3,9 +3,9 @@ import Widget from 'resource:///com/github/Aylur/ags/widget.js';
 import { weather, glyphFor, labelFor, refreshWeather } from './weather.js';
 import { tabular } from './type.js';
 
-// Cuaca v3: hero di kiri (ikon + suhu sebaris, kondisi di bawahnya) dan tiga
-// kartu hari di kanan. Suhu maks/min dibedakan bobot & warna, bukan ditulis
-// "31°/24°" yang sulit dipindai.
+// Cuaca v4: satu baris tiga kolom—kondisi sekarang, per jam, lalu tiga hari.
+// Tidak ada kartu atau chip: semua kolom rata kiri dan memakai tinggi baris
+// yang sama supaya mudah dipindai.
 
 const DAYS = ['Min', 'Sen', 'Sel', 'Rab', 'Kam', 'Jum', 'Sab'];
 const dayName = (iso, index) => {
@@ -30,8 +30,8 @@ const hourOf = iso => {
 
 const hourCell = hour => Widget.Box({
     className: 'dyn-island-weather-hour',
-    spacing: 4,
-    halign: Gtk.Align.CENTER,
+    spacing: 6,
+    halign: Gtk.Align.START,
     valign: Gtk.Align.CENTER,
     children: [
         Widget.Label({
@@ -51,20 +51,20 @@ const hourCell = hour => Widget.Box({
 
 const dayTile = value => Widget.Box({
     className: 'dyn-island-weather-tile',
-    vertical: true,
-    spacing: 4,
+    spacing: 6,
+    hexpand: true,
+    valign: Gtk.Align.CENTER,
     children: [
-        Widget.Label({ className: 'dyn-island-weather-tile-day', label: value.day }),
-        Widget.Label({ className: 'dyn-island-weather-tile-glyph', label: value.glyph }),
-        Widget.Box({
-            className: 'dyn-island-weather-tile-temps',
-            spacing: 4,
-            halign: Gtk.Align.CENTER,
-            children: [
-                tabular(Widget.Label({ className: 'dyn-island-weather-tile-max', label: `${value.max}°` })),
-                tabular(Widget.Label({ className: 'dyn-island-weather-tile-min', label: `${value.min}°` })),
-            ],
+        Widget.Label({
+            className: 'dyn-island-weather-tile-day',
+            label: value.day,
+            xalign: 0,
+            widthRequest: 36,
         }),
+        Widget.Label({ className: 'dyn-island-weather-tile-glyph', label: value.glyph }),
+        Widget.Box({ hexpand: true }),
+        tabular(Widget.Label({ className: 'dyn-island-weather-tile-max', label: `${value.max}°` })),
+        tabular(Widget.Label({ className: 'dyn-island-weather-tile-min', label: `${value.min}°` })),
     ],
 });
 
@@ -73,11 +73,17 @@ export default () => {
     const temp = tabular(Widget.Label({ className: 'dyn-island-weather-temp' }));
     const condition = Widget.Label({ className: 'dyn-island-weather-condition', xalign: 0 });
     const place = Widget.Label({ className: 'dyn-island-weather-place', xalign: 0 });
-    const days = Widget.Box({ className: 'dyn-island-weather-days', spacing: 8 });
+    const days = Widget.Box({
+        className: 'dyn-island-weather-days',
+        vertical: true,
+        spacing: 4,
+        widthRequest: 128,
+    });
     const hours = Widget.Box({
         className: 'dyn-island-weather-hours',
-        spacing: 8,
-        halign: Gtk.Align.CENTER,
+        vertical: true,
+        spacing: 4,
+        widthRequest: 108,
         visible: false,
     });
     const retry = Widget.Button({
@@ -127,7 +133,7 @@ export default () => {
 
     const main = Widget.Box({
         className: 'dyn-island-weather-main',
-        spacing: 16,
+        spacing: 12,
         valign: Gtk.Align.CENTER,
         children: [
             Widget.Box({
@@ -135,7 +141,7 @@ export default () => {
                 vertical: true,
                 spacing: 4,
                 valign: Gtk.Align.CENTER,
-                widthRequest: 168,
+                widthRequest: 156,
                 children: [
                     Widget.Box({
                         className: 'dyn-island-weather-hero',
@@ -146,7 +152,7 @@ export default () => {
                     place,
                 ],
             }),
-            Widget.Box({ className: 'dyn-island-weather-spacer', hexpand: true }),
+            hours,
             days,
             retry,
         ],
@@ -154,10 +160,9 @@ export default () => {
 
     return Widget.Box({
         className: 'dyn-island-weather',
-        vertical: true,
-        spacing: 8,
+        halign: Gtk.Align.CENTER,
         valign: Gtk.Align.CENTER,
-        children: [main, hours],
+        children: [main],
         setup: self => {
             sync();
             self.hook(weather, sync);

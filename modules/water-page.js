@@ -95,11 +95,6 @@ const Chart = () => Widget.DrawingArea({
             drawText(cr, key, cx - 6, height - 12, current ? 0.92 : 0.62, current);
         });
 
-        if (total(state) <= 0) {
-            const text = 'Belum minum';
-            const textWidth = drawText(cr, text, 0, 0, 0, true);
-            drawText(cr, text, (width - textWidth) / 2, height / 2 - 2, 0.62, true);
-        }
     },
 });
 

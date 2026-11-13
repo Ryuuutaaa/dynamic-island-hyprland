@@ -5,9 +5,8 @@ import {
 } from './timer.js';
 import { tabular } from './type.js';
 
-// Halaman timer v2: satu angka fokus di kiri, kontrol bertingkat di kanan
-// (mode -> preset 2 baris -> aksi utama). Tidak ada lagi delapan pill kecil
-// berjejer yang saling menempel.
+// Halaman timer v3: satu angka fokus di kiri, preset satu baris flat di kanan,
+// lalu aksi utama di bawahnya. Preset memakai teks, bukan kartu kecil.
 
 // Label memakai tanda menit (′) supaya terbaca sebagai durasi, dan tombol
 // yang sedang aktif diberi kelas is-active (setara dengan total saat ini).
@@ -42,14 +41,11 @@ export default () => {
     });
 
     const buttons = PRESETS.map(minutes => ({ minutes, button: presetButton(minutes) }));
-    const rows = [];
-    for (let index = 0; index < buttons.length; index += 4) {
-        rows.push(Widget.Box({
-            className: 'dyn-island-timer-preset-row',
-            spacing: 4,
-            children: buttons.slice(index, index + 4).map(item => item.button),
-        }));
-    }
+    const presetRow = Widget.Box({
+        className: 'dyn-island-timer-preset-row',
+        spacing: 4,
+        children: buttons.map(item => item.button),
+    });
 
     const play = Widget.Button({
         className: 'dyn-island-timer-play',
@@ -67,13 +63,13 @@ export default () => {
         className: 'dyn-island-timer-presets',
         vertical: true,
         spacing: 4,
-        children: rows,
+        children: [presetRow],
     });
 
     const actions = Widget.Box({
         className: 'dyn-island-timer-actions',
         spacing: 4,
-        children: [minus, plus, play, reset],
+        children: [minus, plus, Widget.Box({ hexpand: true }), play, reset],
     });
 
     const refresh = () => {

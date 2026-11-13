@@ -205,16 +205,12 @@ export default () => {
         className: 'dyn-island-settings-title',
         label: 'Pengaturan',
         xalign: 0,
-    });
-    const note = Widget.Label({
-        className: 'dyn-island-settings-note',
-        label: 'restart: modul/ukuran/monitor/indikator',
-        xalign: 1,
+        tooltipText: 'Perubahan modul/ukuran/monitor/indikator butuh restart AGS',
     });
     const header = Widget.Box({
         className: 'dyn-island-settings-head',
         spacing: 8,
-        children: [title, Widget.Label({ hexpand: true }), note],
+        children: [title, Widget.Label({ hexpand: true })],
     });
     header.set_size_request(ROW_W, -1);
 

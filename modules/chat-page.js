@@ -148,6 +148,7 @@ export default () => {
     });
     const askBtn = Widget.Button({
         className: 'dyn-island-pill',
+        valign: Gtk.Align.CENTER,
         tooltipText: 'Buka jendela chat Gemini',
         child: Widget.Box({
             className: 'dyn-island-pill-content',
@@ -169,14 +170,15 @@ export default () => {
         },
     });
 
-    const head = Widget.CenterBox({
+    const head = Widget.Box({
         className: 'dyn-island-chat-head',
-        startWidget: Widget.Box({ vertical: true, spacing: 0, children: [title, sub] }),
-        endWidget: Widget.Box({
-            spacing: 8,
-            valign: Gtk.Align.CENTER,
-            children: [askBtn, clear],
-        }),
+        spacing: 8,
+        children: [
+            Widget.Box({ vertical: true, spacing: 0, children: [title, sub] }),
+            Widget.Box({ hexpand: true }),
+            askBtn,
+            clear,
+        ],
     });
     head.set_size_request(PANE_W, -1);
 

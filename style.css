@@ -999,14 +999,13 @@ tooltip > box {
     color: __FG__;
 }
 .dyn-island-shelf-zone {
-    border: 1.4px dashed __SURFACE_STRONG__;
-    border-radius: 12px;
-    background-color: __SURFACE_DIM__;
+    border: none;
+    border-radius: 8px;
+    background-color: transparent;
     transition: 160ms ease-out;
 }
 .dyn-island-shelf-zone.over {
-    border-color: __FG__;
-    background-color: __SURFACE_HOVER__;
+    background-color: __SURFACE_DIM__;
 }
 .dyn-island-shelf-zone-icon {
     font-size: 15px;
@@ -1800,14 +1799,14 @@ tooltip > box {
 }
 
 .dyn-island-weather-days {
-    padding-bottom: 1px;
+    padding-bottom: 0px;
 }
 
 .dyn-island-weather-hour {
     min-height: 24px;
-    padding: 0px 8px;
-    border-radius: 12px;
-    background: __SURFACE_DIM__;
+    padding: 0px;
+    border-radius: 0px;
+    background: transparent;
 }
 
 .dyn-island-weather-hour-time {
@@ -1828,9 +1827,10 @@ tooltip > box {
 }
 
 .dyn-island-weather-tile {
-    background: __SURFACE__;
-    border-radius: 12px;
-    padding: 6px 9px 6px 9px;
+    min-height: 24px;
+    background: transparent;
+    border-radius: 0px;
+    padding: 0px;
 }
 
 .dyn-island-weather-tile-day {
@@ -1915,10 +1915,10 @@ tooltip > box {
 }
 
 .dyn-island-timer-preset {
-    min-width: 36px;
-    padding: 1px 0;
+    min-width: 28px;
+    padding: 0px;
     border-radius: 8px;
-    background: __SURFACE__;
+    background: transparent;
 }
 
 .dyn-island-timer-preset:hover {
@@ -1931,7 +1931,7 @@ tooltip > box {
 }
 
 .dyn-island-timer-preset.is-active {
-    background: __ACCENT_SOFT__;
+    background: transparent;
 }
 
 .dyn-island-timer-preset.is-active label {
@@ -2503,11 +2503,6 @@ button.cal-day {
     font-size: 13px;
     font-weight: 700;
     color: __FG__;
-}
-
-.dyn-island-settings-note {
-    font-size: 9.5px;
-    color: __MUTED__;
 }
 
 .dyn-island-settings-pane,

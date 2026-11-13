@@ -101,7 +101,7 @@ const DropZone = (over, hasItems) => Widget.Box({
             Widget.Label({
                 className: 'dyn-island-shelf-zone-sub',
                 label: over
-                    ? 'Lepas untuk menambah'
+                    ? 'Berkas akan ditambahkan ke rak'
                     : hasItems
                         ? 'Seret keluar · klik untuk buka'
                         : 'File asli tidak dipindahkan',
