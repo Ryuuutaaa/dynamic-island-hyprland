@@ -71,10 +71,9 @@ const paint = (cr, layout, x, y, rgb, alpha) => {
     PangoCairo.show_layout(cr, layout);
 };
 
-// Timeline 24 jam: label waktu berada di posisi jam sebenarnya, bukan dibagi
-// rata. Busur matahari hanya digambar dari terbit sampai terbenam sehingga
-// Dzuhur/Ashar/Maghrib jatuh tepat di bawah titik yang sesuai; Subuh/Isya
-// berada di luar busur (sebelum terbit / sesudah terbenam).
+// Timeline 24 jam: busur matahari dari terbit sampai terbenam, penanda waktu
+// sekarang, dan lima label waktu dalam kolom sama lebar di bawahnya. Kolom
+// merata menghindari Magrib/Isya yang berdekatan saling menimpa.
 const SkyChart = () => {
     const area = Widget.DrawingArea({
         className: 'dyn-island-prayer-chart',
@@ -177,66 +176,29 @@ const SkyChart = () => {
             }
 
             const nextKey = next?.key ?? null;
-            const items = times.map(time => {
+            const cell = width / times.length;
+            const items = times.map((time, index) => {
                 const isNext = time.key === nextKey;
                 const isPast = !time.tomorrow && time.minutes < nowM && !isNext;
-                const name = time.name;
-                const nameLayout = makeLayout(cr, name, 9.5, { bold: isNext });
+                const nameLayout = makeLayout(cr, time.name, 9.5, { bold: isNext });
                 const timeLayout = makeLayout(cr, time.label, 11, {
                     bold: isNext,
                     tabular: true,
                 });
                 return {
-                    time,
                     isNext,
                     isPast,
                     nameLayout,
                     timeLayout,
                     nameWidth: layoutWidth(nameLayout),
                     timeWidth: layoutWidth(timeLayout),
-                    x: xFor(time.minutes),
+                    center: cell * index + cell / 2,
                 };
             });
-            items.sort((a, b) => a.x - b.x);
-
-            // Cegah label Magrib/Isya saling menimpa: geser label ke kanan,
-            // lalu sambungkan dengan garis tipis ke tick waktu aslinya.
-            let cursor = 0;
-            const gap = 6;
-            for (const item of items) {
-                const itemWidth = Math.max(item.nameWidth, item.timeWidth);
-                let center = item.x;
-                if (center - itemWidth / 2 < cursor) center = cursor + itemWidth / 2;
-                center = Math.max(itemWidth / 2 + 2,
-                    Math.min(width - itemWidth / 2 - 2, center));
-                item.labelWidth = itemWidth;
-                item.center = center;
-                cursor = center + itemWidth / 2 + gap;
-            }
-            const overflow = cursor - gap - (width - 2);
-            if (overflow > 0) {
-                for (const item of items)
-                    item.center = Math.max(item.labelWidth / 2 + 2, item.center - overflow);
-            }
 
             for (const item of items) {
                 const color = item.isNext ? ACCENT : item.isPast ? MUTED : FG;
                 const alpha = item.isNext ? 1 : item.isPast ? 0.62 : 0.82;
-
-                cr.setLineWidth(item.isNext ? 2 : 1);
-                cr.setSourceRGBA(color[0], color[1], color[2], item.isNext ? 1 : 0.34);
-                cr.moveTo(item.x, base + 2);
-                cr.lineTo(item.x, base + 6);
-                cr.stroke();
-
-                if (Math.abs(item.center - item.x) > 1.5) {
-                    cr.setLineWidth(1);
-                    cr.setSourceRGBA(MUTED[0], MUTED[1], MUTED[2], 0.22);
-                    cr.moveTo(item.x, base + 6);
-                    cr.lineTo(item.center, LABEL_Y - 3);
-                    cr.stroke();
-                }
-
                 paint(cr, item.nameLayout,
                     item.center - item.nameWidth / 2, LABEL_Y, color, alpha);
                 paint(cr, item.timeLayout,
