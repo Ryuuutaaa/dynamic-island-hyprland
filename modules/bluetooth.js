@@ -99,4 +99,3 @@ export function watchAudioRouting() {
     Bluetooth.connect('changed', check);
     check();
 }
-
