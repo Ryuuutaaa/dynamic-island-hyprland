@@ -118,19 +118,29 @@ const SkyChart = () => {
             cr.lineTo(dayEnd, base);
             cr.stroke();
 
-            const point = q => [
-                dayStart + q * (dayEnd - dayStart),
+            const arcPoint = (start, end, q) => [
+                start + q * (end - start),
                 base - Math.sin(Math.PI * q) * (base - 8),
             ];
-            const strokeArc = (from, to, steps = 44) => {
-                cr.moveTo(...point(from));
+            const strokeArc = (start, end, from, to, steps = 44) => {
+                cr.moveTo(...arcPoint(start, end, from));
                 for (let i = 1; i <= steps; i++)
-                    cr.lineTo(...point(from + (to - from) * (i / steps)));
+                    cr.lineTo(...arcPoint(start, end, from + (to - from) * (i / steps)));
             };
+
+            // busur malam: kiri (sebelum subuh) dan kanan (setelah magrib)
+            cr.setDash([2, 3], 0);
+            cr.setLineWidth(1);
+            cr.setSourceRGBA(MUTED[0], MUTED[1], MUTED[2], 0.20);
+            strokeArc(0, dayStart, 0, 1);
+            cr.stroke();
+            strokeArc(dayEnd, width, 0, 1);
+            cr.stroke();
+            cr.setDash([], 0);
 
             cr.setLineWidth(1.2);
             cr.setSourceRGBA(MUTED[0], MUTED[1], MUTED[2], 0.24);
-            strokeArc(0, 1);
+            strokeArc(dayStart, dayEnd, 0, 1);
             cr.stroke();
 
             const isDay = nowM >= sunrise && nowM <= maghrib;
@@ -140,7 +150,7 @@ const SkyChart = () => {
             if (isDay && dayProgress > 0) {
                 cr.setLineWidth(1.6);
                 cr.setSourceRGBA(ACCENT[0], ACCENT[1], ACCENT[2], 0.62);
-                strokeArc(0, dayProgress);
+                strokeArc(dayStart, dayEnd, 0, dayProgress);
                 cr.stroke();
             }
 
@@ -152,7 +162,7 @@ const SkyChart = () => {
             cr.stroke();
 
             if (isDay) {
-                const [x, y] = point(dayProgress);
+                const [x, y] = arcPoint(dayStart, dayEnd, dayProgress);
                 cr.setSourceRGBA(ACCENT[0], ACCENT[1], ACCENT[2], 0.14);
                 cr.arc(x, y, 8, 0, Math.PI * 2);
                 cr.fill();
@@ -160,16 +170,24 @@ const SkyChart = () => {
                 cr.arc(x, y, 3.2, 0, Math.PI * 2);
                 cr.fill();
             } else {
-                // bulan: posisi sekarang di timeline malam
-                const y = base - 12;
+                // bulan mengikuti busur malam yang sedang aktif
+                const nightLength = 1440 - maghrib;
+                let moonY = base - 12;
+                if (nowM < sunrise) {
+                    const q = sunrise > 0 ? nowM / sunrise : 0;
+                    [, moonY] = arcPoint(0, dayStart, Math.max(0, Math.min(1, q)));
+                } else if (nightLength > 0) {
+                    const q = (nowM - maghrib) / nightLength;
+                    [, moonY] = arcPoint(dayEnd, width, Math.max(0, Math.min(1, q)));
+                }
                 cr.setSourceRGBA(0.78, 0.84, 1.0, 0.12);
-                cr.arc(nowX, y, 9, 0, Math.PI * 2);
+                cr.arc(nowX, moonY, 9, 0, Math.PI * 2);
                 cr.fill();
                 cr.setFillRule(Cairo.FillRule.EVEN_ODD);
                 cr.newSubPath();
-                cr.arc(nowX, y, 4.6, 0, Math.PI * 2);
+                cr.arc(nowX, moonY, 4.6, 0, Math.PI * 2);
                 cr.newSubPath();
-                cr.arc(nowX + 2.1, y - 1.3, 3.9, 0, Math.PI * 2);
+                cr.arc(nowX + 2.1, moonY - 1.3, 3.9, 0, Math.PI * 2);
                 cr.setSourceRGBA(0.86, 0.90, 1.0, 0.95);
                 cr.fill();
                 cr.setFillRule(Cairo.FillRule.WINDING);
