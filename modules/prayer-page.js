@@ -180,7 +180,7 @@ const SkyChart = () => {
             const items = times.map(time => {
                 const isNext = time.key === nextKey;
                 const isPast = !time.tomorrow && time.minutes < nowM && !isNext;
-                const name = time.key === 'fajr' && time.tomorrow ? 'Subuh besok' : time.name;
+                const name = time.name;
                 const nameLayout = makeLayout(cr, name, 9.5, { bold: isNext });
                 const timeLayout = makeLayout(cr, time.label, 11, {
                     bold: isNext,

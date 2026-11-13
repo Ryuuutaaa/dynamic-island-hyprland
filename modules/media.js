@@ -52,6 +52,25 @@ export default () => {
         startWidget: elapsed,
         endWidget: Widget.Box({ spacing: 8, children: [total, source] }),
     });
+    const text = Widget.Box({
+        className: 'dyn-island-media-text',
+        vertical: true,
+        spacing: 8,
+        children: [title, artist, progress, timeRow],
+    });
+    const empty = Widget.Box({
+        className: 'dyn-island-media-empty',
+        vertical: true,
+        spacing: 4,
+        halign: Gtk.Align.CENTER,
+        valign: Gtk.Align.CENTER,
+        children: [
+            Widget.Label({ className: 'dyn-island-media-empty-icon', label: '\u266b' }),
+            Widget.Label({ className: 'dyn-island-media-empty-title', label: 'Tidak ada yang diputar' }),
+            Widget.Label({ className: 'dyn-island-media-empty-sub', label: 'Putar musik untuk memulai' }),
+        ],
+    });
+    empty.set_no_show_all(true);
 
     const refreshTimes = () => {
         const player = activePlayer();
@@ -74,6 +93,12 @@ export default () => {
 
     const refresh = () => {
         const player = activePlayer();
+        const has = !!player;
+        cover.visible = has;
+        text.visible = has;
+        empty.visible = !has;
+        if (has) empty.hide();
+        else empty.show();
         cover.setPath(player?.cover_path ?? '');
         updateCoverColor(player?.cover_path ?? '');
         cover.setGlow(glowEnabled.value ? coverColor.value : null);
@@ -128,16 +153,7 @@ export default () => {
         spacing: 12,
         halign: Gtk.Align.CENTER,
         valign: Gtk.Align.CENTER,
-        children: [
-            cover,
-            Widget.Box({
-                className: 'dyn-island-media-text',
-                vertical: true,
-                spacing: 8,
-                children: [title, artist, progress, timeRow],
-            }),
-            controls,
-        ],
+        children: [empty, cover, text, controls],
         setup: self => {
             refresh();
             self.hook(Mpris, refresh, 'changed');

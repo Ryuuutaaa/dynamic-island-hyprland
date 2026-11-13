@@ -95,7 +95,7 @@ export default () => {
     // baris di dalam Box selalu di atas, overlay bisa benar-benar center.
     const emptyLabel = Widget.Label({
         className: 'dyn-island-chat-empty',
-        label: 'Belum ada pesan. Klik Tanya Gemini.',
+        label: 'Belum ada pesan. Tanya Gemini untuk memulai.',
         halign: Gtk.Align.CENTER,
         valign: Gtk.Align.CENTER,
         xalign: 0.5,
@@ -146,13 +146,6 @@ export default () => {
         },
         setup: self => self.set_no_show_all(true),
     });
-    const head = Widget.CenterBox({
-        className: 'dyn-island-chat-head',
-        startWidget: Widget.Box({ vertical: true, spacing: 0, children: [title, sub] }),
-        endWidget: clear,
-    });
-    head.set_size_request(PANE_W, -1);
-
     const askBtn = Widget.Button({
         className: 'dyn-island-pill',
         tooltipText: 'Buka jendela chat Gemini',
@@ -176,6 +169,17 @@ export default () => {
         },
     });
 
+    const head = Widget.CenterBox({
+        className: 'dyn-island-chat-head',
+        startWidget: Widget.Box({ vertical: true, spacing: 0, children: [title, sub] }),
+        endWidget: Widget.Box({
+            spacing: 8,
+            valign: Gtk.Align.CENTER,
+            children: [askBtn, clear],
+        }),
+    });
+    head.set_size_request(PANE_W, -1);
+
     const retryBtn = Widget.Button({
         className: 'dyn-island-pill',
         tooltipText: 'Kirim ulang pesan terakhir',
@@ -188,7 +192,7 @@ export default () => {
     const foot = Widget.Box({
         className: 'dyn-island-chat-foot',
         spacing: 8,
-        children: [askBtn, retryBtn],
+        children: [retryBtn],
     });
     foot.set_size_request(PANE_W, -1);
 
