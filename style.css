@@ -63,7 +63,6 @@
 .dyn-island-ctl,
 .dyn-island-pill,
 .dyn-island-chip,
-.dyn-island-bt-row,
 .dyn-island-lyric,
 .dyn-island-lyrics-retry,
 .dyn-island-todo-main,
@@ -252,20 +251,6 @@ tooltip > box {
 }
 
 /* ── bluetooth (halaman detail) ──────────────────────────────── */
-/* Baris ringkas di halaman idle sekarang bisa diklik -> halaman detail.
-   EventBox dipakai supaya tidak ada background/min-height bawaan Button. */
-.dyn-island-bt-row {
-    background-color: transparent;
-    background-image: none;
-    border: none;
-    box-shadow: none;
-    border-radius: 8px;
-    padding: 0;
-}
-.dyn-island-bt-row:hover {
-    background-color: __SURFACE_DIM__;
-}
-
 .dyn-island-bluetooth {
     min-width: 428px;
 }
@@ -1961,39 +1946,54 @@ tooltip > box {
     color: __MUTED__;
 }
 
-/* ── Statistik v2 (kartu) ─────────────────────────────────────── */
-.dyn-island-stats {
-    padding: 0 2px;
+/* ── Statistik minimal ─────────────────────────────────────── */
+.dyn-island-stats-root {
+    min-width: 428px;
 }
-
-.dyn-island-stats-card {
-    background: __SURFACE__;
-    border-radius: 12px;
-    padding: 7px 10px 8px 10px;
+.dyn-island-stats-header {
+    min-width: 428px;
+    min-height: 24px;
 }
-
+.dyn-island-stats-title {
+    font-size: 13px;
+    font-weight: 700;
+    color: __FG__;
+}
+.dyn-island-stats-context {
+    font-size: 9.5px;
+    color: __MUTED__;
+}
+.dyn-island-stats-metrics {
+    min-width: 428px;
+}
+.dyn-island-stats-metric {
+    min-width: 0px;
+}
 .dyn-island-stats-label {
     font-size: 9.5px;
-    font-weight: 700;
+    font-weight: 600;
     letter-spacing: 1.1px;
     color: __MUTED__;
 }
-
 .dyn-island-stats-value {
-    font-size: 22px;
+    font-size: 20px;
     font-weight: 700;
     letter-spacing: -0.4px;
     color: __FG__;
 }
-
 .dyn-island-stats-detail {
     font-size: 9.5px;
     color: __MUTED__;
 }
-
+.dyn-island-stats-footer-row {
+    min-width: 428px;
+}
 .dyn-island-stats-footer {
-    font-size: 11px;
+    font-size: 9.5px;
     color: __MUTED__;
+}
+.dyn-island-stats-sparkline {
+    min-height: 8px;
 }
 
 /* ── Kalender (grid bulan di island) ──────────────────────────── */

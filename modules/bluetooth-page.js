@@ -143,7 +143,7 @@ const DeviceRow = (device, onToggle) => {
             return true;
         }),
     });
-    row.set_size_request(PAGE_W, -1);
+    row.set_size_request(PAGE_W, 28);
     return row;
 };
 

@@ -69,18 +69,19 @@ frame 2,98–3,02 sepanjang 468×156 → 150×50.
 | Page | Isi |
 |---|---|
 | `closed` | ring baterai (Cairo) + jam + satu activity strip: equalizer saat musik, atau ikon + teks (tanggal, sisa pomodoro, tugas, air, timer, suhu) dengan fade 180ms saat berganti; hairline 2px di dasar notch untuk pomodoro/timer |
-| `idle` | **jam besar + tanggal** + kolom ringkas: baterai, `X/Y tugas`, `ml / goal L`, dan bar Bluetooth (hanya saat ada device terhubung; **klik untuk buka halaman bluetooth**) |
+| `idle` | jam besar + tanggal + satu baris agenda berikutnya; kanan tiga baris **Tugas / Air / Cuaca**; divider tipis; tanpa kartu, progress, baterai, atau Bluetooth bar |
 | `media` | album art 84px dengan border warna dominan cover + judul + artis + progress bar (area seek 24px) + elapsed/total + nama app sumber + prev/play/next + tombol lirik |
 | `media` → lirik | **sub-tampilan** (bukan halaman nav): kiri album art + judul + progress + kontrol, kanan daftar lirik sinkron |
 | `weather` | cuaca Open-Meteo: kondisi sekarang, strip 3 jam ke depan, + 3 hari; saat feed gagal muncul tombol **Muat ulang** di kanan |
 | `pomodoro` | ring merah 88px menyusut + countdown 38px + pill (mode berikutnya, play, reset); umpan balik aksi muncul sebagai **kartu OSD kanan atas**, bukan mengembangkan notch |
 | `timer` | timer bebas (preset 1–60 menit + stepper ±1 menit 1–90) + stopwatch: waktu besar, mode, preset, play/pause, reset |
-| `stats` | kartu CPU / RAM / suhu dengan **sparkline 30 detik**, detail per kartu, dan footer **disk / + swap** terpisah |
+| `stats` | tiga metrik sejajar CPU / RAM / suhu dengan **sparkline 30 detik**, detail ringkas, dan footer disk / swap; tanpa kartu |
 | `water` | volume harian, progress, switch pengingat, grafik ml per jam dengan label 9.5px (tiap 2 jam agar tidak bertumpuk) |
-| `todo` | checkmark hijau + strikethrough, counter `X/Y`, pill Tambah/Ubah |
+| `todo` | header ringkas + `＋ Tambah`; baris tugas dengan toggle selesai, edit dan hapus; editor CRUD teks + jam; konfirmasi hapus inline |
 | `standup` | tanggal + status tersimpan, tiga chip **Kemarin/Hari ini/Blocker** (centang hijau, warning merah untuk blocker) + pill **Isi/Lihat** |
 | `shelf` | drop zone putus-putus + kartu file (thumbnail, nama, ukuran) |
-| `bluetooth` | daftar semua device paired + toggle daya, device terpilih dengan tombol Sambung/Putus, slider volume + mute |
+| `bluetooth` | satu kolom: header status + power icon; baris icon/nama/baterai/action, seluruh baris connect/disconnect; volume footer hanya untuk audio utama tersambung |
+| `wifi` | satu kolom: header status + scan + power icon + Login portal; baris sinyal/nama/lock/action, seluruh baris connect/disconnect |
 | `prayer` | jadwal sholat: timeline 24 jam dengan label waktu di posisi aslinya, busur matahari terbit→terbenam, bulan saat malam, tanggal + countdown + kota; background langit mengikuti fase |
 | `chat` | riwayat chat Gemini dengan avatar + timestamp per pesan, tombol **Tanya Gemini** (input rofi) + Hapus/Ulangi; halaman sticky saat dipilih |
 | `settings` | Pengaturan: glow, ukuran notch tertutup, follow focus, halaman default, dan toggle 12 modul; disimpan ke `~/.config/dynamic-iland/settings.json` |
@@ -201,23 +202,22 @@ memang berisi device (`Redmi Buds 6`, baterai 65%, sink
 idle tidak pernah ter-map (terukur `visible=true`, `mapped=false`). Selain itu
 barisnya hanya satu teks tanpa info device maupun pengaturan volume.
 
-Sekarang ada **halaman `bluetooth`** (tab nav ke-12) dengan dua kolom:
+Halaman `bluetooth` sekarang satu kolom:
 
-- kiri: chip **Aktif/Mati** (`Bluetooth.toggle()`) + daftar **semua device
-  paired** (bukan hanya yang terhubung) dalam pane 190×64; setiap baris 24px
-  berisi ikon, nama, dan status (`paired`/`aktif`/persen baterai/`…`);
-- kanan: device terpilih — ikon, nama, tipe · alamat (dipotong), tombol
-  **Sambung/Putus** (`device.setConnection`), dan slider volume Cairo + mute
-  saat device terhubung dan sink audio-nya tersedia;
-- klik baris hanya memilih device; koneksi tidak terjadi tanpa menekan tombol,
-  jadi memilih device tidak memicu pairing/connection tak sengaja.
+- header: judul + status + satu power icon (`Bluetooth.toggle()`);
+- baris device: ikon, nama, baterai, action text; seluruh baris clickable
+  untuk connect/disconnect; connected row diberi background tipis + accent;
+  tipe, alamat, dan baterai lengkap ada di tooltip;
+- volume footer hanya muncul untuk audio utama yang tersambung; ada hairline,
+  slider Cairo, mute, dan persentase; list menyesuaikan 2 baris + volume atau
+  3 baris tanpa volume;
+- tidak ada badge/pill, selected row, atau panel detail terpisah.
 
 Pairing device baru masih lewat `bluetoothctl` (service AGS hanya mengekspos
 device paired/trusted; belum ada tombol scan).
 
-Baris ringkas di halaman idle tetap ada (hanya saat ada device) dan sekarang
-**bisa diklik** untuk membuka halaman detail. Baris memakai `EventBox` (bukan
-`Gtk.Button`) supaya tinggi/background bawaan tema tidak ikut berubah.
+Ringkasan tidak lagi menampilkan baris Bluetooth; halaman Bluetooth adalah
+satu-satunya kontrol device.
 
 - Sumber device: service Bluetooth AGS (BlueZ) → `Bluetooth.devices` (paired)
   dan `connected_devices`; tidak ada polling `bluetoothctl`, halaman ikut event
@@ -242,8 +242,8 @@ Baris ringkas di halaman idle tetap ada (hanya saat ada device) dan sekarang
 - Glyph mengikuti `icon_name` device: headset/headphone, speaker, keyboard,
   mouse, phone, fallback logo Bluetooth. Baterai memakai glyph F240..F244
   sesuai level.
-- Beberapa device sekaligus: device audio diprioritaskan, sisanya menjadi `+N`
-  di baris idle; tooltip berisi daftar lengkap + "Klik untuk detail".
+- Beberapa device sekaligus: device audio diprioritaskan untuk volume; setiap
+  baris tetap menampilkan aksi dan tooltip berisi tipe/alamat/baterai.
 - Tanpa device: halaman menampilkan "Tidak ada perangkat" + petunjuk
   ("Hubungkan headset atau speaker" / "Bluetooth nonaktif").
 - Debug tanpa device fisik (dipakai saat menguji):
@@ -256,8 +256,11 @@ Baris ringkas di halaman idle tetap ada (hanya saat ada device) dan sekarang
 `wifi.portalUrl` (default `http://connectivity-check.ubuntu.com/`).
 
 **Halaman**: daftar jaringan dari `nmcli` (satu baris per SSID, sinyal
-terkuat), badge **Sambung/Putus**, panel detail dengan keamanan, sinyal, IP,
-dan status. Password WPA/WPA2/WPA3 diminta lewat rofi (window island
+terkuat) dalam satu kolom. Header berisi status, scan, power icon, dan chip
+**Login** saat captive portal. Baris berisi sinyal, nama, lock, dan action
+text; seluruh baris clickable untuk connect/disconnect; connected row diberi
+background tipis + accent. Keamanan, sinyal, dan status tersimpan ada di
+tooltip. Password WPA/WPA2/WPA3 diminta lewat rofi (window island
 `keymode: none`) dan dikirim ke `nmcli --ask` lewat stdin dari file `0600`,
 bukan argumen proses. Jaringan 802.1X ditandai **Manual**; hidden SSID tidak
 ditampilkan.
@@ -643,20 +646,19 @@ baris 8px supaya progress bar tidak menempel ke teks/pill di atas-bawahnya.
 
 ## Todo
 
-Halaman `todo` (kartu 468×156): judul `Todo List`, counter besar `1/2` +
-"Tugas selesai", pill **[+ Tambah] [Ubah]**, dan daftar tugas di kanan
-(checkbox bulat hijau + centang, teks dicoret kalau selesai, due time kalau
-ada).
+Halaman `todo` (kartu 468×156): header ringkas `Tugas · X/Y selesai ·
+＋ Tambah`, list tugas full-width. Tiap baris berisi checkbox, teks, due,
+tombol edit, dan tombol hapus. Tugas aktif di atas, selesai di bawah,
+terbaru lebih dulu.
 
 - **Data & persistensi**: `~/.local/share/dynamic-iland/todo.json`
   (`tasks: [{ id, text, done, due, notified }]`), debounce 400ms.
-- **Add**: karena window layer-shell ini `keymode: none` (tidak menerima
-  keyboard), input teks didelegasikan ke **rofi**:
-  `rofi -dmenu -p "Tugas baru" -l 0` → hasilnya `addTask()`.
-  Bisa langsung memberi jatuh tempo di teks: `Kirim laporan @14:30`
-  → `text: "Kirim laporan"`, `due: "14:30"`.
-- **Edit** mengubah pill menjadi **Selesai** dan memunculkan tombol ✕ per
-  baris untuk menghapus. Klik baris = toggle selesai.
+- **Create/Update**: tombol `＋ Tambah` atau pensil membuka editor window
+  (`dyn-island-todo-editor`, `keymode: exclusive`) berisi teks + jatuh tempo
+  opsional; Enter menyimpan, Esc membatalkan.
+- **Delete**: tombol hapus memunculkan konfirmasi inline `Batal` / `Hapus`.
+- Klik baris = toggle selesai; due notification tetap berjalan dan `notified`
+  hanya direset jika jam due berubah.
 - **Reminder**: tiap 30s dicek; task belum selesai yang `due`-nya sudah lewat
   (dan **belum lewat 1 jam** — jendela catch-up, supaya due yang terlewat saat
   AGS tidur/restart tetap diingatkan) dan belum `notified` memicu

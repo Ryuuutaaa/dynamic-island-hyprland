@@ -5,34 +5,30 @@ import { roundedRect } from '../draw.js';
 import { stats } from './sysstats.js';
 import { tabular } from './type.js';
 
-// Halaman statistik v2: tiga kartu permukaan (bukan teks mengambang) dengan
-// label kecil, angka besar, bar, dan satu baris detail per kartu. Semua info
-// penting ada di dalam kartunya, jadi tidak ada lagi dua baris footer panjang.
-
 const FG = hexToRgb(palette.fg);
 const ACCENT = hexToRgb(palette.accent2);
 const DANGER = hexToRgb(palette.danger ?? palette.accent);
 const WARN_AT = 80;
 
-const sparkline = width => {
+const sparkline = (width, height = 8) => {
     let values = [];
     let warn = false;
 
     return Widget.DrawingArea({
         className: 'dyn-island-stats-sparkline',
         setup: self => {
-            self.set_size_request(width, 13);
+            self.set_size_request(width, height);
             self.setValues = (next, isWarn) => {
                 values = (next ?? []).slice(-15);
                 warn = isWarn;
                 self.queue_draw();
             };
         },
-        drawFn: (self, cr, w, height) => {
+        drawFn: (self, cr, w, h) => {
             cr.setLineWidth(1);
             cr.setSourceRGBA(FG[0], FG[1], FG[2], 0.12);
-            cr.moveTo(0, height - 1);
-            cr.lineTo(w, height - 1);
+            cr.moveTo(0, h - 1);
+            cr.lineTo(w, h - 1);
             cr.stroke();
             if (values.length < 2) return;
 
@@ -40,7 +36,7 @@ const sparkline = width => {
             const step = w / Math.max(1, values.length - 1);
             const point = (value, index) => [
                 index * step,
-                height - 2 - Math.max(0, Math.min(1, value / 100)) * (height - 4),
+                h - 2 - Math.max(0, Math.min(1, value / 100)) * (h - 4),
             ];
             cr.setLineWidth(1.4);
             cr.setSourceRGBA(color[0], color[1], color[2], 0.9);
@@ -58,15 +54,19 @@ const sparkline = width => {
     });
 };
 
-const card = (title, width) => {
+const metric = (title, width) => {
     const value = tabular(Widget.Label({ className: 'dyn-island-stats-value', xalign: 0 }));
-    const detail = Widget.Label({ className: 'dyn-island-stats-detail', xalign: 0 });
+    const detail = Widget.Label({
+        className: 'dyn-island-stats-detail',
+        xalign: 0,
+        truncate: 'end',
+    });
     const spark = sparkline(width);
 
     const widget = Widget.Box({
-        className: 'dyn-island-stats-card',
+        className: 'dyn-island-stats-metric',
         vertical: true,
-        spacing: 4,
+        spacing: 2,
         hexpand: true,
         children: [
             Widget.Label({ className: 'dyn-island-stats-label', label: title, xalign: 0 }),
@@ -82,9 +82,9 @@ const card = (title, width) => {
 const gb = mb => (Number(mb) || 0) / 1024;
 
 export default () => {
-    const cpu = card('CPU', 100);
-    const ram = card('RAM', 100);
-    const temp = card('SUHU', 100);
+    const cpu = metric('CPU', 100);
+    const ram = metric('RAM', 100);
+    const temp = metric('SUHU', 100);
     const history = { cpu: [], ram: [], temp: [] };
     const push = (key, value) => {
         const list = history[key];
@@ -99,18 +99,26 @@ export default () => {
     const diskLabel = Widget.Label({ className: 'dyn-island-stats-footer', xalign: 0 });
     const swapLabel = Widget.Label({ className: 'dyn-island-stats-footer', xalign: 0 });
 
+    const header = Widget.Box({
+        className: 'dyn-island-stats-header',
+        spacing: 8,
+        children: [
+            Widget.Label({ className: 'dyn-island-stats-title', label: 'Statistik' }),
+            Widget.Label({ className: 'dyn-island-stats-context', label: '30 detik' }),
+        ],
+    });
+
+    const metrics = Widget.Box({
+        className: 'dyn-island-stats-metrics',
+        spacing: 24,
+        children: [cpu.widget, ram.widget, temp.widget],
+    });
+
     const footer = Widget.Box({
         className: 'dyn-island-stats-footer-row',
         spacing: 12,
         halign: Gtk.Align.CENTER,
         children: [diskLabel, swapLabel],
-    });
-
-    const cards = Widget.Box({
-        className: 'dyn-island-stats',
-        spacing: 8,
-        valign: Gtk.Align.CENTER,
-        children: [cpu.widget, ram.widget, temp.widget],
     });
 
     const sync = () => {
@@ -165,7 +173,7 @@ export default () => {
         spacing: 8,
         halign: Gtk.Align.CENTER,
         valign: Gtk.Align.CENTER,
-        children: [cards, footer],
+        children: [header, metrics, footer],
         setup: self => {
             sync();
             self.hook(stats, sync);
