@@ -2595,3 +2595,378 @@ button.cal-day {
 .dyn-island-settings-arrow {
     font-size: 9.5px;
 }
+
+/* ── widget desktop (kiri atas, layer bottom) ──────────────────────────
+   Kartu kaca gelap di atas wallpaper: jadwal sholat, tugas, standup.
+   Memakai token __GLASS__/__GLASS_BORDER__ dari theme.js.            */
+
+.dwm-window,
+.dwm-window box {
+    background-color: transparent;
+    box-shadow: none;
+}
+
+.dwm-card {
+    background-color: __GLASS__;
+    border: 1px solid __GLASS_BORDER__;
+    border-radius: 18px;
+    padding: 14px 16px;
+    box-shadow: 0 8px 28px rgba(0, 0, 0, 0.35);
+}
+
+.dwm-section {
+    padding: 0px;
+}
+
+.dwm-head {
+    min-height: 18px;
+}
+
+.dwm-title {
+    font-size: 10px;
+    font-weight: 700;
+    letter-spacing: 1.1px;
+    color: __MUTED__;
+}
+
+.dwm-sub {
+    font-size: 10px;
+    color: __MUTED__;
+}
+
+.dwm-divider {
+    min-height: 1px;
+    background-color: __GLASS_BORDER__;
+}
+
+/* ── jadwal sholat ─────────────────────────────────────────────────── */
+.dwm-prayer-next {
+    font-size: 14px;
+    font-weight: 700;
+    color: __FG__;
+}
+
+.dwm-prayer-countdown {
+    font-size: 22px;
+    font-weight: 700;
+    color: __ACCENT2__;
+    letter-spacing: 1px;
+}
+
+.dwm-prayer-times {
+    margin-top: 2px;
+}
+
+.dwm-prayer-cell {
+    padding: 2px 0px;
+    border-radius: 8px;
+}
+
+.dwm-prayer-cell-name {
+    font-size: 9px;
+    color: __MUTED__;
+}
+
+.dwm-prayer-cell-time {
+    font-size: 10.5px;
+    color: __FG__;
+}
+
+.dwm-prayer-cell.is-next {
+    background-color: __SURFACE__;
+}
+
+.dwm-prayer-cell.is-next .dwm-prayer-cell-name,
+.dwm-prayer-cell.is-next .dwm-prayer-cell-time {
+    color: __ACCENT2__;
+    font-weight: 700;
+}
+
+.dwm-prayer-cell.is-past .dwm-prayer-cell-name,
+.dwm-prayer-cell.is-past .dwm-prayer-cell-time {
+    color: __MUTED__;
+    opacity: 0.7;
+}
+
+/* ── tugas ─────────────────────────────────────────────────────────── */
+.dwm-pane,
+.dwm-pane viewport,
+.dwm-pane undershoot {
+    background-color: transparent;
+    border: none;
+    box-shadow: none;
+}
+
+.dwm-pane scrollbar {
+    background-color: transparent;
+    min-width: 4px;
+}
+
+.dwm-pane scrollbar trough {
+    background-color: transparent;
+    min-width: 4px;
+}
+
+.dwm-pane scrollbar slider {
+    background-color: __SURFACE_STRONG__;
+    border-radius: 2px;
+    min-width: 4px;
+}
+
+.dwm-row {
+    border-radius: 8px;
+    padding: 1px 2px;
+}
+
+.dwm-row:hover {
+    background-color: __SURFACE__;
+}
+
+.dwm-row.is-confirm {
+    background-color: __DANGER_SOFT__;
+}
+
+.dwm-todo-main {
+    padding: 3px 4px;
+    border-radius: 8px;
+    background-color: transparent;
+    border: none;
+    box-shadow: none;
+}
+
+.dwm-todo-text {
+    font-size: 11.5px;
+    color: __FG__;
+}
+
+.dwm-todo-text.done {
+    color: __MUTED__;
+    text-decoration: line-through;
+}
+
+.dwm-todo-due {
+    font-size: 9.5px;
+    color: __ACCENT2__;
+}
+
+.dwm-todo-due.done {
+    color: __MUTED__;
+}
+
+.dwm-row-action {
+    min-width: 20px;
+    min-height: 20px;
+    padding: 0px;
+    border-radius: 6px;
+    border: none;
+    box-shadow: none;
+    background-color: transparent;
+    opacity: 0;
+    transition: opacity 120ms ease;
+}
+
+.dwm-row:hover .dwm-row-action {
+    opacity: 1;
+}
+
+.dwm-row-action:hover {
+    background-color: __SURFACE_HOVER__;
+}
+
+.dwm-row-action.is-danger:hover {
+    background-color: __DANGER_SOFT__;
+}
+
+.dwm-row-icon {
+    font-size: 10px;
+    color: __MUTED__;
+}
+
+.dwm-row-action:hover .dwm-row-icon {
+    color: __FG__;
+}
+
+.dwm-row-action.is-danger:hover .dwm-row-icon {
+    color: __DANGER__;
+}
+
+.dwm-empty {
+    font-size: 10.5px;
+    color: __MUTED__;
+    padding: 6px 0px;
+}
+
+.dwm-entry {
+    background-color: __SURFACE_DIM__;
+    border: 1px solid transparent;
+    border-radius: 8px;
+    padding: 4px 8px;
+    font-size: 11px;
+    color: __FG__;
+    caret-color: __ACCENT2__;
+}
+
+.dwm-entry:focus {
+    border-color: __ACCENT_SOFT__;
+    background-color: __SURFACE__;
+}
+
+.dwm-icon-btn {
+    min-width: 20px;
+    min-height: 20px;
+    padding: 0px;
+    border-radius: 6px;
+    border: none;
+    box-shadow: none;
+    background-color: transparent;
+}
+
+.dwm-icon-btn:hover {
+    background-color: __SURFACE_HOVER__;
+}
+
+.dwm-icon {
+    font-size: 9.5px;
+    color: __MUTED__;
+}
+
+.dwm-icon-btn:hover .dwm-icon {
+    color: __ACCENT2__;
+}
+
+.dwm-mini-btn {
+    padding: 2px 8px;
+    border-radius: 6px;
+    border: none;
+    box-shadow: none;
+    background-color: __SURFACE__;
+}
+
+.dwm-mini-btn:hover {
+    background-color: __SURFACE_HOVER__;
+}
+
+.dwm-mini-btn.is-danger:hover {
+    background-color: __DANGER_SOFT__;
+}
+
+.dwm-mini-label {
+    font-size: 10px;
+    color: __FG__;
+}
+
+.dwm-mini-btn.is-danger .dwm-mini-label {
+    color: __DANGER__;
+}
+
+.dwm-confirm-text {
+    font-size: 10.5px;
+    color: __FG__;
+}
+
+/* ── standup ───────────────────────────────────────────────────────── */
+.dwm-standup-field {
+    padding: 0px;
+}
+
+.dwm-standup-row {
+    padding: 3px 4px;
+    border-radius: 8px;
+    border: none;
+    box-shadow: none;
+    background-color: transparent;
+}
+
+.dwm-standup-row:hover {
+    background-color: __SURFACE__;
+}
+
+.dwm-standup-title {
+    font-size: 11px;
+    color: __FG__;
+}
+
+.dwm-standup-count {
+    font-size: 10px;
+    font-weight: 700;
+    color: __ACCENT2__;
+}
+
+.dwm-standup-chevron {
+    font-size: 8px;
+    color: __MUTED__;
+}
+
+.dwm-standup-detail {
+    padding: 2px 4px 4px 8px;
+}
+
+.dwm-standup-items {
+    padding: 0px;
+}
+
+.dwm-standup-item {
+    padding: 1px 0px;
+}
+
+.dwm-bullet {
+    font-size: 10px;
+    color: __MUTED__;
+}
+
+.dwm-standup-item-text {
+    font-size: 10.5px;
+    color: __FG__;
+}
+
+.dwm-standup-entry {
+    padding: 3px 7px;
+    font-size: 10.5px;
+}
+
+.dwm-foot {
+    padding-top: 2px;
+}
+
+.dwm-save {
+    padding: 3px 12px;
+    border-radius: 8px;
+    border: none;
+    box-shadow: none;
+    background-color: __ACCENT_SOFT__;
+}
+
+.dwm-save:hover {
+    background-color: __SURFACE_STRONG__;
+}
+
+.dwm-save-label {
+    font-size: 10px;
+    font-weight: 700;
+    color: __ACCENT2__;
+}
+
+.dwm-status {
+    font-size: 9.5px;
+    color: __OK__;
+}
+
+/* GtkButton di GTK3 masih menggambar background-image bawaan tema walau
+   background-color sudah transparan; reset ini menghilangkan kotak tombol
+   yang tidak diinginkan pada baris tugas/standup. */
+.dwm-todo-main,
+.dwm-row-action,
+.dwm-icon-btn,
+.dwm-mini-btn,
+.dwm-standup-row,
+.dwm-save,
+.dwm-entry {
+    background-image: none;
+}
+
+/* target klik minimum 24px, sama dengan kontrol lain di suite ini */
+.dwm-row-action,
+.dwm-icon-btn {
+    min-width: 24px;
+    min-height: 24px;
+}

@@ -77,6 +77,9 @@ export function buildCss(template) {
         // muted sesuai token 0.55-0.62; hover/strong tetap state, bukan surface.
         __MUTED__: rgba(palette.muted, 0.62),
         __BG_SOLID__: rgba(NOTCH_COLOR, NOTCH_ALPHA),
+        // widget desktop: kaca gelap semi-transparan di atas wallpaper
+        __GLASS__: rgba(palette.bg, 0.58),
+        __GLASS_BORDER__: rgba(palette.accent2, 0.16),
         __ACCENT_SOFT__: rgba(palette.accent2, 0.18),
         // bubble user di halaman chat: lebih tegas dari surface biasa
         __CHAT_USER__: rgba(palette.accent2, 0.26),

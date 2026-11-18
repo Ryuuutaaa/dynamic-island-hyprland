@@ -81,6 +81,7 @@ import TodoWindow from './modules/todo-window.js';
 import { scheduleStandupReminder, titleForDay as standupTitle, addItem as standupAdd, removeItem as standupRemove, saveStandup as standupSave, loadStandup as standupLoad, remindNow as standupRemind, standup as standupStore } from './modules/standup.js';
 import GeminiChat from './modules/chat-window.js';
 import SettingsPage from './modules/settings-page.js';
+import DesktopWidget from './modules/desktop-widget.js';
 
 const STYLE_PATH = `${App.configDir}/dynamic-iland/style.css`;
 
@@ -1234,6 +1235,12 @@ try {
 clickAway = ClickAway({ onClose: closeIsland });
 App.addWindow(clickAway);
 dyn.clickAway = clickAway;
+
+// Widget desktop di kiri atas: jadwal sholat, tugas, standup.
+// Layer `bottom` supaya duduk di atas wallpaper namun tetap di bawah jendela.
+const desktopWidget = DesktopWidget();
+App.addWindow(desktopWidget);
+dyn.desktopWidget = desktopWidget;
 
 // Kartu pomodoro di kanan atas (terpisah dari island, lihat pomodoro-osd.js).
 // Dibuat SEBELUM popup notifikasi: layer yang dibuat belakangan berada di atas,
