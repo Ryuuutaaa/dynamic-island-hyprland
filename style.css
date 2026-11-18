@@ -2597,8 +2597,10 @@ button.cal-day {
 }
 
 /* ── widget desktop (kiri atas, layer bottom) ──────────────────────────
-   Kartu kaca gelap di atas wallpaper: jadwal sholat, tugas, standup.
-   Memakai token __GLASS__/__GLASS_BORDER__ dari theme.js.            */
+   Tiga kartu kaca terpisah di atas wallpaper:
+     [jadwal sholat] [tugas]
+     [daily standup — selebar dua kartu di atas]
+   Token __GLASS__/__GLASS_BORDER__ berasal dari theme.js (wallust).    */
 
 .dwm-window,
 .dwm-window box {
@@ -2606,113 +2608,94 @@ button.cal-day {
     box-shadow: none;
 }
 
+.dwm-column {
+    background-color: transparent;
+}
+
+.dwm-row-cards {
+    background-color: transparent;
+}
+
 .dwm-card {
     background-color: __GLASS__;
     border: 1px solid __GLASS_BORDER__;
-    border-radius: 18px;
-    padding: 14px 16px;
-    box-shadow: 0 8px 28px rgba(0, 0, 0, 0.35);
+    border-radius: 16px;
+    padding: 12px 15px;
+    box-shadow: 0 8px 26px rgba(0, 0, 0, 0.34);
 }
 
-.dwm-section {
-    padding: 0px;
-}
-
-.dwm-head {
-    min-height: 18px;
-}
-
+/* Judul kartu: kecil, berhuruf jarak lebar, sengaja dibuat samar agar isi
+   kartu yang menonjol. */
 .dwm-title {
     font-size: 10px;
     font-weight: 700;
-    letter-spacing: 1.1px;
+    letter-spacing: 1.2px;
     color: __MUTED__;
 }
 
 .dwm-sub {
-    font-size: 10px;
+    font-size: 11px;
     color: __MUTED__;
 }
 
-.dwm-divider {
-    min-height: 1px;
-    background-color: __GLASS_BORDER__;
+.dwm-status {
+    font-size: 11px;
+    color: __OK__;
 }
 
-/* ── jadwal sholat ─────────────────────────────────────────────────── */
+/* ── kartu jadwal sholat ───────────────────────────────────────────── */
 .dwm-prayer-next {
-    font-size: 14px;
+    font-size: 15px;
     font-weight: 700;
     color: __FG__;
 }
 
 .dwm-prayer-countdown {
-    font-size: 22px;
+    font-size: 24px;
     font-weight: 700;
     color: __ACCENT2__;
     letter-spacing: 1px;
 }
 
-.dwm-prayer-times {
+.dwm-prayer-list {
     margin-top: 2px;
 }
 
-.dwm-prayer-cell {
-    padding: 2px 0px;
+.dwm-prayer-row {
+    padding: 3px 8px;
     border-radius: 8px;
 }
 
-.dwm-prayer-cell-name {
-    font-size: 9px;
-    color: __MUTED__;
-}
-
-.dwm-prayer-cell-time {
-    font-size: 10.5px;
+.dwm-prayer-name {
+    font-size: 12px;
     color: __FG__;
+    opacity: 0.86;
 }
 
-.dwm-prayer-cell.is-next {
+.dwm-prayer-time {
+    font-size: 12px;
+    color: __FG__;
+    opacity: 0.86;
+}
+
+.dwm-prayer-row.is-next {
     background-color: __SURFACE__;
 }
 
-.dwm-prayer-cell.is-next .dwm-prayer-cell-name,
-.dwm-prayer-cell.is-next .dwm-prayer-cell-time {
+.dwm-prayer-row.is-next .dwm-prayer-name,
+.dwm-prayer-row.is-next .dwm-prayer-time {
     color: __ACCENT2__;
     font-weight: 700;
+    opacity: 1;
 }
 
-.dwm-prayer-cell.is-past .dwm-prayer-cell-name,
-.dwm-prayer-cell.is-past .dwm-prayer-cell-time {
+.dwm-prayer-row.is-past .dwm-prayer-name,
+.dwm-prayer-row.is-past .dwm-prayer-time {
     color: __MUTED__;
-    opacity: 0.7;
+    opacity: 0.72;
 }
 
-/* ── tugas ─────────────────────────────────────────────────────────── */
-.dwm-pane,
-.dwm-pane viewport,
-.dwm-pane undershoot {
-    background-color: transparent;
-    border: none;
-    box-shadow: none;
-}
-
-.dwm-pane scrollbar {
-    background-color: transparent;
-    min-width: 4px;
-}
-
-.dwm-pane scrollbar trough {
-    background-color: transparent;
-    min-width: 4px;
-}
-
-.dwm-pane scrollbar slider {
-    background-color: __SURFACE_STRONG__;
-    border-radius: 2px;
-    min-width: 4px;
-}
-
+/* ── kartu tugas ───────────────────────────────────────────────────── */
 .dwm-row {
     border-radius: 8px;
     padding: 1px 2px;
@@ -2727,15 +2710,12 @@ button.cal-day {
 }
 
 .dwm-todo-main {
-    padding: 3px 4px;
+    padding: 3px 5px;
     border-radius: 8px;
-    background-color: transparent;
-    border: none;
-    box-shadow: none;
 }
 
 .dwm-todo-text {
-    font-size: 11.5px;
+    font-size: 13px;
     color: __FG__;
 }
 
@@ -2745,7 +2725,7 @@ button.cal-day {
 }
 
 .dwm-todo-due {
-    font-size: 9.5px;
+    font-size: 11px;
     color: __ACCENT2__;
 }
 
@@ -2753,32 +2733,23 @@ button.cal-day {
     color: __MUTED__;
 }
 
+/* aksi baris disembunyikan sampai baris di-hover supaya daftar tetap tenang */
 .dwm-row-action {
-    min-width: 20px;
-    min-height: 20px;
+    min-width: 24px;
+    min-height: 24px;
     padding: 0px;
     border-radius: 6px;
-    border: none;
-    box-shadow: none;
-    background-color: transparent;
     opacity: 0;
-    transition: opacity 120ms ease;
+    transition: 120ms ease-out;
 }
 
 .dwm-row:hover .dwm-row-action {
     opacity: 1;
 }
 
-.dwm-row-action:hover {
-    background-color: __SURFACE_HOVER__;
-}
-
-.dwm-row-action.is-danger:hover {
-    background-color: __DANGER_SOFT__;
-}
-
+.dwm-action-icon,
 .dwm-row-icon {
-    font-size: 10px;
+    font-size: 11px;
     color: __MUTED__;
 }
 
@@ -2790,18 +2761,36 @@ button.cal-day {
     color: __DANGER__;
 }
 
-.dwm-empty {
-    font-size: 10.5px;
-    color: __MUTED__;
-    padding: 6px 0px;
+/* item standup selalu menampilkan tombol hapus: di sana hover jarang dipakai
+   dan item yang salah tulis perlu cepat dibuang */
+.dwm-standup-item .dwm-row-action {
+    opacity: 0.55;
 }
 
+.dwm-standup-item:hover .dwm-row-action {
+    opacity: 1;
+}
+
+.dwm-empty {
+    font-size: 12px;
+    color: __MUTED__;
+    padding: 6px 2px;
+}
+
+/* penanda sisa baris saat daftar melebihi batas tampil */
+.dwm-more {
+    font-size: 11px;
+    color: __MUTED__;
+    padding: 3px 8px 1px 8px;
+}
+
+/* ── input & tombol ────────────────────────────────────────────────── */
 .dwm-entry {
     background-color: __SURFACE_DIM__;
     border: 1px solid transparent;
-    border-radius: 8px;
-    padding: 4px 8px;
-    font-size: 11px;
+    border-radius: 9px;
+    padding: 6px 10px;
+    font-size: 12.5px;
     color: __FG__;
     caret-color: __ACCENT2__;
 }
@@ -2811,14 +2800,15 @@ button.cal-day {
     background-color: __SURFACE__;
 }
 
+.dwm-entry-row {
+    padding-top: 2px;
+}
+
 .dwm-icon-btn {
-    min-width: 20px;
-    min-height: 20px;
+    min-width: 26px;
+    min-height: 26px;
     padding: 0px;
-    border-radius: 6px;
-    border: none;
-    box-shadow: none;
-    background-color: transparent;
+    border-radius: 8px;
 }
 
 .dwm-icon-btn:hover {
@@ -2826,7 +2816,7 @@ button.cal-day {
 }
 
 .dwm-icon {
-    font-size: 9.5px;
+    font-size: 11px;
     color: __MUTED__;
 }
 
@@ -2835,10 +2825,8 @@ button.cal-day {
 }
 
 .dwm-mini-btn {
-    padding: 2px 8px;
-    border-radius: 6px;
-    border: none;
-    box-shadow: none;
+    padding: 3px 10px;
+    border-radius: 7px;
     background-color: __SURFACE__;
 }
 
@@ -2851,7 +2839,7 @@ button.cal-day {
 }
 
 .dwm-mini-label {
-    font-size: 10px;
+    font-size: 11px;
     color: __FG__;
 }
 
@@ -2860,79 +2848,65 @@ button.cal-day {
 }
 
 .dwm-confirm-text {
-    font-size: 10.5px;
+    font-size: 12px;
     color: __FG__;
 }
 
-/* ── standup ───────────────────────────────────────────────────────── */
-.dwm-standup-field {
+/* ── kartu standup ─────────────────────────────────────────────────── */
+.dwm-chips {
     padding: 0px;
 }
 
-.dwm-standup-row {
-    padding: 3px 4px;
-    border-radius: 8px;
-    border: none;
-    box-shadow: none;
-    background-color: transparent;
+.dwm-chip {
+    padding: 4px 11px;
+    border-radius: 9px;
+    background-color: __SURFACE_DIM__;
 }
 
-.dwm-standup-row:hover {
+.dwm-chip:hover {
     background-color: __SURFACE__;
 }
 
-.dwm-standup-title {
-    font-size: 11px;
-    color: __FG__;
+.dwm-chip.is-active {
+    background-color: __ACCENT_SOFT__;
 }
 
-.dwm-standup-count {
-    font-size: 10px;
-    font-weight: 700;
-    color: __ACCENT2__;
-}
-
-.dwm-standup-chevron {
-    font-size: 8px;
+.dwm-chip-label {
+    font-size: 12px;
     color: __MUTED__;
 }
 
-.dwm-standup-detail {
-    padding: 2px 4px 4px 8px;
+.dwm-chip.is-active .dwm-chip-label {
+    color: __ACCENT2__;
+    font-weight: 700;
 }
 
-.dwm-standup-items {
-    padding: 0px;
+.dwm-standup-body {
+    padding: 2px 0px 0px 0px;
 }
 
 .dwm-standup-item {
-    padding: 1px 0px;
+    padding: 2px 2px;
+    border-radius: 8px;
+}
+
+.dwm-standup-item:hover {
+    background-color: __SURFACE_DIM__;
 }
 
 .dwm-bullet {
-    font-size: 10px;
+    font-size: 13px;
     color: __MUTED__;
 }
 
-.dwm-standup-item-text {
-    font-size: 10.5px;
+.dwm-standup-text {
+    font-size: 12.5px;
     color: __FG__;
 }
 
-.dwm-standup-entry {
-    padding: 3px 7px;
-    font-size: 10.5px;
-}
-
-.dwm-foot {
-    padding-top: 2px;
-}
-
 .dwm-save {
-    padding: 3px 12px;
-    border-radius: 8px;
-    border: none;
-    box-shadow: none;
+    padding: 4px 14px;
+    border-radius: 9px;
     background-color: __ACCENT_SOFT__;
 }
 
@@ -2941,32 +2915,22 @@ button.cal-day {
 }
 
 .dwm-save-label {
-    font-size: 10px;
+    font-size: 11.5px;
     font-weight: 700;
     color: __ACCENT2__;
 }
 
-.dwm-status {
-    font-size: 9.5px;
-    color: __OK__;
-}
-
-/* GtkButton di GTK3 masih menggambar background-image bawaan tema walau
-   background-color sudah transparan; reset ini menghilangkan kotak tombol
-   yang tidak diinginkan pada baris tugas/standup. */
+/* GtkButton & GtkEntry di GTK3 masih menggambar background-image bawaan tema
+   walau background-color sudah diatur; reset ini menghilangkan kotak yang
+   tidak diinginkan pada baris dan tombol ikon. */
 .dwm-todo-main,
 .dwm-row-action,
 .dwm-icon-btn,
 .dwm-mini-btn,
-.dwm-standup-row,
+.dwm-chip,
 .dwm-save,
 .dwm-entry {
     background-image: none;
-}
-
-/* target klik minimum 24px, sama dengan kontrol lain di suite ini */
-.dwm-row-action,
-.dwm-icon-btn {
-    min-width: 24px;
-    min-height: 24px;
+    border: none;
+    box-shadow: none;
 }

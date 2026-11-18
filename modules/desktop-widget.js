@@ -1,7 +1,14 @@
-// Widget desktop (kiri atas, di atas wallpaper): jadwal sholat, tugas, dan
-// daily standup. Semua data diambil dari modul yang sama dengan dynamic-island
-// (prayer/todo/standup), jadi perubahan di satu tempat langsung terlihat di
-// widget ini tanpa penyimpanan terpisah.
+// Widget desktop (kiri atas, di atas wallpaper): tiga kartu kaca terpisah.
+//
+//   ┌──────────────┐ ┌────────────────────┐
+//   │ JADWAL SHOLAT│ │ TUGAS          1/7 │
+//   └──────────────┘ └────────────────────┘
+//   ┌─────────────────────────────────────┐
+//   │ STANDUP · Rabu, 18 November [Simpan]│
+//   └─────────────────────────────────────┘
+//
+// Data diambil dari modul yang sama dengan dynamic-island (prayer/todo/
+// standup), jadi tidak ada salinan kedua dan tidak ada polling tambahan.
 
 import Gtk from 'gi://Gtk?version=3.0';
 import Widget from 'resource:///com/github/Aylur/ags/widget.js';
@@ -20,10 +27,14 @@ const GREEN = hexToRgb(palette.ok);
 const MUTED = hexToRgb(palette.muted);
 const DANGER = hexToRgb(palette.danger ?? palette.accent);
 
-const CARD_W = 340;
-const TODO_MAX_H = 190;
-const STANDUP_MAX_H = 150;
-// waybar memesan 47px di atas; beri jarak 16px di bawahnya
+// Lebar kolom. Kartu sholat sengaja sempit (isinya pendek), kartu tugas lebih
+// lebar supaya judul tugas tidak perlu dipotong.
+const PRAYER_W = 236;
+const TODO_W = 344;
+const GAP = 12;
+const TOTAL_W = PRAYER_W + GAP + TODO_W;
+
+// waybar memesan 47px di atas; 16px jarak di bawahnya
 const TOP_MARGIN = 63;
 const LEFT_MARGIN = 24;
 
@@ -69,41 +80,32 @@ const Check = done => Widget.DrawingArea({
 
 const iconLabel = (className, label) => Widget.Label({ className, label });
 
-// Samakan tinggi pane dengan isinya, dibatasi `max` supaya kartu tidak
-// memanjang saat daftar bertambah.
-const fitPane = (pane, content, max) => () => {
-    let natural = 0;
-    try {
-        natural = content.get_preferred_height()[1];
-    } catch (_) { }
-    const height = Math.min(max, Math.max(0, natural));
-    if (pane.get_allocated_height() !== height)
-        pane.set_size_request(-1, height);
-};
+// Batas jumlah baris yang tampil. Widget ini menempel di wallpaper, bukan
+// panel interaktif: scroll di sini canggung (butuh pointer tepat di atasnya)
+// dan GtkScrolledWindow memotong baris terakhir separuh serta menyisakan
+// tinggi kosong. Lebih baik tampilkan beberapa baris utuh + penanda sisa.
+const TODO_VISIBLE = 4;
+const STANDUP_VISIBLE = 3;
 
-// Versi untuk daftar baris: tinggi dibulatkan ke KELIPATAN tinggi baris,
-// supaya tidak ada baris yang terpotong separuh di tepi bawah pane.
-const fitRows = (pane, content, max) => () => {
-    const children = content.children ?? [];
-    if (!children.length) {
-        pane.set_size_request(-1, 0);
-        return;
-    }
+const MoreRow = (count, label) => Widget.Label({
+    className: 'dwm-more',
+    label: `+${count} ${label}`,
+    xalign: 0,
+});
 
-    let rowHeight = 30;
-    try {
-        rowHeight = children[0].get_preferred_height()[1] || 30;
-    } catch (_) { }
-
-    const step = rowHeight + 1; // spacing list
-    const visible = Math.max(1, Math.floor((max + 1) / step));
-    const height = Math.min(children.length, visible) * step - 1;
-    pane.set_size_request(-1, Math.max(0, Math.round(height)));
-};
-
-const SectionHead = (title, extra = []) => Widget.Box({
-    className: 'dwm-head',
+const Card = ({ className = '', width, children, setup }) => Widget.Box({
+    className: `dwm-card ${className}`.trim(),
+    vertical: true,
+    widthRequest: width,
     spacing: 8,
+    children,
+    setup,
+});
+
+// Judul kartu: label kecil berhuruf jarak lebar + isi bebas di kanan.
+const Head = (title, extra = []) => Widget.Box({
+    className: 'dwm-head',
+    spacing: 6,
     children: [
         Widget.Label({ className: 'dwm-title', label: title, xalign: 0 }),
         Widget.Label({ hexpand: true }),
@@ -111,69 +113,68 @@ const SectionHead = (title, extra = []) => Widget.Box({
     ],
 });
 
-// ── jadwal sholat ────────────────────────────────────────────────────────
-function PrayerSection() {
-    const nextName = Widget.Label({
-        className: 'dwm-prayer-next',
-        xalign: 0,
-        truncate: 'end',
-        maxWidthChars: 16,
-    });
-    const countdown = tabular(Widget.Label({
-        className: 'dwm-prayer-countdown',
-        xalign: 0,
-    }));
+// ── kartu 1: jadwal sholat ────────────────────────────────────────────────
+function PrayerCard() {
     const city = Widget.Label({
         className: 'dwm-sub',
         xalign: 1,
         truncate: 'end',
-        maxWidthChars: 14,
+        maxWidthChars: 13,
     });
 
-    const cells = new Map();
-    const timesRow = Widget.Box({
-        className: 'dwm-prayer-times',
-        homogeneous: true,
-        spacing: 2,
+    const nextName = Widget.Label({
+        className: 'dwm-prayer-next',
+        xalign: 0,
+        truncate: 'end',
+        maxWidthChars: 15,
+    });
+    const countdown = tabular(Widget.Label({
+        className: 'dwm-prayer-countdown',
+        xalign: 1,
+    }));
+
+    const list = Widget.Box({
+        className: 'dwm-prayer-list',
+        vertical: true,
+        spacing: 1,
     });
 
-    const buildCells = () => {
-        const times = prayer.value?.times ?? [];
-        if (
-            timesRow.children.length === times.length
-            && times.every(time => cells.has(time.key))
-        ) return;
-
-        cells.clear();
-        timesRow.children = times.map(time => {
+    // Baris waktu dibuat sekali (lima waktu tetap); hanya kelas & label yang
+    // diperbarui, supaya tidak ada widget baru tiap detik.
+    const rows = new Map();
+    const ensureRows = times => {
+        if (rows.size === times.length && times.every(t => rows.has(t.key))) return;
+        rows.clear();
+        list.children = times.map(time => {
             const name = Widget.Label({
-                className: 'dwm-prayer-cell-name',
+                className: 'dwm-prayer-name',
                 label: time.name,
+                xalign: 0,
             });
             const value = tabular(Widget.Label({
-                className: 'dwm-prayer-cell-time',
+                className: 'dwm-prayer-time',
                 label: time.label,
+                xalign: 1,
             }));
-            const cell = Widget.Box({
-                className: 'dwm-prayer-cell',
-                vertical: true,
-                spacing: 1,
-                children: [name, value],
+            const row = Widget.Box({
+                className: 'dwm-prayer-row',
+                spacing: 6,
+                children: [name, Widget.Label({ hexpand: true }), value],
             });
-            cells.set(time.key, cell);
-            return cell;
+            rows.set(time.key, row);
+            return row;
         });
     };
 
     const tick = () => {
         const state = prayer.value;
-        buildCells();
+        ensureRows(state?.times ?? []);
 
         if (!state?.times?.length) {
             nextName.label = 'Jadwal belum siap';
             countdown.label = '—';
             city.label = state?.error ?? '';
-            for (const cell of cells.values()) cell.className = 'dwm-prayer-cell';
+            for (const row of rows.values()) row.className = 'dwm-prayer-row';
             return;
         }
 
@@ -194,28 +195,27 @@ function PrayerSection() {
         }
 
         for (const time of state.times) {
-            const cell = cells.get(time.key);
-            if (!cell) continue;
+            const row = rows.get(time.key);
+            if (!row) continue;
             const isNext = time.key === next?.key;
             const isPast = !isNext && time.minutes < nowMinutes;
-            cell.className = 'dwm-prayer-cell'
+            row.className = 'dwm-prayer-row'
                 + (isNext ? ' is-next' : '')
                 + (isPast ? ' is-past' : '');
         }
     };
 
-    return Widget.Box({
-        className: 'dwm-section',
-        vertical: true,
-        spacing: 4,
+    return Card({
+        className: 'dwm-card-prayer',
+        width: PRAYER_W,
         children: [
-            SectionHead('Jadwal Sholat', [city]),
+            Head('JADWAL SHOLAT', [city]),
             Widget.Box({
                 spacing: 8,
                 valign: Gtk.Align.END,
                 children: [nextName, Widget.Label({ hexpand: true }), countdown],
             }),
-            timesRow,
+            list,
         ],
         setup: self => {
             tick();
@@ -225,28 +225,19 @@ function PrayerSection() {
     });
 }
 
-// ── tugas ────────────────────────────────────────────────────────────────
-function TodoSection() {
+// ── kartu 2: tugas ────────────────────────────────────────────────────────
+function TodoCard() {
     let pendingDelete = null;
 
-    const context = Widget.Label({ className: 'dwm-sub', xalign: 1 });
+    const counter = tabular(Widget.Label({ className: 'dwm-sub', xalign: 1 }));
     const addButton = Widget.Button({
         className: 'dwm-icon-btn',
-        tooltipText: 'Tambah tugas (buka editor)',
+        tooltipText: 'Tambah tugas lewat editor',
         child: iconLabel('dwm-icon', '\uf067'),
         onClicked: () => globalThis.todoWindow?.open?.(null),
     });
-    const head = SectionHead('Tugas', [context, addButton]);
 
-    const pane = Widget.Scrollable({
-        className: 'dwm-pane',
-        hscroll: 'never',
-        vscroll: 'automatic',
-        propagateNaturalHeight: false,
-    });
     const list = Widget.Box({ className: 'dwm-list', vertical: true, spacing: 1 });
-    pane.child = list;
-    const syncPane = fitRows(pane, list, TODO_MAX_H);
 
     const entry = Widget.Entry({
         className: 'dwm-entry',
@@ -260,13 +251,17 @@ function TodoSection() {
     });
 
     const TaskRow = task => {
+        // Teks membungkus maksimal dua baris alih-alih dipotong satu baris:
+        // judul tugas di sini sering panjang dan isinya perlu terbaca utuh.
         const text = Widget.Label({
             className: `dwm-todo-text${task.done ? ' done' : ''}`,
             label: task.text,
             xalign: 0,
             hexpand: true,
-            truncate: 'end',
-            maxWidthChars: 34,
+            wrap: true,
+            lines: 2,
+            ellipsize: 3,
+            maxWidthChars: 44,
         });
         const main = Widget.Button({
             className: 'dwm-todo-main',
@@ -347,7 +342,8 @@ function TodoSection() {
         const state = todo.value;
         const total = state.tasks.length;
         const done = state.tasks.filter(task => task.done).length;
-        context.label = total ? `${done}/${total}` : 'kosong';
+        counter.label = total ? `${done}/${total}` : '';
+        counter.tooltipText = total ? `${done} dari ${total} selesai` : 'Belum ada tugas';
 
         if (pendingDelete !== null && !state.tasks.some(task => task.id === pendingDelete))
             pendingDelete = null;
@@ -356,25 +352,25 @@ function TodoSection() {
         const ordered = state.tasks.slice().sort((a, b) =>
             (Number(a.done) - Number(b.done)) || (Number(b.id) - Number(a.id)));
 
-        list.children = ordered.length
-            ? ordered.map(task => (pendingDelete === task.id ? DeleteRow(task) : TaskRow(task)))
-            : [Widget.Label({
-                className: 'dwm-empty',
-                label: 'Belum ada tugas',
-                halign: Gtk.Align.CENTER,
-            })];
+        const shown = ordered.slice(0, TODO_VISIBLE);
+        const rest = ordered.length - shown.length;
 
-        Utils.idle(syncPane);
-        // GTK baru memperbarui tinggi natural setelah satu siklus layout;
-        // ukur ulang sekali lagi agar baris yang baru dibuka tidak terpotong.
-        Utils.timeout(80, syncPane, pane);
+        list.children = ordered.length
+            ? [
+                ...shown.map(task => (pendingDelete === task.id ? DeleteRow(task) : TaskRow(task))),
+                ...(rest > 0 ? [MoreRow(rest, 'lagi')] : []),
+            ]
+            : [Widget.Label({ className: 'dwm-empty', label: 'Belum ada tugas' })];
     };
 
-    return Widget.Box({
-        className: 'dwm-section',
-        vertical: true,
-        spacing: 6,
-        children: [head, pane, entry],
+    return Card({
+        className: 'dwm-card-todo',
+        width: TODO_W,
+        children: [
+            Head('TUGAS', [counter, addButton]),
+            list,
+            entry,
+        ],
         setup: self => {
             rebuild();
             self.hook(todo, rebuild);
@@ -382,12 +378,19 @@ function TodoSection() {
     });
 }
 
-// ── daily standup ────────────────────────────────────────────────────────
-function StandupSection() {
-    // Hanya satu bagian terbuka agar kartu tidak langsung memanjang.
+// ── kartu 3: daily standup ────────────────────────────────────────────────
+function StandupCard() {
+    // Satu bagian terbuka pada satu waktu; isinya memakai lebar penuh kartu
+    // sehingga teks panjang tidak perlu dipotong.
     let expanded = 'today';
 
-    const dayLabel = Widget.Label({ className: 'dwm-sub', xalign: 1 });
+    const dayLabel = Widget.Label({
+        className: 'dwm-sub',
+        xalign: 1,
+        truncate: 'end',
+        maxWidthChars: 22,
+    });
+    const status = Widget.Label({ className: 'dwm-status' });
     const saveButton = Widget.Button({
         className: 'dwm-save',
         tooltipText: 'Simpan standup hari ini',
@@ -395,152 +398,134 @@ function StandupSection() {
         onClicked: () => {
             saveStandup();
             status.label = 'Tersimpan';
-            Utils.timeout(1600, () => { status.label = ''; }, saveButton);
+            Utils.timeout(1800, () => { status.label = ''; }, saveButton);
         },
     });
-    const status = Widget.Label({ className: 'dwm-status' });
 
-    const body = Widget.Box({ className: 'dwm-standup-body', vertical: true, spacing: 2 });
-    const pane = Widget.Scrollable({
-        className: 'dwm-pane',
-        hscroll: 'never',
-        vscroll: 'automatic',
-        propagateNaturalHeight: false,
+    const chips = Widget.Box({ className: 'dwm-chips', spacing: 6 });
+
+    const body = Widget.Box({
+        className: 'dwm-standup-body',
+        vertical: true,
+        spacing: 1,
     });
-    pane.child = body;
-    const syncPane = fitPane(pane, body, STANDUP_MAX_H);
 
     const FIELDS = [
-        { key: 'yesterday', title: () => standup.value.yesterdayTitle, placeholder: 'Kegiatan kemarin…' },
-        { key: 'today', title: () => 'Hari ini', placeholder: 'Rencana hari ini…' },
-        { key: 'blockers', title: () => 'Hambatan', placeholder: 'Hambatan (kalau ada)…' },
+        {
+            key: 'yesterday',
+            short: 'Kemarin',
+            title: () => standup.value.yesterdayTitle,
+            placeholder: 'Kegiatan kemarin…',
+        },
+        {
+            key: 'today',
+            short: 'Hari ini',
+            title: () => 'Hari ini',
+            placeholder: 'Rencana hari ini…',
+        },
+        {
+            key: 'blockers',
+            short: 'Hambatan',
+            title: () => 'Hambatan',
+            placeholder: 'Hambatan (kalau ada)…',
+        },
     ];
 
-    const buildField = ({ key, title, placeholder }) => {
-        const titleLabel = Widget.Label({
-            className: 'dwm-standup-title',
-            xalign: 0,
-            hexpand: true,
-            truncate: 'end',
-            maxWidthChars: 22,
-        });
-        const count = tabular(Widget.Label({ className: 'dwm-standup-count' }));
-        const chevron = Widget.Label({ className: 'dwm-standup-chevron' });
+    const entry = Widget.Entry({
+        className: 'dwm-entry',
+        placeholderText: FIELDS[1].placeholder,
+        hexpand: true,
+    });
 
-        const items = Widget.Box({
-            className: 'dwm-standup-items',
-            vertical: true,
-            spacing: 1,
-        });
-        const entry = Widget.Entry({
-            className: 'dwm-entry dwm-standup-entry',
-            placeholderText: placeholder,
-            hexpand: true,
-        });
-        const add = Widget.Button({
-            className: 'dwm-icon-btn is-small',
-            tooltipText: 'Tambah',
-            child: iconLabel('dwm-icon', '\uf067'),
-            onClicked: () => {
-                if (addItem(key, entry.text)) entry.text = '';
-            },
-        });
-        entry.connect('activate', () => {
-            if (addItem(key, entry.text)) entry.text = '';
-        });
+    const submit = () => {
+        if (addItem(expanded, entry.text)) {
+            entry.text = '';
+            // bagian "hari ini" biasanya diisi berurutan; pertahankan fokus
+            // supaya bisa langsung mengetik item berikutnya
+            entry.grab_focus();
+        }
+    };
+    entry.connect('activate', submit);
+    const addButton = Widget.Button({
+        className: 'dwm-icon-btn',
+        tooltipText: 'Tambah item',
+        child: iconLabel('dwm-icon', '\uf067'),
+        onClicked: submit,
+    });
 
-        const row = Widget.Button({
-            className: 'dwm-standup-row',
-            child: Widget.Box({
-                spacing: 6,
-                valign: Gtk.Align.CENTER,
-                children: [titleLabel, count, chevron],
-            }),
+    const chipButtons = new Map();
+    chips.children = FIELDS.map(field => {
+        const label = tabular(Widget.Label({ className: 'dwm-chip-label' }));
+        const button = Widget.Button({
+            className: 'dwm-chip',
+            child: label,
             onClicked: () => {
-                expanded = expanded === key ? null : key;
+                expanded = expanded === field.key ? null : field.key;
                 rebuild();
             },
         });
-
-        const detail = Widget.Box({
-            className: 'dwm-standup-detail',
-            vertical: true,
-            spacing: 3,
-            children: [
-                items,
-                Widget.Box({ spacing: 4, children: [entry, add] }),
-            ],
-        });
-
-        const root = Widget.Box({
-            className: 'dwm-standup-field',
-            vertical: true,
-            spacing: 2,
-            children: [row, detail],
-        });
-
-        return { key, root, titleLabel, count, chevron, items, detail, title };
-    };
-
-    const fields = FIELDS.map(buildField);
-    body.children = fields.map(field => field.root);
+        chipButtons.set(field.key, { button, label, field });
+        return button;
+    });
 
     const rebuild = () => {
         dayLabel.label = standup.value.dayLabel ?? '';
-        for (const field of fields) {
+
+        for (const [, { button, label, field }] of chipButtons) {
             const list = standup.value[field.key] ?? [];
-            field.titleLabel.label = field.title();
-            field.count.label = String(list.length);
-            field.chevron.label = expanded === field.key ? '\uf078' : '\uf054';
+            label.label = `${field.short} ${list.length}`;
+            button.tooltipText = field.title();
+            button.className = 'dwm-chip' + (expanded === field.key ? ' is-active' : '');
+        }
 
-            const show = expanded === field.key;
-            field.detail.no_show_all = !show;
-            field.detail.visible = show;
+        const items = standup.value[expanded] ?? [];
+        const shownItems = items.slice(0, STANDUP_VISIBLE);
+        const restItems = items.length - shownItems.length;
 
-            field.items.children = list.length
-                ? list.map((text, index) => Widget.Box({
+        body.children = items.length
+            ? [
+                ...shownItems.map((text, index) => Widget.Box({
                     className: 'dwm-standup-item',
                     spacing: 6,
                     children: [
                         Widget.Label({ className: 'dwm-bullet', label: '•' }),
                         Widget.Label({
-                            className: 'dwm-standup-item-text',
+                            className: 'dwm-standup-text',
                             label: text,
                             xalign: 0,
                             hexpand: true,
                             wrap: true,
-                            maxWidthChars: 32,
+                            maxWidthChars: 68,
                         }),
                         Widget.Button({
                             className: 'dwm-row-action is-danger',
                             tooltipText: 'Hapus item',
                             child: iconLabel('dwm-row-icon', '\uf00d'),
-                            onClicked: () => removeItem(field.key, index),
+                            onClicked: () => removeItem(expanded, index),
                         }),
                     ],
-                }))
-                : [];
-            field.items.visible = list.length > 0;
-            field.items.no_show_all = list.length === 0;
-        }
-        Utils.idle(syncPane);
-        // GTK baru memperbarui tinggi natural setelah satu siklus layout;
-        // ukur ulang sekali lagi agar baris yang baru dibuka tidak terpotong.
-        Utils.timeout(80, syncPane, pane);
+                })),
+                ...(restItems > 0 ? [MoreRow(restItems, 'item lagi')] : []),
+            ]
+            : [Widget.Label({
+                className: 'dwm-empty',
+                label: expanded ? 'Belum ada item' : 'Pilih bagian di atas',
+            })];
+
+        const field = FIELDS.find(item => item.key === expanded);
+        entry.placeholderText = field?.placeholder ?? 'Pilih bagian dulu…';
+        entry.sensitive = !!field;
+        addButton.sensitive = !!field;
     };
 
-    return Widget.Box({
-        className: 'dwm-section',
-        vertical: true,
-        spacing: 4,
+    return Card({
+        className: 'dwm-card-standup',
+        width: TOTAL_W,
         children: [
-            SectionHead('Standup', [status, dayLabel]),
-            pane,
-            Widget.Box({
-                className: 'dwm-foot',
-                spacing: 6,
-                children: [Widget.Label({ hexpand: true }), saveButton],
-            }),
+            Head('STANDUP', [status, dayLabel, saveButton]),
+            chips,
+            body,
+            Widget.Box({ className: 'dwm-entry-row', spacing: 4, children: [entry, addButton] }),
         ],
         setup: self => {
             loadStandup();
@@ -551,20 +536,20 @@ function StandupSection() {
 }
 
 export default () => {
-    const divider = () => Widget.Box({ className: 'dwm-divider' });
+    const topRow = Widget.Box({
+        className: 'dwm-row-cards',
+        spacing: GAP,
+        children: [PrayerCard(), TodoCard()],
+    });
 
-    const card = Widget.Box({
-        className: 'dwm-card',
+    const standupCard = StandupCard();
+
+    const column = Widget.Box({
+        className: 'dwm-column',
         vertical: true,
-        widthRequest: CARD_W,
-        spacing: 10,
-        children: [
-            PrayerSection(),
-            divider(),
-            TodoSection(),
-            divider(),
-            StandupSection(),
-        ],
+        spacing: GAP,
+        widthRequest: TOTAL_W,
+        children: [topRow, standupCard],
     });
 
     const win = Widget.Window({
@@ -573,12 +558,47 @@ export default () => {
         layer: 'bottom',
         anchor: ['top', 'left'],
         exclusivity: 'ignore',
-        // on-demand: entry hanya mengambil keyboard saat diklik, sehingga
+        // on-demand: entry hanya mengambil keyboard setelah diklik, sehingga
         // klik di luar kartu tetap diteruskan ke desktop
         keymode: 'on-demand',
         margins: [TOP_MARGIN, 0, 0, LEFT_MARGIN],
-        child: card,
+        child: column,
     });
+
+    // Layer surface memakai ukuran saat map dan TIDAK ikut tumbuh ketika
+    // isinya bertambah tinggi. Terukur: window allocH=460 sementara kontennya
+    // butuh 498, sehingga baris terpotong. `queue_resize()` saja tidak cukup
+    // (sudah diuji) — ukuran window harus diminta ulang secara eksplisit dari
+    // tinggi natural kolom.
+    const requestResize = () => {
+        let height = 0;
+        try {
+            height = column.get_preferred_height()[1] || 0;
+        } catch (_) { }
+
+        if (height > 0) {
+            try {
+                win.set_size_request(TOTAL_W, height);
+            } catch (_) { }
+        }
+
+        for (const node of [standupCard, topRow, column, win]) {
+            try {
+                node?.queue_resize();
+            } catch (_) { }
+        }
+    };
+
+    // Tinggi berubah saat daftar tugas/standup berubah, jadi panggil ulang
+    // beberapa kali: satu kali saat children diganti, sekali setelah layout.
+    const resizeSoon = () => {
+        Utils.idle(requestResize);
+        Utils.timeout(60, requestResize, win);
+        Utils.timeout(180, requestResize, win);
+    };
+
+    win.hook(todo, resizeSoon);
+    win.hook(standup, resizeSoon);
 
     followFocused(win);
     return win;
