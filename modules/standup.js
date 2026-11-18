@@ -43,14 +43,12 @@ const writeStore = store => {
     }
 };
 
-const entryFor = (store, date) => {
-    const keys = Object.keys(store).filter(key => key < date).sort().reverse();
-    for (const key of keys) {
-        const [year, month, day] = key.split('-').map(Number);
-        if (isWorkday(new Date(year, month - 1, day))) return store[key];
-    }
-    return null;
-};
+// Bagian "Kemarin" TIDAK lagi diisi otomatis dari entri hari-hari sebelumnya.
+// Dulu entri kerja terakhir dipakai tanpa batas jarak, sehingga rencana dari
+// dua minggu lalu masih tampil sebagai "kemarin" — terukur: entri 2026-11-05
+// muncul pada 2026-11-19. Sekarang setiap hari dimulai dari kosong dan hanya
+// berisi apa yang tersimpan untuk tanggal itu.
+
 
 export const titleForDay = day => (day === 1 ? MONDAY_TITLE : YESTERDAY_TITLE);
 
@@ -71,21 +69,35 @@ export function loadStandup() {
     const date = isoDay(now);
     const store = readStore();
     const entry = store[date] || null;
-    const previous = entryFor(store, date);
-    // riwayat = rencana hari kerja sebelumnya; ini yang mengisi bagian pertama
-    const history = previous ? (previous.today?.length ? previous.today : previous.yesterday ?? []) : [];
     standup.value = {
         ...standup.value,
         date,
         dayLabel: label(now),
         saved: !!entry,
         yesterdayTitle: titleForDay(now.getDay()),
-        yesterday: entry ? [...entry.yesterday] : [...history],
+        // Hanya data tanggal ini. Entri hari sebelumnya sengaja tidak dibaca,
+        // supaya bagian Kemarin kosong begitu hari berganti.
+        yesterday: entry ? [...entry.yesterday] : [],
         today: entry ? [...entry.today] : [],
         blockers: entry ? [...entry.blockers] : [],
     };
     return standup.value;
 }
+
+// Deteksi pergantian hari. `loadStandup()` hanya dipanggil saat AGS start dan
+// saat window dibuka, jadi AGS yang menyala melewati tengah malam tetap
+// memakai tanggal lama — dan menekan Simpan akan menulis data hari baru ke
+// tanggal kemarin. Pemeriksaan ringan ini memuat ulang state saat tanggal
+// berubah, sekaligus mengosongkan bagian Kemarin seperti yang diharapkan.
+const watchDayChange = () => {
+    let current = isoDay(new Date());
+    Utils.interval(20000, () => {
+        const today = isoDay(new Date());
+        if (today === current) return;
+        current = today;
+        loadStandup();
+    });
+};
 
 export function addItem(field, text) {
     if (!FIELDS.includes(field)) return false;
@@ -200,6 +212,7 @@ export function scheduleStandupReminder() {
 
     loadStandup();
     arm();
+    watchDayChange();
 
     // pemanggilan pertama di sesi ini: kalau sudah lewat 10:00 dan belum diisi
     const now = new Date();
