@@ -20,6 +20,7 @@ import { todo, addTaskWithDue, toggleTask, removeTask } from './todo.js';
 import { standup, addItem, removeItem, loadStandup, saveStandup } from './standup.js';
 import { tabular } from './type.js';
 import { followFocused } from './monitor.js';
+import { scrollDelta } from './pointer.js';
 
 const FG = hexToRgb(palette.fg);
 const ACCENT = hexToRgb(palette.accent2);
@@ -80,11 +81,11 @@ const Check = done => Widget.DrawingArea({
 
 const iconLabel = (className, label) => Widget.Label({ className, label });
 
-// Batas jumlah baris yang tampil. Widget ini menempel di wallpaper, bukan
-// panel interaktif: scroll di sini canggung (butuh pointer tepat di atasnya)
-// dan GtkScrolledWindow memotong baris terakhir separuh serta menyisakan
-// tinggi kosong. Lebih baik tampilkan beberapa baris utuh + penanda sisa.
-const TODO_VISIBLE = 4;
+// Batas tinggi daftar tugas sebelum menggulir. Dipakai bersama
+// propagate_natural_height: pane tumbuh mengikuti isi sampai batas ini, lalu
+// menggulir. 196px membulat ke ~5 baris dua-baris-an tanpa memotong baris
+// terakhir di tepi bawah.
+const TODO_MAX_H = 196;
 const STANDUP_VISIBLE = 3;
 
 const MoreRow = (count, label) => Widget.Label({
@@ -237,7 +238,40 @@ function TodoCard() {
         onClicked: () => globalThis.todoWindow?.open?.(null),
     });
 
+    // Daftar tugas yang bisa digulir. Pane tumbuh mengikuti isi sampai
+    // TODO_MAX_H lalu menggulir, sehingga daftar panjang tetap terbaca dan
+    // kartu tidak memanjang melewati batas.
+    const pane = Widget.Scrollable({
+        className: 'dwm-pane',
+        hscroll: 'never',
+        vscroll: 'automatic',
+        propagateNaturalHeight: true,
+        propagateNaturalWidth: false,
+    });
+    try {
+        pane.set_max_content_height(TODO_MAX_H);
+        pane.set_min_content_height(0);
+        // Overlay scrolling menyembunyikan scrollbar sampai pointer menyentuh
+        // pane, jadi tidak ada petunjuk visual bahwa daftar masih bisa digulir.
+        // Mode non-overlay memesan ruang tetap untuk scrollbar.
+        pane.set_overlay_scrolling(false);
+    } catch (_) { }
+
     const list = Widget.Box({ className: 'dwm-list', vertical: true, spacing: 1 });
+    pane.child = list;
+
+    // Roda mouse di atas daftar menggulir daftar. Tanpa handler ini, event
+    // diteruskan ke layer di bawahnya (wallpaper) dan tidak terjadi apa-apa.
+    pane.connect('scroll-event', (_self, event) => {
+        const delta = scrollDelta(event);
+        if (!delta) return false;
+        const adjustment = pane.get_vadjustment();
+        if (!adjustment) return false;
+        const max = Math.max(0, adjustment.upper - adjustment.page_size);
+        if (max <= 0) return false;
+        adjustment.value = Math.max(0, Math.min(max, adjustment.value + delta * 48));
+        return true;
+    });
 
     const entry = Widget.Entry({
         className: 'dwm-entry',
@@ -352,15 +386,23 @@ function TodoCard() {
         const ordered = state.tasks.slice().sort((a, b) =>
             (Number(a.done) - Number(b.done)) || (Number(b.id) - Number(a.id)));
 
-        const shown = ordered.slice(0, TODO_VISIBLE);
-        const rest = ordered.length - shown.length;
-
+        // Aktif di atas, selesai di bawah; yang terbaru lebih dulu. Semua tugas
+        // ditampilkan — pane yang membatasi tinggi dan menggulir.
         list.children = ordered.length
-            ? [
-                ...shown.map(task => (pendingDelete === task.id ? DeleteRow(task) : TaskRow(task))),
-                ...(rest > 0 ? [MoreRow(rest, 'lagi')] : []),
-            ]
+            ? ordered.map(task => (pendingDelete === task.id ? DeleteRow(task) : TaskRow(task)))
             : [Widget.Label({ className: 'dwm-empty', label: 'Belum ada tugas' })];
+
+        // Posisi scroll dipertahankan oleh GtkScrolledWindow saat children
+        // diganti. Kalau daftar menyusut, offset lama bisa melewati batas dan
+        // daftar tampil kosong; kembalikan ke batas yang sah.
+        Utils.idle(() => {
+            try {
+                const adjustment = pane.get_vadjustment();
+                if (!adjustment) return;
+                const max = Math.max(0, adjustment.upper - adjustment.page_size);
+                if (adjustment.value > max) adjustment.value = max;
+            } catch (_) { }
+        });
     };
 
     return Card({
@@ -368,7 +410,7 @@ function TodoCard() {
         width: TODO_W,
         children: [
             Head('TUGAS', [counter, addButton]),
-            list,
+            pane,
             entry,
         ],
         setup: self => {

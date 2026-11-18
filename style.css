@@ -2696,6 +2696,43 @@ button.cal-day {
 }
 
 /* ── kartu tugas ───────────────────────────────────────────────────── */
+/* GtkScrolledWindow untuk daftar tugas. Latar dan border tema harus dimatikan,
+   dan min-height 0 supaya pane benar-benar menyusut saat daftar pendek. */
+.dwm-pane,
+.dwm-pane viewport,
+.dwm-pane undershoot {
+    background-color: transparent;
+    border: none;
+    box-shadow: none;
+    min-height: 0px;
+}
+
+/* Scrollbar harus terlihat: tanpa ini tidak ada petunjuk bahwa daftar masih
+   bisa digulir. Lebar 6px cukup untuk dilihat tanpa memakan ruang baris. */
+.dwm-pane scrollbar {
+    background-color: transparent;
+    min-width: 6px;
+    padding: 0px;
+}
+
+.dwm-pane scrollbar trough {
+    background-color: __SURFACE_DIM__;
+    border-radius: 3px;
+    min-width: 6px;
+    margin: 2px 1px;
+}
+
+.dwm-pane scrollbar slider {
+    background-color: __SURFACE_STRONG__;
+    border-radius: 3px;
+    min-width: 6px;
+    min-height: 24px;
+}
+
+.dwm-pane scrollbar slider:hover {
+    background-color: __ACCENT2__;
+}
+
 .dwm-row {
     border-radius: 8px;
     padding: 1px 2px;
