@@ -2,6 +2,13 @@ const { app, BrowserWindow, ipcMain, screen } = require('electron');
 const path = require('node:path');
 const settings = require('./settings');
 
+// Beberapa lingkungan Wayland (VM, driver rusak) membuat proses GPU gagal
+// diluncurkan dan Electron keluar dengan "GPU process isn't usable".
+// Default tetap memakai GPU; matikan lewat env bila itu terjadi:
+//   DYNAMIC_ISLAND_NO_GPU=1
+if (process.env.DYNAMIC_ISLAND_NO_GPU === '1')
+    app.disableHardwareAcceleration();
+
 // Dynamic island lintas OS: jendela frameless, always-on-top, menempel di
 // tengah tepi atas layar.
 //
@@ -18,6 +25,15 @@ let win = null;
 let hitTimer = 0;
 let notchRect = null;
 let ignoring = null;
+
+// Wayland TIDAK memberi tahu klien posisi absolutnya: dibuktikan di mesin ini,
+// screen.getCursorScreenPoint() mengembalikan {0,0} dan win.getBounds()
+// mengembalikan {x:0,y:0} walau jendela berada di [678,0]. Hit-test berbasis
+// koordinat karena itu selalu salah dan menembuskan SEMUA event mouse —
+// akibatnya hover mati total. Di Wayland kita matikan hit-test dan terima
+// konsekuensinya (surface besar menangkap klik di area transparan).
+const IS_WAYLAND = process.platform === 'linux'
+    && (!!process.env.WAYLAND_DISPLAY || process.env.XDG_SESSION_TYPE === 'wayland');
 
 const placeWindow = () => {
     if (!win || win.isDestroyed()) return;
@@ -39,6 +55,14 @@ const setNotchRect = rect => {
 
 const applyHitTest = force => {
     if (!win || win.isDestroyed()) return;
+    if (IS_WAYLAND) {
+        // Jangan pernah menembuskan: surface butuh event mouse untuk hover.
+        if (ignoring !== false) {
+            ignoring = false;
+            win.setIgnoreMouseEvents(false);
+        }
+        return;
+    }
     const bounds = win.getBounds();
     const point = screen.getCursorScreenPoint();
     const localX = point.x - bounds.x;
@@ -58,6 +82,7 @@ const applyHitTest = force => {
 };
 
 const startHitTest = () => {
+    if (IS_WAYLAND) return;   // lihat catatan IS_WAYLAND di atas
     if (hitTimer) return;
     // 60ms: cukup responsif untuk hover, murah (satu query per tick).
     hitTimer = setInterval(() => applyHitTest(false), 60);
@@ -168,3 +193,5 @@ ipcMain.handle('app:platform', () => ({
 require('./ipc/system')(ipcMain);
 require('./ipc/store')(ipcMain);
 require('./ipc/chat')(ipcMain);
+require('./ipc/notifications')(ipcMain);
+require('./ipc/app')(ipcMain);

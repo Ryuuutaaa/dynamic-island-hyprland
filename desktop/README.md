@@ -164,6 +164,42 @@ Isi `.deb` diverifikasi: ikon terpasang di
 - Build Windows dan macOS **belum dijalankan di mesin aslinya**. Konfigurasi
   mengikuti skema `electron-builder` 26.18, tapi belum ada bukti runtime.
 
+## Autostart & notifikasi masuk
+
+**Autostart saat login** (`pnpm start` lalu Pengaturan → Sistem):
+
+| OS | Mekanisme | File |
+|---|---|---|
+| Linux | XDG Autostart | `~/.config/autostart/dynamic-island.desktop` |
+| Windows | Registry `HKCU\...\Run` | lewat `app.setLoginItemSettings` |
+| macOS | Login Items | lewat `app.setLoginItemSettings` |
+
+Diverifikasi di Linux: mengaktifkan membuat file `.desktop` dengan `Exec`
+yang menunjuk biner nyata; menonaktifkan menghapusnya.
+
+**Notifikasi masuk:**
+
+| OS | Status | Cara |
+|---|---|---|
+| Linux | **aktif** | `dbus-monitor` menyadap `org.freedesktop.Notifications` |
+| Windows | tidak didukung | OS tidak mengizinkan membaca notifikasi aplikasi lain |
+| macOS | tidak didukung | perlu izin Aksesibilitas khusus |
+
+Di Linux, notifikasi dari aplikasi lain (WhatsApp/Spotify/CI) muncul di
+halaman **Notifikasi**. Diverifikasi dengan `notify-send` nyata:
+
+```
+app: "Uji CI" | title: "Halo dari tes" | body: "Notifikasi masuk ke island"
+```
+
+Parser dipisah ke `src/main/lib/notify-parser.mjs` supaya bisa diuji tanpa
+spawn proses (menangani body multi-baris dari Chromium dan dua notifikasi
+berurutan).
+
+UI melaporkan `captureExternal` apa adanya — di Windows/macOS halaman
+menampilkan "tidak didukung" beserta alasannya, bukan tombol yang tidak
+berfungsi.
+
 ## Status
 
 Yang sudah berjalan dan diverifikasi di Linux (Hyprland + Wayland):
@@ -182,3 +218,10 @@ Belum sempurna:
 - Uji visual halaman sempat tidak sinkron karena dua proses main berjalan
   bersamaan; jalankan satu instance saat menguji.
 - Build Windows/macOS belum diuji runtime.
+- **Hover tidak andal di Wayland saat versi AGS juga berjalan.** Keduanya
+  menempati area layar yang sama, dan island AGS (layer-shell) selalu
+  menerima event lebih dulu. Uji hover Electron harus di mesin tanpa AGS,
+  atau dengan jendela dipindah menjauh.
+- Wayland tidak memberi klien posisi absolutnya, sehingga hit-test
+  `setIgnoreMouseEvents` di main process tidak bisa akurat. Di Wayland
+  fitur itu dimatikan (lihat `IS_WAYLAND` di `src/main/index.js`).

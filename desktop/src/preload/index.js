@@ -30,6 +30,26 @@ contextBridge.exposeInMainWorld('island', {
         support: () => ipcRenderer.invoke('system:support'),
     },
 
+    notifications: {
+        register: () => ipcRenderer.invoke('notifications:register'),
+        state: () => ipcRenderer.invoke('notifications:state'),
+        clear: () => ipcRenderer.invoke('notifications:clear'),
+        markRead: () => ipcRenderer.invoke('notifications:mark-read'),
+        push: item => ipcRenderer.invoke('notifications:push', item),
+        onPush: callback => {
+            // Listener tetap terpasang selama renderer hidup; dipakai untuk
+            // menampilkan notifikasi masuk di kartu notch tanpa polling.
+            const handler = (_event, item) => callback(item);
+            ipcRenderer.on('notifications:push', handler);
+            return () => ipcRenderer.removeListener('notifications:push', handler);
+        },
+    },
+
+    autostart: {
+        get: () => ipcRenderer.invoke('autostart:get'),
+        set: enabled => ipcRenderer.invoke('autostart:set', enabled),
+    },
+
     chat: {
         keyStatus: () => ipcRenderer.invoke('chat:key-status'),
         saveKey: key => ipcRenderer.invoke('chat:save-key', key),

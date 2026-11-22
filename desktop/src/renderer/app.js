@@ -21,6 +21,7 @@ const PAGES = [
     { id: 'prayer', icon: '☾', label: 'Sholat' },
     { id: 'calendar', icon: '▤', label: 'Kalender' },
     { id: 'stats', icon: '▦', label: 'Statistik' },
+    { id: 'inbox', icon: '✦', label: 'Notifikasi' },
     { id: 'chat', icon: '✎', label: 'Chat' },
     { id: 'settings', icon: '⚙', label: 'Pengaturan' },
 ];
@@ -39,6 +40,8 @@ const state = {
     info: null,
     support: null,
     platformLabel: '',
+    autostart: { supported: false, enabled: false, method: '' },
+    inbox: { items: [], unread: 0, capability: { captureExternal: false, reason: '' } },
 };
 
 const el = {
@@ -207,6 +210,38 @@ const renderStats = () => {
     ]);
 };
 
+const renderInbox = () => {
+    const items = state.inbox.items ?? [];
+    const rows = items.slice(0, 8).map(item => h('div', { class: 'row' }, [
+        h('span', { class: 'label', text: `${item.app}: ${item.title}` }),
+        h('span', {
+            class: 'value',
+            text: new Date(item.at).toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit' }),
+        }),
+    ]));
+
+    const head = state.inbox.capability.captureExternal
+        ? row('Sumber', 'D-Bus (org.freedesktop.Notifications)', 'ok')
+        : row('Sumber', 'tidak didukung platform ini', 'warn');
+
+    return h('div', { class: 'rows' }, [
+        section('Notifikasi masuk'),
+        head,
+        ...(rows.length ? rows : [
+            h('div', { class: 'row' }, [h('span', { class: 'label', text: 'Belum ada notifikasi' })]),
+        ]),
+        ...(items.length ? [h('button', {
+            class: 'pill',
+            text: 'Bersihkan',
+            onclick: async () => {
+                await api.notifications.clear();
+                state.inbox = await api.notifications.state();
+                render();
+            },
+        })] : []),
+    ]);
+};
+
 const renderChat = () => {
     const list = h('div', { class: 'chat-list' });
 
@@ -309,6 +344,34 @@ const renderSettings = () => {
             }),
         ]),
         message,
+        section('Sistem'),
+        h('div', { class: 'row' }, [
+            h('span', { class: 'label', text: 'Mulai saat login' }),
+            h('button', {
+                class: 'pill',
+                text: state.autostart.enabled ? 'Aktif' : 'Nonaktif',
+                onclick: async () => {
+                    const result = await api.autostart.set(!state.autostart.enabled);
+                    if (!result.ok) {
+                        message.firstChild.textContent = `Gagal: ${result.error}`;
+                        message.firstChild.className = 'value warn';
+                        return;
+                    }
+                    state.autostart = await api.autostart.get();
+                    render();
+                },
+            }),
+        ]),
+        section('Notifikasi masuk'),
+        row(
+            'Menyadap notifikasi aplikasi',
+            state.inbox.capability.captureExternal ? 'aktif' : 'tidak didukung',
+            state.inbox.capability.captureExternal ? 'ok' : 'warn',
+        ),
+        row('Jumlah masuk', `${state.inbox.items.length}${state.inbox.unread ? ` · ${state.inbox.unread} baru` : ''}`),
+        h('div', { class: 'row' }, [
+            h('span', { class: 'value', text: state.inbox.capability.reason }),
+        ]),
         section('Dukungan platform'),
         ...Object.entries(state.support?.features ?? {}).map(([name, ok]) =>
             row(name, ok ? 'tersedia' : 'tidak tersedia', ok ? 'ok' : 'warn')),
@@ -320,6 +383,7 @@ const RENDERERS = {
     prayer: renderPrayer,
     calendar: renderCalendar,
     stats: renderStats,
+    inbox: renderInbox,
     chat: renderChat,
     settings: renderSettings,
 };
@@ -370,15 +434,34 @@ const setHovered = value => {
 // jendela mencakup area transparan yang jauh lebih besar dari notch, jadi
 // event mouse bisa tidak pernah sampai saat kursor masuk dari aplikasi lain
 // (klik ditembuskan). Polling 80ms cukup halus untuk transisi 620ms.
+// Hover memakai event DOM biasa, BUKAN perbandingan dengan posisi window.
+//
+// Di Wayland, klien tidak diberi tahu posisi absolutnya: getBounds() dan
+// screen.getCursorScreenPoint() di main process mengembalikan 0/0, sehingga
+// perbandingan koordinat selalu salah (terukur: pointer {0,0} padahal kursor
+// di 382,425). Compositor tetap mengirim enter/leave ke window, jadi event
+// itulah sumber kebenaran.
 const startHoverWatch = () => {
-    setInterval(async () => {
-        const point = await api.window.pointer();
-        const bounds = el.island.getBoundingClientRect();
-        const inside = point.x >= bounds.left && point.x <= bounds.right
-            && point.y >= bounds.top && point.y <= bounds.bottom;
-        // Saat terbuka, jangan tutup selama kursor masih di dalam notch.
-        setHovered(inside);
-    }, 80);
+    el.island.addEventListener('mouseenter', () => setHovered(true));
+    el.island.addEventListener('mouseleave', () => setHovered(false));
+
+    // Jaring pengaman: kalau kursor keluar saat notch membesar (area bergerak
+    // di bawah kursor), leave bisa tidak terkirim. Cek mousemove terakhir:
+    // tidak ada gerakan > 1.5s dan pointer tidak di atas notch -> tutup.
+    let lastMove = Date.now();
+    let wasInside = false;
+    document.addEventListener('mousemove', event => {
+        lastMove = Date.now();
+        const rect = el.island.getBoundingClientRect();
+        wasInside = event.clientX >= rect.left && event.clientX <= rect.right
+            && event.clientY >= rect.top && event.clientY <= rect.bottom;
+    });
+    setInterval(() => {
+        if (!state.hovered) return;
+        if (wasInside) return;
+        if (Date.now() - lastMove < 1500) return;
+        setHovered(false);
+    }, 250);
 };
 
 // Klik di luar notch tidak terdeteksi oleh Electron tanpa window transparan
@@ -410,6 +493,17 @@ const boot = async () => {
 
     state.info = await api.system.info();
     state.support = await api.system.support();
+
+    state.autostart = await api.autostart.get();
+    await api.notifications.register();
+    state.inbox = await api.notifications.state();
+    api.notifications.onPush(() => {
+        // Notifikasi baru: muat ulang state lalu render bila halaman inbox aktif.
+        api.notifications.state().then(next => {
+            state.inbox = next;
+            if (state.page === 'inbox' || state.page === 'idle') render();
+        });
+    });
 
     await loadKeyStatus();
     await loadCalendar();
