@@ -5,19 +5,34 @@ const DAYS = ['Minggu', 'Senin', 'Selasa', 'Rabu', 'Kamis', 'Jumat', 'Sabtu'];
 const MONTHS = ['Januari', 'Februari', 'Maret', 'April', 'Mei', 'Juni', 'Juli',
     'Agustus', 'September', 'Oktober', 'November', 'Desember'];
 
-const dayName = dt => DAYS[dt.get_day_of_week() % 7];
-const monthName = dt => MONTHS[dt.get_month() - 1];
+const asDateTime = dt => {
+    if (dt instanceof Date) {
+        return GLib.DateTime.new_local(
+            dt.getFullYear(), dt.getMonth() + 1, dt.getDate(),
+            dt.getHours(), dt.getMinutes(), dt.getSeconds());
+    }
+    if (typeof dt === 'number')
+        return GLib.DateTime.new_from_unix_local(dt);
+    return dt;
+};
 
-export const formatClock = (dt = GLib.DateTime.new_now_local()) => dt.format('%H:%M');
+const dayName = dt => DAYS[asDateTime(dt).get_day_of_week() % 7];
+const monthName = dt => MONTHS[asDateTime(dt).get_month() - 1];
+
+export const formatClock = (dt = GLib.DateTime.new_now_local()) => asDateTime(dt).format('%H:%M');
 
 // Nama hari/bulan ditulis sendiri: locale sistem (en_US) tidak menghasilkan
 // bahasa Indonesia, sedangkan UI ini berbahasa Indonesia.
-export const formatDate = (dt = GLib.DateTime.new_now_local()) =>
-    `${dayName(dt)}, ${dt.get_day_of_month()} ${monthName(dt)}`;
+export const formatDate = (dt = GLib.DateTime.new_now_local()) => {
+    const d = asDateTime(dt);
+    return `${dayName(d)}, ${d.get_day_of_month()} ${monthName(d)}`;
+};
 
 // Versi pendek untuk notch tertutup yang sempit ("19 Okt").
-export const formatDateShort = (dt = GLib.DateTime.new_now_local()) =>
-    `${dt.get_day_of_month()} ${monthName(dt).slice(0, 3)}`;
+export const formatDateShort = (dt = GLib.DateTime.new_now_local()) => {
+    const d = asDateTime(dt);
+    return `${d.get_day_of_month()} ${monthName(d).slice(0, 3)}`;
+};
 
 // Satu ticker untuk SEMUA label jam.
 //
