@@ -3,6 +3,9 @@ import Widget from 'resource:///com/github/Aylur/ags/widget.js';
 import { page } from '../state.js';
 import { settings, saveSettings, unmuteApp, OPTIONS } from './settings.js';
 import { scrollDelta } from './pointer.js';
+import { keyStatus, currentModel } from './chat.js';
+import { calendar, feedUrl } from './calendar.js';
+import { maskSecret } from './secret-file.js';
 
 // Sisakan ruang untuk scrollbar; 480 membuat value kanan tertutup scrollbar.
 const ROW_W = 466;
@@ -155,6 +158,12 @@ export default () => {
 
     const rebuild = () => {
         const value = settings.value;
+        const gemini = keyStatus();
+        const feed = calendar.value ?? {};
+        const feedCount = (feed.events ?? []).length;
+        const feedSource = feedUrl();
+        const calendarReady = !!feedSource;
+
         const rows = [
             section('TAMPILAN'),
             row('Glow cover', value.glow ? 'Aktif' : 'Nonaktif',
@@ -167,6 +176,28 @@ export default () => {
             row('Notch di semua monitor', value.notch.perMonitor ? 'Aktif' : 'Nonaktif',
                 () => saveSettings({ notch: { perMonitor: !value.notch.perMonitor } }),
                 value.notch.perMonitor),
+
+            section('GEMINI'),
+            row('API key', gemini.has ? `${gemini.masked} · ${currentModel()}` : 'Belum di-set',
+                () => globalThis.geminiKeyWindow?.toggle?.(),
+                gemini.has),
+            row('Uji & pilih model',
+                gemini.has ? 'Jalankan' : 'Isi key dulu',
+                () => globalThis.geminiKeyWindow?.open?.(),
+                false),
+
+            section('KALENDER'),
+            row('Feed iCal',
+                calendarReady
+                    ? `${feedCount} acara`
+                    : 'Belum di-set',
+                () => globalThis.calendarSetupWindow?.toggle?.(),
+                calendarReady),
+            row('URL sumber',
+                calendarReady ? maskSecret(feedSource, 26, 8) : 'Lihat tutorial',
+                () => globalThis.calendarSetupWindow?.open?.(),
+                false),
+
             section('HALAMAN'),
             row('Halaman default', PAGE_LABELS[value.defaultPage] ?? 'Ringkasan',
                 cyclePage, false),

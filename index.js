@@ -69,7 +69,7 @@ import { watchWeather, weather as weatherState, refreshWeather } from './modules
 import TimerPage from './modules/timer-page.js';
 import StatsPage from './modules/stats-page.js';
 import CalendarPage from './modules/calendar-page.js';
-import { watchCalendar, calendar as calendarState, refreshCalendar } from './modules/calendar.js';
+import { watchCalendar, calendar as calendarState, refreshCalendar, feedUrl, saveFeedUrl, clearFeedUrl } from './modules/calendar.js';
 import { watchCalendarNotes, calendarNotes, addNote as calendarNoteAdd, updateNote as calendarNoteUpdate, removeNote as calendarNoteRemove, checkNotes as calendarNotesCheck, notesFor as calendarNotesFor } from './modules/calendar-notes.js';
 import { watchCalendarEvents, calendarEvents, addEvent as calendarEventAdd, updateEvent as calendarEventUpdate, removeEvent as calendarEventRemove, checkEvents as calendarEventsCheck, eventsFor as calendarEventsFor } from './modules/calendar-events.js';
 import { watchStats, stats as statsState } from './modules/sysstats.js';
@@ -77,6 +77,8 @@ import { watchWellness, toggleWellness, wellness as wellnessState, reminderNow a
 import { timer as timerState, restoreTimer, applyPreset as timerPreset, toggleRunning as timerToggle, resetTimer as timerReset, setMode as timerSetMode } from './modules/timer.js';
 import StandupWindow from './modules/standup-window.js';
 import CalendarWindow from './modules/calendar-window.js';
+import GeminiKeyWindow from './modules/gemini-key-window.js';
+import CalendarSetupWindow from './modules/calendar-setup-window.js';
 import TodoWindow from './modules/todo-window.js';
 import { scheduleStandupReminder, titleForDay as standupTitle, addItem as standupAdd, removeItem as standupRemove, saveStandup as standupSave, loadStandup as standupLoad, remindNow as standupRemind, standup as standupStore } from './modules/standup.js';
 import GeminiChat from './modules/chat-window.js';
@@ -1279,6 +1281,24 @@ const calendarWin = CalendarWindow();
 App.addWindow(calendarWin);
 dyn.calendarWindow = globalThis.calendarWindow;
 dyn.calendarWinWidget = calendarWin;
+
+// Setup API key Gemini (dibuka dari halaman Pengaturan).
+const geminiKeyWin = GeminiKeyWindow();
+App.addWindow(geminiKeyWin);
+dyn.geminiKeyWindow = globalThis.geminiKeyWindow;
+dyn.geminiKeyWinWidget = geminiKeyWin;
+
+// Setup feed kalender + tutorial Google Calendar (halaman Pengaturan).
+const calendarSetupWin = CalendarSetupWindow({
+    configDir: GLib.get_user_config_dir() + '/dynamic-iland',
+    readUrl: feedUrl,
+    saveUrl: saveFeedUrl,
+    clearUrl: clearFeedUrl,
+    refreshCalendar,
+});
+App.addWindow(calendarSetupWin);
+dyn.calendarSetupWindow = globalThis.calendarSetupWindow;
+dyn.calendarSetupWinWidget = calendarSetupWin;
 
 // Editor tugas: form Create/Update (keymode exclusive), dibuka dari halaman todo.
 const todoWin = TodoWindow();

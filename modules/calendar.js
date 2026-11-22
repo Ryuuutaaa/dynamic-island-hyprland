@@ -2,6 +2,7 @@ import GLib from 'gi://GLib';
 import Variable from 'resource:///com/github/Aylur/ags/variable.js';
 import * as Utils from 'resource:///com/github/Aylur/ags/utils.js';
 import CONFIG from '../config.js';
+import { readSecret, writeSecret, removeSecret } from './secret-file.js';
 
 // Kalender: satu URL iCal (Google/Outlook "secret address", atau file lokal).
 // Parser minimal tapi cukup untuk VEVENT: DTSTART/DTEND/SUMMARY, tanggal
@@ -21,18 +22,63 @@ export const calendar = Variable({ events: [], next: null, updatedAt: 0, error: 
 
 const cfg = () => CONFIG.calendar ?? {};
 const LOCAL_URL = `${GLib.get_user_config_dir()}/dynamic-iland/calendar.url`;
-const localSource = () => {
-    try {
-        const [ok, bytes] = GLib.file_get_contents(LOCAL_URL);
-        if (!ok) return '';
-        return new TextDecoder().decode(bytes).trim();
-    } catch (_) {
-        return '';
-    }
-};
+const localSource = () => readSecret(LOCAL_URL);
 // URL secret pribadi tidak boleh masuk repo; file lokal (mode 600)
 // menang atas config.js.
 const source = () => localSource() || String(cfg().icsUrl ?? '').trim();
+
+export const feedUrl = () => source();
+export const feedPath = () => LOCAL_URL;
+
+export function saveFeedUrl(url) {
+    const value = String(url ?? '').trim();
+    if (!value) return { ok: false, error: 'URL kosong.' };
+    if (!/^(https?:\/\/|\/)/i.test(value))
+        return { ok: false, error: 'URL harus http(s):// atau path file.' };
+    try {
+        writeSecret(LOCAL_URL, `${value}\n`);
+        return { ok: true };
+    } catch (error) {
+        return { ok: false, error: String(error?.message ?? error) };
+    }
+}
+
+export function clearFeedUrl() {
+    try {
+        removeSecret(LOCAL_URL);
+        return { ok: true };
+    } catch (error) {
+        return { ok: false, error: String(error?.message ?? error) };
+    }
+}
+
+// Validasi URL feed sebelum disimpan: harus bisa diambil DAN isinya ICS.
+// Tanpa cek isi, URL salah (Google mengembalikan halaman 404 HTML) akan
+// tersimpan dan feed tampak "kosong" tanpa penjelasan.
+export async function validateFeedUrl(url) {
+    const target = String(url ?? '').trim();
+    if (!target) return { ok: false, error: 'URL kosong.' };
+    const isFile = target.startsWith('/');
+    if (!isFile && !/^https?:\/\//i.test(target))
+        return { ok: false, error: 'URL harus diawali https:// (atau path file .ics).' };
+    try {
+        const args = isFile
+            ? ['cat', target]
+            : ['curl', '-fsS', '-L', '--connect-timeout', '6', '--max-time', '25', target];
+        const raw = await Utils.execAsync(args);
+        if (!/BEGIN:VCALENDAR/i.test(String(raw)))
+            return { ok: false, error: 'Isi URL bukan kalender ICS (BEGIN:VCALENDAR tidak ada).' };
+        const events = (String(raw).match(/BEGIN:VEVENT/g) ?? []).length;
+        return { ok: true, size: String(raw).length, events };
+    } catch (error) {
+        const text = String(error?.message ?? error);
+        if (/404|Not Found/i.test(text))
+            return { ok: false, error: 'URL tidak ditemukan (404). Pastikan alamat iCal disalin utuh.' };
+        if (/403|Forbidden/i.test(text))
+            return { ok: false, error: 'Akses ditolak (403). Pastikan pakai "Secret address", bukan URL biasa.' };
+        return { ok: false, error: text.replace(/\s+/g, ' ').trim() || 'Gagal mengambil URL.' };
+    }
+}
 
 const readCache = () => {
     try {

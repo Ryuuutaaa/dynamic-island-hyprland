@@ -388,11 +388,12 @@ hl.define_submap("island", function()
   hl.bind("escape", hl.dsp.exec_cmd([[sh -c 'hyprctl dispatch "hl.dsp.submap(\"reset\")"; ags -r "globalThis.dynIsland.closeIsland()"']]), { description = "island: close" })
 end)
 
--- Submap `chat`: hanya aktif selama jendela chat Gemini terbuka. Menangkap
--- Escape di level compositor supaya penutupan tidak bergantung pada fokus
--- keyboard GTK (layer-shell). Tombol lain tetap diteruskan ke Entry.
+-- Submap `chat`: aktif selama jendela Gemini (chat, setup API key, setup
+-- kalender) terbuka. Escape ditangani di level compositor supaya penutupan
+-- tidak bergantung pada fokus keyboard GTK (layer-shell). Tombol lain tetap
+-- diteruskan ke Entry.
 hl.define_submap("chat", function()
-  hl.bind("escape", hl.dsp.exec_cmd([[sh -c 'ags -r "globalThis.geminiChat.close()"']]), { description = "tutup Gemini chat" })
+  hl.bind("escape", hl.dsp.exec_cmd([[sh -c 'hyprctl dispatch "hl.dsp.submap(\\"reset\\")"; ags -r "globalThis.closeSetupWindows()"']]), { description = "tutup jendela setup/chat" })
 end)
 -- dyn-island-kbd: end
 KEYS_LUA
