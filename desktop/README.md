@@ -109,6 +109,61 @@ kontrol yang tidak tersedia, bukan menampilkan tombol mati.
 - API key Gemini disimpan terenkripsi lewat `safeStorage` bila tersedia;
   fallback file `0600`.
 
+## Build & distribusi
+
+`electron-builder` sudah dikonfigurasi untuk ketiga OS.
+
+```bash
+pnpm install
+
+pnpm dist:linux   # AppImage + .deb  (diuji)
+pnpm dist:win     # NSIS installer .exe (belum diuji di Windows)
+pnpm dist:mac     # .dmg arm64 + x64  (belum diuji di macOS)
+pnpm pack         # hanya folder hasil unpack, untuk inspeksi cepat
+```
+
+Hasil ada di `desktop/release/` (diabaikan git).
+
+### Yang sudah diverifikasi di Linux
+
+```bash
+pnpm dist:linux
+```
+
+| Berkas | Ukuran |
+|---|---|
+| `release/Dynamic Island-0.1.0.AppImage` | 120 MB |
+| `release/dynamic-island-desktop_0.1.0_amd64.deb` | 97 MB |
+
+AppImage dijalankan dan diverifikasi lewat Chrome DevTools Protocol — bukan
+hanya "window muncul":
+
+```
+pages   : idle, prayer, calendar, stats, chat, settings
+platform: linux-x64
+battery : 99%, tidak mengisi
+prayer  : Subuh 04:25, Dzuhur 12:06, Ashar 15:29, Magrib 18:22, Isya 19:38
+```
+
+Isi `app.asar` juga diperiksa: 13 berkas sumber ikut terpaket (`src/main/*`,
+`src/renderer/*`, ikon).
+
+Isi `.deb` diverifikasi: ikon terpasang di
+`/usr/share/icons/hicolor/1024x1024/apps/dynamic-island.png`, entri
+`/usr/share/applications/dynamic-island.desktop` valid dengan
+`StartupWMClass=Dynamic Island`.
+
+### Catatan build
+
+- `author.email` **wajib** untuk target `.deb` (maintainer paket). Kalau
+  diganti, ubah juga di `package.json`.
+- `linux.executableName` menentukan nama biner dan WM_CLASS; `syncDesktopName`
+  dipakai supaya window terkait ke entri launcher.
+- Untuk menjalankan AppImage di sistem dengan AppArmor ketat:
+  `APPIMAGE_EXTRACT_AND_RUN=1 ./Dynamic\ Island-0.1.0.AppImage --no-sandbox`.
+- Build Windows dan macOS **belum dijalankan di mesin aslinya**. Konfigurasi
+  mengikuti skema `electron-builder` 26.18, tapi belum ada bukti runtime.
+
 ## Status
 
 Yang sudah berjalan dan diverifikasi di Linux (Hyprland + Wayland):
@@ -118,6 +173,7 @@ Yang sudah berjalan dan diverifikasi di Linux (Hyprland + Wayland):
 - Halaman: Ringkasan, Sholat, Kalender, Statistik, Chat, Pengaturan.
 - `lib/core.js` terverifikasi identik dengan versi AGS untuk waktu sholat,
   parsing iCal, dan pemilihan model.
+- Paket AppImage berjalan dan renderer-nya hidup (CDP).
 
 Belum sempurna:
 
@@ -125,3 +181,4 @@ Belum sempurna:
 - Window Electron mengambil fokus keyboard saat diklik; tidak ada `keymode: none`.
 - Uji visual halaman sempat tidak sinkron karena dua proses main berjalan
   bersamaan; jalankan satu instance saat menguji.
+- Build Windows/macOS belum diuji runtime.

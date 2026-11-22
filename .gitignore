@@ -28,3 +28,4 @@ calendar.url
 # Electron (jalur A: versi lintas OS)
 desktop/node_modules/
 desktop/.pnpm-store/
+desktop/release/

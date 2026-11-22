@@ -3,15 +3,95 @@
   "version": "0.1.0",
   "private": true,
   "description": "Dynamic island lintas OS (Linux/Windows/macOS) berbasis Electron",
+  "author": {
+    "name": "Ryuuutaaa",
+    "email": "ryuuutaaa@users.noreply.github.com"
+  },
+  "license": "MIT",
+  "homepage": "https://github.com/Ryuuutaaa/dynamic-island-hyprland",
   "main": "src/main/index.js",
   "scripts": {
     "start": "electron .",
-    "start:dev": "electron . --dev"
+    "start:linux": "electron . --no-sandbox",
+    "pack": "electron-builder --dir",
+    "dist": "electron-builder",
+    "dist:linux": "electron-builder --linux",
+    "dist:win": "electron-builder --win",
+    "dist:mac": "electron-builder --mac"
   },
   "allowScripts": {
     "electron": true
   },
   "devDependencies": {
-    "electron": "^45.4.1"
+    "electron": "^45.4.1",
+    "electron-builder": "^26.0.12"
+  },
+  "build": {
+    "appId": "com.ryuuutaaa.dynamicisland",
+    "productName": "Dynamic Island",
+    "copyright": "Copyright \u00a9 2026 Ryuuutaaa",
+    "directories": {
+      "output": "release",
+      "buildResources": "build"
+    },
+    "files": [
+      "src/**/*",
+      "build/icon.png",
+      "!**/*.map"
+    ],
+    "extraMetadata": {
+      "main": "src/main/index.js"
+    },
+    "linux": {
+      "target": [
+        "AppImage",
+        "deb"
+      ],
+      "category": "Utility",
+      "icon": "build/icon.png",
+      "synopsis": "Dynamic island untuk desktop Linux",
+      "description": "Notch di tengah atas layar: jam, jadwal sholat, kalender, dan chat Gemini.",
+      "desktop": {
+        "entry": {
+          "Name": "Dynamic Island",
+          "Comment": "Dynamic island untuk desktop",
+          "StartupWMClass": "Dynamic Island"
+        }
+      },
+      "syncDesktopName": true,
+      "executableName": "dynamic-island"
+    },
+    "win": {
+      "target": [
+        {
+          "target": "nsis",
+          "arch": [
+            "x64"
+          ]
+        }
+      ],
+      "icon": "build/icon.png"
+    },
+    "nsis": {
+      "oneClick": false,
+      "perMachine": false,
+      "allowToChangeInstallationDirectory": true,
+      "createDesktopShortcut": true,
+      "shortcutName": "Dynamic Island"
+    },
+    "mac": {
+      "target": [
+        {
+          "target": "dmg",
+          "arch": [
+            "arm64",
+            "x64"
+          ]
+        }
+      ],
+      "icon": "build/icon.png",
+      "category": "public.app-category.utilities",
+      "darkModeSupport": true
+    }
   }
 }
