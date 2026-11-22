@@ -6,6 +6,7 @@ import Widget from 'resource:///com/github/Aylur/ags/widget.js';
 import * as Utils from 'resource:///com/github/Aylur/ags/utils.js';
 import CONFIG from '../config.js';
 import { applyFocused } from './monitor.js';
+import { eventKeyval } from './pointer.js';
 import { chat, send, retry, clearChat, hasKey, keyHelp } from './chat.js';
 
 const WIN_W = 560;
@@ -425,7 +426,7 @@ export default () => {
     });
 
     const onKey = (_w, ev) => {
-        if (ev.get_keyval() === Gdk.KEY_Escape) {
+        if (eventKeyval(ev) === Gdk.KEY_Escape) {
             close();
             return true;
         }

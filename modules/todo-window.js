@@ -5,6 +5,7 @@ import App from 'resource:///com/github/Aylur/ags/app.js';
 import Widget from 'resource:///com/github/Aylur/ags/widget.js';
 import * as Utils from 'resource:///com/github/Aylur/ags/utils.js';
 import { applyFocused } from './monitor.js';
+import { eventKeyval } from './pointer.js';
 import { addTaskWithDue, updateTask, normalizeDue } from './todo.js';
 
 const NAME = 'dyn-island-todo-editor';
@@ -182,7 +183,7 @@ export default () => {
     }
 
     const onKey = (_widget, event) => {
-        if (event.get_keyval() !== Gdk.KEY_Escape) return false;
+        if (eventKeyval(event) !== Gdk.KEY_Escape) return false;
         close();
         return true;
     };

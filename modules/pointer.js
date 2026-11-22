@@ -26,6 +26,19 @@ export const eventY = event => {
     return typeof event.y === 'number' ? event.y : 0;
 };
 
+// Sama seperti get_button()/get_coords(): get_keyval() mengembalikan
+// [ok, keyval], BUKAN angka. Perbandingan langsung dengan Gdk.KEY_Escape
+// selalu false karena array !== number — akibatnya Escape tidak pernah
+// menutup window editor (terukur: handler terpanggil 1x, window tetap terbuka).
+export const eventKeyval = event => {
+    try {
+        const result = event.get_keyval?.();
+        if (Array.isArray(result)) return result[0] ? result[1] : 0;
+        if (typeof result === 'number') return result;
+    } catch (_) { }
+    return 0;
+};
+
 // Koordinat root tidak ikut bergeser saat kartu digeser; dipakai untuk
 // gesture drag supaya ambang 60px mengukur gerakan pointer, bukan gerakan
 // kartu yang mengikuti pointer.

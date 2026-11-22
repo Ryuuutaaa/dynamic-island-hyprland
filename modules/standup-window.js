@@ -5,6 +5,7 @@ import App from 'resource:///com/github/Aylur/ags/app.js';
 import Widget from 'resource:///com/github/Aylur/ags/widget.js';
 import * as Utils from 'resource:///com/github/Aylur/ags/utils.js';
 import { applyFocused } from './monitor.js';
+import { eventKeyval } from './pointer.js';
 import {
     addItem, BLOCKER_TITLE, loadStandup, removeItem, saveStandup, standup, TODAY_TITLE,
 } from './standup.js';
@@ -241,7 +242,7 @@ export default () => {
     };
 
     const onKey = (_widget, event) => {
-        if (event.get_keyval() === Gdk.KEY_Escape) {
+        if (eventKeyval(event) === Gdk.KEY_Escape) {
             close();
             return true;
         }

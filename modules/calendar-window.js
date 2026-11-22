@@ -6,6 +6,7 @@ import Widget from 'resource:///com/github/Aylur/ags/widget.js';
 import * as Utils from 'resource:///com/github/Aylur/ags/utils.js';
 import CONFIG from '../config.js';
 import { applyFocused } from './monitor.js';
+import { eventKeyval } from './pointer.js';
 import { calendar } from './calendar.js';
 import { calendarNotes, addNote, updateNote, removeNote, isoDay, normalizeTime } from './calendar-notes.js';
 import { calendarEvents, addEvent, updateEvent, removeEvent } from './calendar-events.js';
@@ -626,7 +627,7 @@ export default () => {
     }
 
     const onKey = (_widget, event) => {
-        if (event.get_keyval() !== Gdk.KEY_Escape) return false;
+        if (eventKeyval(event) !== Gdk.KEY_Escape) return false;
         if (deleting) {
             deleting = null;
             render();
