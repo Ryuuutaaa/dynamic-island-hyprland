@@ -58,7 +58,9 @@ measure_nav() {
 prep() {
     # hyprctl dispatch movecursor sudah mati di Hyprland 0.57; pakai uinput
     python3 "$CLICK" move "$CX" "$OUT_Y" 150 >/dev/null 2>&1
-    timeout 15 ags -r "await new Promise(r=>setTimeout(r,10)); const d=globalThis.dynIsland; d.hovered.value=false; d.pinPage('$1',{sticky:true}); await new Promise(r=>setTimeout(r,350)); return d.page.value" >/dev/null 2>&1
+    # mediaView WAJIB direset: kalau run sebelumnya berakhir di lirik,
+    # geometri 520 membuat posisi nav bergeser dan semua klik meleset.
+    timeout 15 ags -r "await new Promise(r=>setTimeout(r,10)); const d=globalThis.dynIsland; d.hovered.value=false; d.mediaView.value='main'; d.pinPage('$1',{sticky:true}); await new Promise(r=>setTimeout(r,350)); return d.page.value" >/dev/null 2>&1
     sleep 0.15
 }
 
@@ -109,26 +111,29 @@ echo "== ukur posisi nav =="
 measure_nav
 echo
 echo "== klik tunggal =="
-check_single "media next -> pomodoro"   media    "Halaman berikutnya" pomodoro
-check_single "pomodoro next -> water"   pomodoro "Halaman berikutnya" water
+check_single "media next -> weather"    media    "Halaman berikutnya" weather
+check_single "weather next -> calendar" weather  "Halaman berikutnya" calendar
 check_single "media prev -> idle"       media    "Halaman sebelumnya" idle
-check_single "shelf next -> bluetooth"  shelf    "Halaman berikutnya" bluetooth
-check_single "bluetooth next -> prayer" bluetooth "Halaman berikutnya" prayer
 check_single "prayer next -> chat"      prayer   "Halaman berikutnya" chat
-check_single "chat next -> idle"        chat     "Halaman berikutnya" idle
+check_single "chat next -> settings"    chat     "Halaman berikutnya" settings
+check_single "settings next -> idle"    settings "Halaman berikutnya" idle
 
 echo
 echo "== dua klik cepat (geser 6px) =="
-check_rapid "media 2x next -> water"    media    "Halaman berikutnya" water
-check_rapid "pomodoro 2x next -> todo"  pomodoro "Halaman berikutnya" todo
-check_rapid "water 2x next -> shelf"    water    "Halaman berikutnya" shelf
+check_rapid "media 2x next -> calendar"   media    "Halaman berikutnya" calendar
+check_rapid "pomodoro 2x next -> stats"   pomodoro "Halaman berikutnya" stats
+check_rapid "water 2x next -> standup"    water    "Halaman berikutnya" standup
 
 echo
-echo "== klik dots (harus tidak navigasi) =="
+echo "== klik tab strip (tab memang navigasi: harus pindah halaman) =="
 prep media
 out=$(python3 "$CLICK" flow2 "$CX" "$TOP" "$CX" $((CX + 2)) "$NY" 150 450 2>&1)
 got=$(page_of "$out" 'akhir')
-[[ "$got" == "media" ]] && echo "  ok (tetap media)" || echo "  x  berubah jadi ${got:-?}"
+if [[ -n "$got" && "$got" != "media" ]]; then
+    echo "  ok (tab aktif -> ${got})"
+else
+    echo "  x  tab tidak berpindah halaman (tetap ${got:-?})"
+fi
 
 echo
 echo "== lirik = sub-tampilan media =="
@@ -142,7 +147,13 @@ if [[ -n "$POS" ]]; then
     python3 "$CLICK" click "$((LX + bx))" "$((MY + by))" 70 400 >/dev/null 2>&1
     sleep 1.0
     echo "  buka lirik: $(timeout 15 ags -r "await new Promise(r=>setTimeout(r,10)); const d=globalThis.dynIsland; return 'page='+d.page.value+' view='+d.mediaView.value+' geo='+Math.round(d.geo.w)+'x'+Math.round(d.geo.h)+' nav='+d.nav.visible" 2>/dev/null | tail -1)"
-    python3 "$CLICK" flow "$CX" "$TOP" "$CX_L" "$NY" 450 70 >/dev/null 2>&1
+    # panah kiri diukur ulang: kartu lirik lebih lebar, posisi nav bergeser
+    g=$(ARROW_AT "Halaman sebelumnya")
+    if [[ -n "$g" ]]; then
+        python3 "$CLICK" click "${g% *}" "${g#* }" 30 40 >/dev/null 2>&1
+    else
+        python3 "$CLICK" flow "$CX" "$TOP" "$CX_L" "$NY" 450 70 >/dev/null 2>&1
+    fi
     sleep 0.6
     echo "  panah kiri: $(timeout 15 ags -r "await new Promise(r=>setTimeout(r,10)); const d=globalThis.dynIsland; return 'page='+d.page.value+' view='+d.mediaView.value+' geo='+Math.round(d.geo.w)" 2>/dev/null | tail -1)"
 else

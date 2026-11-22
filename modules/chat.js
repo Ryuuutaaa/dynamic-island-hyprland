@@ -109,9 +109,11 @@ const removeFile = path => {
     } catch (_) { }
 };
 
+const DEFAULT_MODEL = 'gemini-3.5-flash-lite';
+
 const modelName = () => {
-    const model = String(CONFIG.chat?.model ?? 'gemini-3.8-flash');
-    return /^[A-Za-z0-9._-]+$/.test(model) ? model : 'gemini-3.8-flash';
+    const model = String(CONFIG.chat?.model ?? DEFAULT_MODEL);
+    return /^[A-Za-z0-9._-]+$/.test(model) ? model : DEFAULT_MODEL;
 };
 
 const endpoint = () => {

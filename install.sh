@@ -387,6 +387,13 @@ hl.define_submap("island", function()
   hl.bind("right", hl.dsp.exec_cmd([[ags -r "globalThis.dynIsland.navKey(1)"]]), { description = "island: next" })
   hl.bind("escape", hl.dsp.exec_cmd([[sh -c 'hyprctl dispatch "hl.dsp.submap(\"reset\")"; ags -r "globalThis.dynIsland.closeIsland()"']]), { description = "island: close" })
 end)
+
+-- Submap `chat`: hanya aktif selama jendela chat Gemini terbuka. Menangkap
+-- Escape di level compositor supaya penutupan tidak bergantung pada fokus
+-- keyboard GTK (layer-shell). Tombol lain tetap diteruskan ke Entry.
+hl.define_submap("chat", function()
+  hl.bind("escape", hl.dsp.exec_cmd([[sh -c 'ags -r "globalThis.geminiChat.close()"']]), { description = "tutup Gemini chat" })
+end)
 -- dyn-island-kbd: end
 KEYS_LUA
 }
@@ -409,7 +416,8 @@ KEYS
 
 if [[ -f "$HYPR_ENTRY_LUA" && -f "$HYPR_KEYS_LUA" ]]; then
     if grep -Eq "define_submap\\(['\"]island['\"]" "$HYPR_KEYS_LUA"; then
-        if grep -q 'hl.bind("escape".*closeIsland' "$HYPR_KEYS_LUA"; then
+        if grep -q 'hl.bind("escape".*closeIsland' "$HYPR_KEYS_LUA" \
+            && grep -Eq "define_submap\\(['\"]chat['\"]" "$HYPR_KEYS_LUA"; then
             echo "•  keybind panah sudah ada (UserKeybinds.lua)"
         else
             note "memperbarui escape submap island (tutup island + reset)"
