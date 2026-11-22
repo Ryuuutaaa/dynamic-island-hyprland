@@ -1187,9 +1187,47 @@ dengan peringatan, bukan diam-diam menjadikan semua aksen hitam.
 ## Instalasi
 
 ```bash
-./install.sh     # symlink + patch config.js + patch CSS waybar + restart
+./install.sh     # cek prasyarat + symlink + patch config.js + patch CSS waybar + restart
+./install.sh -n  # dry-run: cetak langkahnya, tidak mengubah apa pun
 ./uninstall.sh   # membatalkan semuanya
 ```
+
+### Prasyarat
+
+`install.sh` memeriksa prasyarat **sebelum menyentuh berkas apa pun**. Kalau
+yang wajib tidak ada, installer berhenti dengan kode keluar `1` dan pesan
+petunjuk — tidak ada config yang ditambal setengah jalan.
+
+| Tingkat | Yang diperiksa | Tanpa ini |
+|---|---|---|
+| **WAJIB** | `ags` **v1.x** (v2 ditolak), `hyprctl`, `awk`, `sed`, `grep`, `mktemp`, `cmp`, `readlink` | instalasi dibatalkan |
+| **OPSIONAL** | `python3`, `jq`, `notify-send`, `rofi`, `curl`, `grim`, `brightnessctl`, `nmcli`, `swaync-client`, `paplay`, `waybar` | island tetap jalan, fitur terkait berkurang |
+
+AGS v2 sengaja ditolak: proyek ini memakai API `resource:///com/github/Aylur/ags/*`
+yang dihapus di v2, sehingga config tidak akan dimuat sama sekali. Pesan
+errornya menyebutkan versi yang terpasang.
+
+Makna "opsional" per fitur:
+
+| Tanpa | Yang hilang |
+|---|---|
+| `rofi` | input teks chat Gemini di island |
+| `curl` | chat Gemini, feed kalender, lirik LRCLIB |
+| `notify-send` | notifikasi timer/pomodoro/pengingat |
+| `brightnessctl` | OSD kecerahan |
+| `nmcli` | halaman Wi-Fi |
+| `grim` | tombol tangkapan layar |
+| `swaync-client` | kontrol panel notifikasi |
+| `paplay` | bunyi timer/pomodoro |
+| `waybar` | bar atas yang tingginya disamakan dengan notch |
+| `python3` | penyesuaian panel swaync |
+
+### Cakupan platform
+
+Proyek ini **hanya untuk Linux + Hyprland**. `install.sh` bergantung pada
+`hyprctl` (16 pemanggilan), waybar, swaync, dan gtk-layer-shell — semuanya
+tidak ada di Windows/macOS, dan `hyprctl` tidak ada di compositor Wayland lain
+(Sway, river, niri) maupun X11.
 
 `install.sh` idempoten dan **harus dijalankan ulang setiap ganti theme
 waybar** (penyeimbang tinggi bar ada di CSS theme itu). Integrasi ke AGS

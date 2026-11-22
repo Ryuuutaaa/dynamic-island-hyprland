@@ -15,6 +15,13 @@ Pemakaian: ./install.sh [opsi]
   -n, --dry-run   cetak langkah yang akan dijalankan tanpa mengubah apa pun
   -h, --help      tampilkan bantuan ini
 
+Prasyarat (diperiksa sebelum file apa pun diubah):
+  WAJIB    AGS v1.x (bukan v2), Hyprland (hyprctl), awk, sed, grep, mktemp,
+           cmp, readlink
+  OPSIONAL python3, jq, notify-send, rofi, curl, grim, brightnessctl,
+           nmcli, swaync-client, paplay, waybar
+  Tanpa prasyarat wajib, installer berhenti dan tidak menyentuh config.
+
 Yang diubah saat mode normal:
   1. symlink ~/.config/ags/dynamic-iland -> folder proyek ini
   2. satu baris import di ~/.config/ags/config.js (dengan backup .dyn-island.bak)
@@ -56,6 +63,127 @@ note() {
     (( DRY_RUN )) && printf '   [dry-run] %s\n' "$*"
     return 0
 }
+
+# ── prasyarat ───────────────────────────────────────────────────────────
+# Diperiksa SEBELUM file apa pun diubah. Tanpa ini, installer menambal
+# config.js/CSS lalu gagal diam-diam di mesin yang tidak memenuhi syarat.
+#
+# Dua tingkat:
+#   wajib    -> tidak ada = berhenti (island tidak mungkin jalan)
+#   opsional -> tidak ada = peringatan (fitur tertentu berkurang)
+
+command_exists() {
+    command -v "$1" >/dev/null 2>&1
+}
+
+MISSING_REQUIRED=()
+MISSING_OPTIONAL=()
+
+require_cmd() {   # $1 = perintah, $2 = penjelasan
+    command_exists "$1" || MISSING_REQUIRED+=("$1|$2")
+}
+
+optional_cmd() {  # $1 = perintah, $2 = penjelasan
+    command_exists "$1" || MISSING_OPTIONAL+=("$1|$2")
+}
+
+# AGS WAJIB v1. AGS v2 mengubah struktur API (resource:///com/github/Aylur/ags/*
+# dihapus), jadi config ini tidak akan dimuat sama sekali.
+#
+# Versi dibaca tanpa `head`/`tr`: kedua utilitas itu tidak selalu ada di PATH
+# minimal, dan sebelumnya membuat cek ini gagal dengan pesan membingungkan.
+AGS_VERSION=""
+AGS_MAJOR=""
+if command_exists ags; then
+    AGS_VERSION="$(ags --version 2>/dev/null | while IFS= read -r line; do printf '%s' "$line"; break; done)"
+    AGS_VERSION="${AGS_VERSION//[[:space:]]/}"
+    AGS_MAJOR="${AGS_VERSION%%.*}"
+    if [[ "$AGS_MAJOR" =~ ^[0-9]+$ ]] && (( AGS_MAJOR >= 2 )); then
+        MISSING_REQUIRED+=("ags-v1|AGS terpasang versi ${AGS_VERSION}, proyek ini butuh AGS v1.x (API resource:///com/github/Aylur/ags/* dihapus di v2)")
+    fi
+else
+    MISSING_REQUIRED+=("ags|AGS (Aylur's GTK Shell) tidak ditemukan di PATH")
+fi
+
+# Compositor: 16 pemanggilan hyprctl (submap keyboard, monitor, fokus).
+require_cmd hyprctl "Hyprland (hyprctl) — submap keyboard & pemetaan monitor"
+
+# Layer shell adalah inti tampilan notch. AGS sendiri sudah menautkan
+# gtk-layer-shell saat dibangun, jadi kalau AGS jalan, layer shell pasti ada.
+# Pemeriksaan ini hanya cadangan saat AGS belum terpasang: tanpa header
+# layer-shell, AGS juga tidak akan bisa dibangun.
+if ! command_exists hyprctl && command_exists pkg-config \
+    && ! pkg-config --exists gtk-layer-shell-0 2>/dev/null \
+    && ! ls /usr/include/gtk-layer-shell/gtk-layer-shell.h >/dev/null 2>&1 \
+    && ! ls /usr/local/include/gtk-layer-shell/gtk-layer-shell.h >/dev/null 2>&1; then
+    MISSING_OPTIONAL+=("gtk-layer-shell|gtk-layer-shell (dev/header) — dibutuhkan untuk membangun AGS v1")
+fi
+
+# Utilitas dasar yang dipakai installer sendiri.
+require_cmd awk "awk — menambal berkas config"
+require_cmd sed "sed — menambal berkas config"
+require_cmd grep "grep — memeriksa apakah config sudah dipatch"
+require_cmd mktemp "mktemp — berkas sementara"
+require_cmd cmp "cmp — membandingkan berkas"
+require_cmd readlink "readlink — menemukan theme waybar aktif"
+
+# Opsional: fitur berkurang tanpa ini, island tetap tampil.
+optional_cmd python3 "python3 — panel swaync & pengaturan tertentu"
+optional_cmd jq "jq — ringkasan geometri di akhir instalasi"
+optional_cmd notify-send "notify-send — notifikasi timer/pengingat"
+optional_cmd rofi "rofi — input teks chat Gemini di island"
+optional_cmd curl "curl — chat Gemini & feed kalender"
+optional_cmd grim "grim — tangkapan layar (tombol screenshot)"
+optional_cmd brightnessctl "brightnessctl — OSD kecerahan"
+optional_cmd nmcli "nmcli — halaman Wi-Fi"
+optional_cmd swaync-client "swaync-client — kontrol panel notifikasi"
+optional_cmd paplay "paplay — bunyi timer/pomodoro"
+
+# Waybar menempel di atas layar bersama notch; tanpa waybar tetap jalan.
+if [[ -z "$WAYBAR_STYLE" || ! -f "$WAYBAR_STYLE" ]]; then
+    MISSING_OPTIONAL+=("waybar|waybar — bar atas yang tingginya disamakan dengan notch")
+fi
+
+report_prerequisites() {
+    if (( ${#MISSING_REQUIRED[@]} == 0 && ${#MISSING_OPTIONAL[@]} == 0 )); then
+        echo "•  semua prasyarat terpenuhi"
+        return 0
+    fi
+
+    if (( ${#MISSING_REQUIRED[@]} > 0 )); then
+        echo
+        echo "x  prasyarat WAJIB belum terpenuhi:" >&2
+        for item in "${MISSING_REQUIRED[@]}"; do
+            echo "     - ${item#*|}" >&2
+        done
+        echo >&2
+        echo "   Petunjuk pemasangan:" >&2
+        echo "     AGS v1  : https://aylur.github.io/ags-docs/config/installation/" >&2
+        echo "     Hyprland: https://wiki.hypr.land/Getting-Started/Installation/" >&2
+        echo "     Ubuntu  : sudo apt install libgtk-layer-shell-dev libgjs-dev gjs" >&2
+        echo >&2
+        return 1
+    fi
+
+    if (( ${#MISSING_OPTIONAL[@]} > 0 )); then
+        echo
+        echo "!  prasyarat opsional belum ada (island tetap jalan, fitur berkurang):"
+        for item in "${MISSING_OPTIONAL[@]}"; do
+            echo "     - ${item#*|}"
+        done
+    fi
+    return 0
+}
+
+if ! report_prerequisites; then
+    if (( DRY_RUN )); then
+        echo
+        echo "x  dry-run dihentikan: prasyarat wajib tidak terpenuhi (tidak ada file diubah)." >&2
+    else
+        echo "x  instalasi dibatalkan: prasyarat wajib tidak terpenuhi (tidak ada file diubah)." >&2
+    fi
+    exit 1
+fi
 
 (( DRY_RUN )) && echo "== MODE DRY-RUN: tidak ada file/proses yang diubah ==" && echo
 
