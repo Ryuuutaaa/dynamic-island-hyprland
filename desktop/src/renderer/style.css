@@ -1,0 +1,376 @@
+// Tampilan notch. Bentuk mengikuti versi GTK: badan hitam opaque, hanya sudut
+// bawah melengkung, dengan "telinga" konkaf di kiri/kanan supaya menyatu ke
+// tepi atas layar. Semua animasi memakai CSS transition (GPU) — tidak ada
+// request ukuran per frame seperti versi GTK.
+
+:root {
+    --accessory: #0b0003;
+    --fg: #efefef;
+    --muted: #8c878a;
+    --accent: #bab4b8;
+    --accent-soft: rgba(186, 180, 184, 0.18);
+    --surface: rgba(186, 180, 184, 0.12);
+    --surface-hover: rgba(186, 180, 184, 0.22);
+    --ok: #3ad17a;
+    --danger: #ff8f8f;
+    --ease: cubic-bezier(0.34, 1.32, 0.5, 1);
+
+    /* Ukuran notch: JS memperbarui variabel ini saat state berubah. */
+    --notch-w: 150px;
+    --notch-h: 50px;
+    --ear: 10px;
+    --radius: 16px;
+    --duration: 620ms;
+}
+
+* {
+    box-sizing: border-box;
+}
+
+html,
+body {
+    margin: 0;
+    padding: 0;
+    width: 100%;
+    height: 100%;
+    background: transparent;
+    overflow: hidden;
+    /* Tidak ada seleksi teks di luasan notch: klik harus terasa seperti panel. */
+    user-select: none;
+    font-family: "Ubuntu", "Segoe UI", "Helvetica Neue", "Noto Sans", sans-serif;
+    color: var(--fg);
+}
+
+body {
+    display: flex;
+    justify-content: center;
+    align-items: flex-start;
+    /* Surface jendela lebih besar dari notch (lihat main/index.js); notch
+       dipusatkan di tengah-atas. */
+    padding-top: 0;
+}
+
+.island {
+    display: flex;
+    align-items: flex-start;
+    justify-items: center;
+    width: max-content;
+    margin: 0 auto;
+    /* Seluruh area island menerima mouse supaya hover/hover-out konsisten. */
+    -webkit-app-region: no-drag;
+}
+
+/* Telinga: kurva konkaf. Dibuat dengan border-radius besar pada sisi dalam. */
+.ear {
+    width: var(--ear);
+    height: var(--ear);
+    background: var(--accessory);
+    flex: 0 0 auto;
+    transition: width var(--duration) var(--ease), height var(--duration) var(--ease);
+}
+
+.ear.left {
+    border-bottom-right-radius: 100% 100%;
+    /* Memberi kesan notch "masuk" ke bezel: hanya sisi dalam yang melengkung. */
+    clip-path: path("M 0 0 L var(--ear) 0 A var(--ear) var(--ear) 0 0 1 0 var(--ear) Z");
+}
+
+.ear.right {
+    border-bottom-left-radius: 100% 100%;
+}
+
+.notch {
+    position: relative;
+    width: var(--notch-w);
+    height: var(--notch-h);
+    background: var(--accessory);
+    border-radius: 0 0 var(--radius) var(--radius);
+    padding: 3px 16px;
+    overflow: hidden;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition:
+        width var(--duration) var(--ease),
+        height var(--duration) var(--ease),
+        border-radius var(--duration) var(--ease);
+}
+
+/* ── state tertutup ─────────────────────────────────────────────── */
+.content {
+    width: 100%;
+    height: 100%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.expanded-view {
+    display: none;
+    flex-direction: column;
+    align-items: stretch;
+    justify-content: flex-start;
+    gap: 4px;
+}
+
+.island.expanded .closed-view { display: none; }
+.island.expanded .expanded-view { display: flex; }
+
+/* ── closed view ────────────────────────────────────────────────── */
+.closed-view {
+    gap: 8px;
+}
+
+.ring svg {
+    width: 15px;
+    height: 15px;
+    transform: rotate(-90deg);
+}
+
+.ring-track,
+.ring-value {
+    fill: none;
+    stroke-width: 2;
+}
+
+.ring-track { stroke: rgba(239, 239, 239, 0.18); }
+
+.ring-value {
+    stroke: var(--accent);
+    stroke-linecap: round;
+    /* circumference r=12.5 -> 78.54; JS mengatur dashoffset */
+    stroke-dasharray: 78.54;
+    stroke-dashoffset: 78.54;
+    transition: stroke-dashoffset 400ms ease-out, stroke 300ms linear;
+}
+
+.ring-value.charging { stroke: var(--ok); }
+
+.clock {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+    line-height: 1.05;
+}
+
+.clock .time {
+    font-size: 13px;
+    font-weight: 600;
+    letter-spacing: 0.2px;
+}
+
+.clock .date {
+    font-size: 10px;
+    color: var(--muted);
+}
+
+/* ── expanded view ──────────────────────────────────────────────── */
+.head {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    font-size: 12px;
+    padding: 0 2px;
+}
+
+.head .title {
+    font-weight: 700;
+}
+
+.head .platform {
+    font-size: 9px;
+    color: var(--muted);
+    text-transform: uppercase;
+    letter-spacing: 0.6px;
+}
+
+.page {
+    flex: 1;
+    min-height: 0;
+    overflow: auto;
+    /* Scrollbar tipis agar tidak memakan ruang notch. */
+    scrollbar-width: thin;
+    scrollbar-color: var(--surface-hover) transparent;
+}
+
+.page::-webkit-scrollbar { width: 4px; }
+.page::-webkit-scrollbar-thumb {
+    background: var(--surface-hover);
+    border-radius: 2px;
+}
+
+.nav {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 6px;
+    padding-bottom: 2px;
+    flex: 0 0 auto;
+}
+
+.nav button {
+    width: 22px;
+    height: 22px;
+    border: 0;
+    border-radius: 8px;
+    background: transparent;
+    color: var(--fg);
+    cursor: pointer;
+    display: grid;
+    place-items: center;
+    font-size: 11px;
+    transition: background 140ms ease-out;
+}
+
+.nav button:hover { background: var(--surface); }
+
+.tabs {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+}
+
+.tab {
+    width: 22px;
+    height: 22px;
+    border: 0;
+    border-radius: 8px;
+    background: transparent;
+    color: var(--muted);
+    cursor: pointer;
+    display: grid;
+    place-items: center;
+    font-size: 11px;
+    transition: background 140ms ease-out, color 140ms ease-out;
+}
+
+.tab:hover { background: var(--surface); color: var(--fg); }
+.tab.active {
+    background: var(--accent-soft);
+    color: var(--fg);
+}
+
+/* ── komponen halaman ───────────────────────────────────────────── */
+.rows {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+}
+
+.row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 8px;
+    font-size: 11px;
+    padding: 3px 6px;
+    border-radius: 7px;
+}
+
+.row .label { color: var(--fg); }
+.row .value { color: var(--muted); }
+.row .value.ok { color: var(--ok); }
+.row .value.warn { color: var(--danger); }
+
+.section {
+    font-size: 9px;
+    letter-spacing: 0.8px;
+    color: var(--muted);
+    margin: 6px 0 2px;
+    text-transform: uppercase;
+}
+
+.big-clock {
+    font-size: 40px;
+    font-weight: 700;
+    letter-spacing: 1px;
+    line-height: 1;
+}
+
+.big-date {
+    font-size: 12px;
+    color: var(--muted);
+    margin-top: 2px;
+}
+
+.prayer-grid {
+    display: grid;
+    grid-template-columns: repeat(5, 1fr);
+    gap: 4px;
+}
+
+.prayer {
+    text-align: center;
+    padding: 3px 2px;
+    border-radius: 7px;
+}
+
+.prayer .name { font-size: 9px; color: var(--muted); }
+.prayer .time { font-size: 11px; font-weight: 600; }
+.prayer.next { background: var(--accent-soft); }
+.prayer.next .name,
+.prayer.next .time { color: var(--fg); }
+
+button.pill {
+    border: 0;
+    border-radius: 9px;
+    background: var(--surface);
+    color: var(--fg);
+    font-size: 10px;
+    padding: 4px 10px;
+    cursor: pointer;
+    transition: background 140ms ease-out;
+}
+
+button.pill:hover { background: var(--surface-hover); }
+
+input.field {
+    background: var(--surface);
+    border: 1px solid var(--surface-hover);
+    border-radius: 7px;
+    color: var(--fg);
+    font-size: 11px;
+    padding: 4px 7px;
+    outline: none;
+    min-width: 0;
+}
+
+input.field:focus { border-color: var(--accent); }
+
+.chat-list {
+    display: flex;
+    flex-direction: column;
+    gap: 5px;
+    padding: 2px 0;
+}
+
+.bubble {
+    max-width: 86%;
+    padding: 4px 8px;
+    border-radius: 9px;
+    font-size: 10.5px;
+    line-height: 1.35;
+    white-space: pre-wrap;
+    word-break: break-word;
+}
+
+.bubble.user {
+    align-self: flex-end;
+    background: var(--surface-hover);
+}
+
+.bubble.model {
+    align-self: flex-start;
+    color: var(--fg);
+}
+
+.bubble.pending { color: var(--muted); font-style: italic; }
+.bubble.error { color: var(--danger); }
+
+.chat-input {
+    display: flex;
+    gap: 5px;
+    margin-top: 4px;
+}
+
+.chat-input input { flex: 1; }

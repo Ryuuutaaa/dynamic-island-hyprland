@@ -1,0 +1,17 @@
+{
+  "name": "dynamic-island-desktop",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Dynamic island lintas OS (Linux/Windows/macOS) berbasis Electron",
+  "main": "src/main/index.js",
+  "scripts": {
+    "start": "electron .",
+    "start:dev": "electron . --dev"
+  },
+  "allowScripts": {
+    "electron": true
+  },
+  "devDependencies": {
+    "electron": "^45.4.1"
+  }
+}

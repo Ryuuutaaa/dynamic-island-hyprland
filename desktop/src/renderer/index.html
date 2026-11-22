@@ -1,0 +1,45 @@
+<!doctype html>
+<html lang="id">
+<head>
+    <meta charset="utf-8">
+    <!-- CSP ketat: tidak ada eval / script eksternal. Renderer hanya memakai
+         modul lokal dan API yang diekspos preload. -->
+    <meta http-equiv="Content-Security-Policy"
+          content="default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' data:;">
+    <title>Dynamic Island</title>
+    <link rel="stylesheet" href="./style.css">
+</head>
+<body>
+    <div id="island" class="island closed" data-page="idle">
+        <!-- Telinga konkaf kiri/kanan: bagian dari bentuk notch -->
+        <div class="ear left"></div>
+
+        <div class="notch">
+            <div class="content closed-view">
+                <div class="ring" id="battery-ring" aria-hidden="true">
+                    <svg viewBox="0 0 30 30">
+                        <circle class="ring-track" cx="15" cy="15" r="12.5"></circle>
+                        <circle class="ring-value" id="ring-value" cx="15" cy="15" r="12.5"></circle>
+                    </svg>
+                </div>
+                <div class="clock">
+                    <span class="time" id="clock-time">--:--</span>
+                    <span class="date" id="clock-date"></span>
+                </div>
+            </div>
+
+            <div class="content expanded-view">
+                <header class="head">
+                    <span class="title" id="page-title">Ringkasan</span>
+                    <span class="platform" id="platform-badge"></span>
+                </header>
+                <main class="page" id="page-body"></main>
+                <footer class="nav" id="nav"></footer>
+            </div>
+        </div>
+
+        <div class="ear right"></div>
+    </div>
+    <script type="module" src="./app.js"></script>
+</body>
+</html>

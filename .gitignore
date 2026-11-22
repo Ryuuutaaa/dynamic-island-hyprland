@@ -24,3 +24,7 @@ calendar.url
 
 # OS / editor
 .DS_Store
+
+# Electron (jalur A: versi lintas OS)
+desktop/node_modules/
+desktop/.pnpm-store/
