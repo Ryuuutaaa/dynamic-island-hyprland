@@ -147,10 +147,17 @@ jobs:
           # sebenarnya (tidak ada efek saat build sukses).
           DEBUG: electron-builder
 
+      - name: Daftar hasil build
+        working-directory: desktop
+        shell: bash
+        run: |
+          echo "isi release/:"
+          ls -lh release/ 2>/dev/null || echo "  (release/ tidak ada)"
+
       - name: Unggah artefak
         uses: actions/upload-artifact@v4
         with:
           name: dynamic-island-${{ matrix.label }}
           path: ${{ matrix.artifacts }}
-          if-no-files-found: warn
+          if-no-files-found: error
           retention-days: 14
