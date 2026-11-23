@@ -90,17 +90,17 @@ jobs:
             command: pnpm exec electron-builder --linux AppImage deb --publish never
             # AppImage butuh libfuse2 di Ubuntu 24.04; fpm (deb) butuh ruby.
             setup: sudo apt-get update && sudo apt-get install -y libfuse2
-            artifacts: release/*.AppImage release/*.deb
+            artifacts: desktop/release/*.AppImage desktop/release/*.deb
           - os: windows-latest
             label: Windows
             command: pnpm exec electron-builder --win --publish never
             setup: echo "tanpa prasyarat tambahan"
-            artifacts: release/*.exe
+            artifacts: desktop/release/*.exe
           - os: macos-latest
             label: macOS
             command: pnpm exec electron-builder --mac --publish never
             setup: echo "tanpa prasyarat tambahan"
-            artifacts: release/*.dmg
+            artifacts: desktop/release/*.dmg
     steps:
       - uses: actions/checkout@v4
 
