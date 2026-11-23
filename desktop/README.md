@@ -188,8 +188,57 @@ ok  Logika waktu sholat              Subuh 04:25
   dipakai supaya window terkait ke entri launcher.
 - Untuk menjalankan AppImage di sistem dengan AppArmor ketat:
   `APPIMAGE_EXTRACT_AND_RUN=1 ./Dynamic\ Island-0.1.0.AppImage --no-sandbox`.
-- Build Windows dan macOS **belum dijalankan di mesin aslinya**. Konfigurasi
-  mengikuti skema `electron-builder` 26.18, tapi belum ada bukti runtime.
+- Build Windows dan macOS diuji lewat CI (GitHub Actions) — lihat bagian CI.
+
+## CI (GitHub Actions)
+
+`.github/workflows/ci.yml` berjalan pada push ke `main`, pull request, dan
+manual (`workflow_dispatch`).
+
+**Job `Validasi`** (ubuntu, cepat):
+
+- `node --check` seluruh JS (AGS + Electron)
+- `bash -n` untuk `install.sh`, `uninstall.sh`, `tools/test-nav.sh`
+- `desktop/tools/verify-core.mjs` — 27 pemeriksaan logika murni
+- pemindaian kredensial (API key Gemini, URL iCal privat)
+
+**Job `Build`** (matrix, `fail-fast: false`):
+
+| Runner | Target | Bukti |
+|---|---|---|
+| `ubuntu-latest` | AppImage + deb | langkah "Hasil build" |
+| `windows-latest` | NSIS `.exe` | langkah "Hasil build" |
+| `macos-latest` | `.dmg` | langkah "Hasil build" |
+
+Setiap job diakhiri langkah **"Hasil build"** yang mencetak isi `release/` dan
+**gagal bila tidak ada paket**. Itu pengganti unggahan artefak: memberi bukti
+build tanpa ketergantungan pada `upload-artifact`.
+
+**CI ini tidak mengunggah artefak.** Riwayatnya penting: unggahan
+(`upload-artifact`) menghasilkan enam run gagal berturut-turut yang tidak bisa
+didiagnosis karena log job tidak dapat diunduh (API `403`, butuh akses admin)
+dan terkena rate limit tanpa token. Repo ini memilih bukti build yang andal
+daripada distribusi yang rapuh. Untuk merilis berkas unduhan, tambahkan
+langkah unggah secara terpisah — sebaiknya setelah tersedia `GITHUB_TOKEN`
+agar kegagalannya bisa dibaca.
+
+### Menjalankan pemeriksaan yang sama secara lokal
+
+```bash
+# sintaks
+while IFS= read -r f; do node --check "$f"; done < <(git ls-files '*.js')
+bash -n install.sh && bash -n uninstall.sh
+
+# logika inti
+cd desktop && node tools/verify-core.mjs
+```
+
+### Menandatangani artefak
+
+Build CI **tidak menandatangani** apa pun (`CSC_IDENTITY_AUTO_DISCOVERY:
+false`). Akibatnya SmartScreen (Windows) dan Gatekeeper (macOS) akan
+memperingatkan. Untuk distribusi serius, tambahkan `CSC_LINK` dan
+`CSC_KEY_PASSWORD` sebagai secrets.
 
 ## Autostart & notifikasi masuk
 
