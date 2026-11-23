@@ -160,6 +160,11 @@ try {
     expect('AGS dan Electron memakai kode yang sama',
         JSON.stringify(agsTimes.times.map(t => t.label))
         === JSON.stringify(times.times.map(t => t.label)));
+    // Penjaga khusus: dukungan tzOffset pernah hilang saat logika disalin,
+    // dan kegagalannya hanya muncul di CI (UTC). Uji ini mengunci perilaku.
+    const utcForced = ags.computeTimes(DAY, { ...LOCATION, tzOffset: 8 });
+    check('AGS menghormati tzOffset (tidak ikut zona mesin)',
+        utcForced.times[0].label, '04:25');
 } catch (error) {
     expect('AGS prayer-calc dapat dimuat', false, String(error?.message ?? error));
 }
