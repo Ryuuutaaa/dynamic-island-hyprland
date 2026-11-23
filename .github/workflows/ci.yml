@@ -127,11 +127,15 @@ jobs:
       - name: Info lingkungan
         working-directory: desktop
         shell: bash
+        # Tanpa `set -e`: langkah ini hanya melaporkan, bukan memutuskan.
+        # Sebelumnya `require('electron/package.json')` membuat langkah gagal
+        # di Windows, sehingga build tidak pernah dicoba.
         run: |
-          node --version
-          pnpm --version
-          node -e "console.log('electron', require('electron/package.json').version)"
-          ls node_modules/electron/dist >/dev/null && echo "biner electron: ada"
+          node --version || true
+          pnpm --version || true
+          node -e "console.log('electron', JSON.parse(require('fs').readFileSync('node_modules/electron/package.json','utf8')).version)" || echo "electron: tidak terbaca"
+          if [ -d node_modules/electron/dist ]; then echo "biner electron: ada"; else echo "biner electron: TIDAK ADA"; fi
+          python3 --version 2>/dev/null || true
 
       - name: Build paket
         working-directory: desktop
