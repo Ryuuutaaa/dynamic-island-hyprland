@@ -90,17 +90,14 @@ jobs:
             command: pnpm exec electron-builder --linux AppImage deb --publish never
             # AppImage butuh libfuse2 di Ubuntu 24.04; fpm (deb) butuh ruby.
             setup: sudo apt-get update && sudo apt-get install -y libfuse2
-            artifacts: desktop/release/*.AppImage desktop/release/*.deb
           - os: windows-latest
             label: Windows
             command: pnpm exec electron-builder --win --publish never
             setup: echo "tanpa prasyarat tambahan"
-            artifacts: desktop/release/*.exe
           - os: macos-latest
             label: macOS
             command: pnpm exec electron-builder --mac --publish never
             setup: echo "tanpa prasyarat tambahan"
-            artifacts: desktop/release/*.dmg
     steps:
       - uses: actions/checkout@v4
 
@@ -150,19 +147,26 @@ jobs:
       - name: Daftar hasil build
         shell: bash
         run: |
-          echo "matrix.artifacts = [${{ matrix.artifacts }}]"
           echo "isi desktop/release/:"
           ls -lh desktop/release/ 2>/dev/null || echo "  (tidak ada)"
-          echo "glob dari root workspace:"
-          for pattern in ${{ matrix.artifacts }}; do
+          echo "berkas yang akan diunggah per pola:"
+          for pattern in desktop/release/*.AppImage desktop/release/*.deb \
+                         desktop/release/*.exe desktop/release/*.dmg; do
             matched=$(ls $pattern 2>/dev/null | wc -l)
-            echo "  $pattern -> $matched berkas"
+            echo "  $pattern -> $matched"
           done
 
       - name: Unggah artefak
         uses: actions/upload-artifact@v4
         with:
           name: dynamic-island-${{ matrix.label }}
-          path: ${{ matrix.artifacts }}
+          # Satu pola per baris. upload-artifact memisahkan pola dengan baris
+          # baru; pola yang dipisah spasi dianggap satu pola dan tidak cocok.
+          # Path relatif terhadap root workspace, bukan working-directory.
+          path: |
+            desktop/release/*.AppImage
+            desktop/release/*.deb
+            desktop/release/*.exe
+            desktop/release/*.dmg
           if-no-files-found: error
           retention-days: 14
