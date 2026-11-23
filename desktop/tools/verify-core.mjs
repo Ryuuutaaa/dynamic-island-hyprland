@@ -176,6 +176,38 @@ try {
     expect('shared/datetime dapat dimuat', false, String(error?.message ?? error));
 }
 
+// ── daftar tugas (shared/todo.mjs) ──────────────────────────────────────
+try {
+    const todo = await import('../../shared/todo.mjs');
+
+    let state = todo.emptyState();
+    state = todo.addTaskFromInput(state, 'Beli susu @14:30').state;
+    check('todo: parse teks', state.tasks[0].text, 'Beli susu');
+    check('todo: parse jam', state.tasks[0].due, '14:30');
+    check('todo: id pertama', state.tasks[0].id, 1);
+
+    // Pengingat hanya dalam jendela CATCHUP.
+    check('todo: jatuh tempo terdeteksi',
+        todo.dueTasks(state, 14 * 60 + 35).length, 1);
+    check('todo: lewat jendela tidak diingatkan',
+        todo.dueTasks(state, 16 * 60 + 35).length, 0);
+
+    const marked = todo.markNotified(state, todo.dueTasks(state, 14 * 60 + 35));
+    check('todo: setelah ditandai tidak diulang',
+        todo.dueTasks(marked, 14 * 60 + 35).length, 0);
+
+    // Ubah jam harus mereset status pengingat; jam sama mempertahankannya.
+    const changed = todo.updateTask(marked, 1, 'Beli susu', '15:00');
+    check('todo: ubah jam reset notified', changed.task.notified, false);
+
+    check('todo: due tidak valid ditolak', todo.addTask(state, 'X', '99:99').task, null);
+    check('todo: teks kosong ditolak', todo.addTask(state, '   ', null).task, null);
+    check('todo: sanitize membuang entri rusak',
+        todo.sanitizeState({ tasks: [{ id: 1, text: 'ok' }, { bad: 1 }, { text: '  ' }] }).tasks.length, 1);
+} catch (error) {
+    expect('shared/todo.mjs dapat dimuat', false, String(error?.message ?? error));
+}
+
 // ── ringkasan ───────────────────────────────────────────────────────────
 console.log();
 if (failures > 0) {

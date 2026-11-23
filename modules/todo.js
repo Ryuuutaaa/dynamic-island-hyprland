@@ -1,6 +1,11 @@
 import GLib from 'gi://GLib';
 import Variable from 'resource:///com/github/Aylur/ags/variable.js';
 import * as Utils from 'resource:///com/github/Aylur/ags/utils.js';
+import * as shared from '../shared/todo.mjs';
+
+// Penyimpanan + notifikasi untuk daftar tugas. Logika (parsing, transformasi
+// state, deteksi jatuh tempo) ada di shared/todo.mjs supaya versi AGS dan
+// versi Electron memakai kode yang SAMA.
 
 const DIR = `${GLib.get_user_data_dir()}/dynamic-iland`;
 const FILE = `${DIR}/todo.json`;
@@ -8,27 +13,15 @@ const FILE = `${DIR}/todo.json`;
 const now = () => GLib.DateTime.new_now_local();
 const clock = () => now().format('%H:%M');
 
-export const todo = Variable({ tasks: [] });
+export const todo = Variable(shared.emptyState());
 
 function readState() {
     try {
         const [ok, bytes] = GLib.file_get_contents(FILE);
-        if (!ok) return { tasks: [] };
-        const saved = JSON.parse(new TextDecoder().decode(bytes));
-        const tasks = Array.isArray(saved?.tasks) ? saved.tasks : [];
-        return {
-            tasks: tasks
-                .filter(task => task && typeof task.text === 'string')
-                .map((task, index) => ({
-                    id: Number(task.id) || index + 1,
-                    text: task.text,
-                    done: !!task.done,
-                    due: typeof task.due === 'string' ? task.due : null,
-                    notified: !!task.notified,
-                })),
-        };
+        if (!ok) return shared.emptyState();
+        return shared.sanitizeState(JSON.parse(new TextDecoder().decode(bytes)));
     } catch (_) {
-        return { tasks: [] };
+        return shared.emptyState();
     }
 }
 
@@ -65,122 +58,53 @@ const persist = () => {
     });
 };
 
-const nextId = state => state.tasks.reduce((max, task) => Math.max(max, task.id), 0) + 1;
+// ── API publik (bentuknya sama seperti sebelumnya) ──────────────────────
 
-// "Beli susu @14:30" -> { text: 'Beli susu', due: '14:30' }
-const parse = raw => {
-    const text = String(raw ?? '').trim();
-    const match = text.match(/^(.*?)\s*@\s*(\d{1,2})[:.](\d{2})\s*$/);
-    if (!match) return { text, due: null };
-    const hour = Math.min(23, Math.max(0, Number(match[2])));
-    const minute = Math.min(59, Math.max(0, Number(match[3])));
-    return {
-        text: match[1].trim(),
-        due: `${String(hour).padStart(2, '0')}:${String(minute).padStart(2, '0')}`,
-    };
-};
-
-export const normalizeDue = value => {
-    const match = /^(\d{1,2})[:.](\d{2})$/.exec(String(value ?? '').trim());
-    if (!match) return null;
-    const hours = Number(match[1]);
-    const minutes = Number(match[2]);
-    if (hours > 23 || minutes > 59) return null;
-    return `${String(hours).padStart(2, '0')}:${String(minutes).padStart(2, '0')}`;
-};
-
-const createTask = (text, due) => {
-    const state = todo.value;
-    const task = { id: nextId(state), text, done: false, due, notified: false };
-    todo.value = { ...state, tasks: [...state.tasks, task] };
-    persist();
-    return task;
-};
+export const normalizeDue = shared.normalizeDue;
+export const doneCount = shared.doneCount;
+export const totalCount = shared.totalCount;
 
 export function addTask(raw) {
-    const { text, due } = parse(raw);
-    if (!text) return null;
-    return createTask(text, due);
+    const result = shared.addTaskFromInput(todo.value, raw);
+    if (!result.task) return null;
+    todo.value = result.state;
+    persist();
+    return result.task;
 }
 
 export function addTaskWithDue(text, due) {
-    const clean = String(text ?? '').trim();
-    if (!clean) return null;
-    const raw = String(due ?? '').trim();
-    const time = raw ? normalizeDue(raw) : null;
-    if (raw && !time) return null;
-    return createTask(clean, time);
+    const result = shared.addTask(todo.value, text, due);
+    if (!result.task) return null;
+    todo.value = result.state;
+    persist();
+    return result.task;
 }
 
 export function updateTask(id, text, due) {
-    const clean = String(text ?? '').trim();
-    if (!clean) return null;
-    const raw = String(due ?? '').trim();
-    const time = raw ? normalizeDue(raw) : null;
-    if (raw && !time) return null;
-
-    const state = todo.value;
-    let updated = null;
-    const tasks = state.tasks.map(task => {
-        if (task.id !== Number(id)) return task;
-        const dueChanged = task.due !== time;
-        updated = {
-            ...task,
-            text: clean,
-            due: time,
-            notified: dueChanged ? false : task.notified,
-        };
-        return updated;
-    });
-    if (!updated) return null;
-    todo.value = { ...state, tasks };
+    const result = shared.updateTask(todo.value, id, text, due);
+    if (!result.task) return null;
+    todo.value = result.state;
     persist();
-    return updated;
+    return result.task;
 }
 
 export function toggleTask(id) {
-    const state = todo.value;
-    todo.value = {
-        ...state,
-        tasks: state.tasks.map(task => (task.id === id ? { ...task, done: !task.done } : task)),
-    };
+    todo.value = shared.toggleTask(todo.value, id);
     persist();
 }
 
 export function removeTask(id) {
-    const state = todo.value;
-    todo.value = { ...state, tasks: state.tasks.filter(task => task.id !== id) };
+    todo.value = shared.removeTask(todo.value, id);
     persist();
 }
-
-export const doneCount = state => state.tasks.filter(task => task.done).length;
-export const totalCount = state => state.tasks.length;
-
-// due yang terlewat (AGS tidur/restart tepat di menit itu) tetap diingatkan
-// selama belum lewat sejam; lebih lama dari itu dianggap basi.
-const CATCHUP_MINUTES = 60;
-
-const minutesOf = stamp => {
-    const [hour, minute] = String(stamp).split(':').map(Number);
-    return Number.isFinite(hour) && Number.isFinite(minute) ? hour * 60 + minute : -1;
-};
 
 export function watchTodo() {
     Utils.interval(30000, () => {
         const state = todo.value;
-        const nowMinutes = minutesOf(clock());
-        const due = state.tasks.filter(task => {
-            if (task.done || task.notified || !task.due) return false;
-            const at = minutesOf(task.due);
-            if (at < 0) return false;
-            return at <= nowMinutes && nowMinutes - at <= CATCHUP_MINUTES;
-        });
+        const due = shared.dueTasks(state, shared.minutesOf(clock()));
         if (!due.length) return;
 
-        todo.value = {
-            ...state,
-            tasks: state.tasks.map(task => (due.includes(task) ? { ...task, notified: true } : task)),
-        };
+        todo.value = shared.markNotified(state, due);
         persist();
 
         for (const task of due) {
