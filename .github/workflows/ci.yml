@@ -88,17 +88,21 @@ jobs:
           - os: ubuntu-latest
             label: Linux
             command: pnpm exec electron-builder --linux AppImage deb --publish never
+            # AppImage butuh libfuse2 di Ubuntu 24.04; fpm (deb) butuh ruby.
+            setup: sudo apt-get update && sudo apt-get install -y libfuse2
             artifacts: |
               release/*.AppImage
               release/*.deb
           - os: windows-latest
             label: Windows
             command: pnpm exec electron-builder --win --publish never
+            setup: echo "tanpa prasyarat tambahan"
             artifacts: |
               release/*.exe
           - os: macos-latest
             label: macOS
             command: pnpm exec electron-builder --mac --publish never
+            setup: echo "tanpa prasyarat tambahan"
             artifacts: |
               release/*.dmg
     steps:
@@ -116,6 +120,19 @@ jobs:
         working-directory: desktop
         run: pnpm install --frozen-lockfile
 
+      - name: Prasyarat platform
+        shell: bash
+        run: ${{ matrix.setup }}
+
+      - name: Info lingkungan
+        working-directory: desktop
+        shell: bash
+        run: |
+          node --version
+          pnpm --version
+          node -e "console.log('electron', require('electron/package.json').version)"
+          ls node_modules/electron/dist >/dev/null && echo "biner electron: ada"
+
       - name: Build paket
         working-directory: desktop
         shell: bash
@@ -124,7 +141,11 @@ jobs:
           # Build tanpa sertifikat: artefak tidak ditandatangani. Untuk rilis
           # publik, tambahkan sertifikat lewat secrets (lihat README).
           CSC_IDENTITY_AUTO_DISCOVERY: false
-          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          # Token tidak dioper: dengan --publish never electron-builder tidak
+          # butuh auth, dan token yang ada bisa memicu jalur publish/verify.
+          # DEBUG membuat electron-builder mencetak alasan kegagalan yang
+          # sebenarnya (tidak ada efek saat build sukses).
+          DEBUG: electron-builder
 
       - name: Unggah artefak
         uses: actions/upload-artifact@v4
