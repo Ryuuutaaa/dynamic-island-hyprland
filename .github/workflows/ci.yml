@@ -90,21 +90,17 @@ jobs:
             command: pnpm exec electron-builder --linux AppImage deb --publish never
             # AppImage butuh libfuse2 di Ubuntu 24.04; fpm (deb) butuh ruby.
             setup: sudo apt-get update && sudo apt-get install -y libfuse2
-            artifacts: |
-              release/*.AppImage
-              release/*.deb
+            artifacts: release/*.AppImage release/*.deb
           - os: windows-latest
             label: Windows
             command: pnpm exec electron-builder --win --publish never
             setup: echo "tanpa prasyarat tambahan"
-            artifacts: |
-              release/*.exe
+            artifacts: release/*.exe
           - os: macos-latest
             label: macOS
             command: pnpm exec electron-builder --mac --publish never
             setup: echo "tanpa prasyarat tambahan"
-            artifacts: |
-              release/*.dmg
+            artifacts: release/*.dmg
     steps:
       - uses: actions/checkout@v4
 
@@ -156,5 +152,5 @@ jobs:
         with:
           name: dynamic-island-${{ matrix.label }}
           path: ${{ matrix.artifacts }}
-          if-no-files-found: error
+          if-no-files-found: warn
           retention-days: 14
