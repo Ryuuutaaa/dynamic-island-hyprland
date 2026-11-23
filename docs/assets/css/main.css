@@ -1006,3 +1006,1392 @@ td code,
 .index a:last-child:nth-child(4n + 1) {
   grid-column: 1 / -1;
 }
+
+/* =========================================================================
+   Live demo: replika notch yang bisa dipakai
+   Geometri, durasi, dan kurva dari config.js. Bentuknya bukan kotak
+   membulat biasa: sudut atas rata menempel layar, hanya sudut bawah
+   melengkung, plus telinga konkaf yang menyatu ke bezel.
+   ========================================================================= */
+
+.demo {
+  --demo-w: 150px;
+  --demo-h: 50px;
+  --demo-r: 16px;
+  --demo-ear: 10px;
+  --demo-bg: #0b0003;
+  --demo-fg: #efefef;
+  --demo-accent: #bab4b8;
+  --demo-ok: #3ad17a;
+  --demo-danger: #ff8f8f;
+}
+
+/* panggung: gradasi lembut supaya notch terbaca sebagai lubang gelap */
+.demo__stage {
+  position: relative;
+  display: flex;
+  align-items: flex-start;
+  justify-content: center;
+  min-height: 300px;
+  padding-top: 0;
+  border: 1px solid var(--line);
+  border-radius: var(--r-card);
+  background:
+    radial-gradient(120% 90% at 50% 0%, #2a2233 0%, #171520 42%, #0d0b12 100%);
+  overflow: hidden;
+}
+
+/* garis bezel atas, supaya telinga terlihat menyatu */
+.demo__stage::before {
+  content: '';
+  position: absolute;
+  inset: 0 0 auto 0;
+  height: 1px;
+  background: rgba(255, 255, 255, 0.22);
+}
+
+.demo__notch-wrap {
+  position: relative;
+  display: flex;
+  align-items: flex-start;
+  justify-content: center;
+  margin-top: 0;
+  transition: transform 240ms ease-out;
+}
+
+.demo__notch {
+  position: relative;
+  width: var(--demo-w);
+  height: var(--demo-h);
+  border-radius: 0 0 var(--demo-r) var(--demo-r);
+  background-color: #000;
+  background-image:
+    radial-gradient(62% 46% at 50% 128%, rgba(233, 169, 79, 0.13), transparent 68%),
+    radial-gradient(46% 34% at 74% 124%, rgba(194, 90, 46, 0.08), transparent 70%);
+  color: var(--demo-fg);
+  overflow: hidden;
+  cursor: pointer;
+  transition:
+    width 320ms cubic-bezier(0.34, 1.32, 0.5, 1),
+    height 320ms cubic-bezier(0.34, 1.32, 0.5, 1),
+    border-radius 320ms cubic-bezier(0.34, 1.32, 0.5, 1);
+  font-family: var(--font);
+  font-size: 13px;
+  box-shadow: 0 14px 40px -12px rgba(0, 0, 0, 0.9);
+}
+
+/* Telinga digambar sebagai SVG path oleh komponen (bukan mask CSS): bentuk
+   aslinya adalah kurva konkaf di modules/index.js, dan path eksplisit jauh
+   lebih mudah diverifikasi daripada trik mask. Di sini hanya wadahnya. */
+.demo__ear {
+  position: absolute;
+  top: 0;
+  color: #000;
+  pointer-events: none;
+}
+
+.demo__ear--l {
+  right: 100%;
+}
+
+.demo__ear--r {
+  left: 100%;
+}
+
+/* Langit digambar oleh .demo__notch sendiri (background-image), sama seperti
+   sky.js yang melukis dasar notch lewat Cairo. Elemen overlay terpisah di
+   dalam overflow:hidden + border-radius meninggalkan garis berwarna di tepi. */
+
+/* ── tertutup ──────────────────────────────────────────────────────── */
+
+.demo-closed {
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 7px;
+  height: 100%;
+}
+
+.demo-ring {
+  flex: 0 0 auto;
+  color: var(--demo-fg);
+}
+
+.demo-clock {
+  font-family: var(--mono);
+  font-size: 15px;
+  font-weight: 500;
+  letter-spacing: 0.01em;
+  color: #fff;
+}
+
+/* equalizer dekoratif: gelombang sinus, sama seperti implementasinya */
+.demo-eq {
+  display: flex;
+  align-items: center;
+  gap: 2px;
+  height: 14px;
+}
+
+.demo-eq i {
+  width: 2px;
+  background: var(--demo-accent);
+  border-radius: 1px;
+  animation: demo-eq 1.4s ease-in-out infinite;
+}
+
+.demo-eq i:nth-child(1) { height: 6px; animation-delay: 0s; }
+.demo-eq i:nth-child(2) { height: 12px; animation-delay: 0.18s; }
+.demo-eq i:nth-child(3) { height: 8px; animation-delay: 0.36s; }
+.demo-eq i:nth-child(4) { height: 14px; animation-delay: 0.54s; }
+.demo-eq i:nth-child(5) { height: 5px; animation-delay: 0.72s; }
+
+@keyframes demo-eq {
+  0%, 100% { transform: scaleY(0.55); }
+  50% { transform: scaleY(1); }
+}
+
+/* ── OSD ───────────────────────────────────────────────────────────── */
+
+.demo-osd {
+  position: relative;
+  display: grid;
+  grid-template-columns: auto 1fr auto;
+  align-items: center;
+  gap: 10px;
+  height: 100%;
+  padding: 0 18px;
+  color: var(--demo-fg);
+}
+
+.demo-osd svg {
+  color: var(--demo-fg);
+}
+
+.demo-osd__bar {
+  height: 6px;
+  border-radius: 3px;
+  background: rgba(255, 255, 255, 0.14);
+  overflow: hidden;
+}
+
+.demo-osd__bar span {
+  display: block;
+  height: 100%;
+  border-radius: 3px;
+  background: var(--demo-fg);
+  transition: width 200ms ease-out;
+}
+
+.demo-osd__pct {
+  font-family: var(--mono);
+  font-size: 12px;
+  color: #fff;
+}
+
+.demo-osd__name {
+  grid-column: 1 / -1;
+  font-size: 10.5px;
+  color: rgba(239, 239, 239, 0.5);
+  text-align: center;
+}
+
+/* ── kerangka halaman ──────────────────────────────────────────────── */
+
+.demo-page {
+  position: relative;
+  height: 100%;
+  /* 34px = NAV_SPACE di index.js, dipotong dari isi bukan dari clip */
+  padding: 12px 18px 40px;
+  overflow: hidden;
+}
+
+/* Halaman yang isinya panjang tidak boleh menabrak nav: isi di-clip di
+   atas ruang nav, sama seperti stack.margin_bottom pada aslinya. */
+.demo-page > * {
+  max-height: 100%;
+}
+
+.demo-nav {
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: 4px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 2px;
+}
+
+.demo-nav__slots {
+  display: flex;
+  align-items: center;
+  gap: 1px;
+}
+
+.demo-nav__btn,
+.demo-nav__arrow {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 24px;
+  height: 24px;
+  padding: 0;
+  border: 0;
+  border-radius: 6px;
+  background: transparent;
+  color: rgba(239, 239, 239, 0.55);
+  cursor: pointer;
+  transition:
+    background-color 150ms ease-out,
+    color 150ms ease-out;
+}
+
+.demo-nav__btn:hover,
+.demo-nav__arrow:hover {
+  color: var(--demo-fg);
+  background: rgba(186, 180, 184, 0.14);
+}
+
+.demo-nav__btn.is-active {
+  color: #fff;
+  background: rgba(186, 180, 184, 0.24);
+  box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.22);
+}
+
+/* ── halaman: ringkasan ───────────────────────────────────────────── */
+
+.demo-idle {
+  display: grid;
+  grid-template-columns: 1.1fr 1fr;
+  gap: 14px;
+  align-items: center;
+  height: 100%;
+  border-left: 1px solid transparent;
+}
+
+.demo-idle__clock {
+  font-family: var(--mono);
+  font-size: 34px;
+  font-weight: 300;
+  line-height: 1;
+  color: #fff;
+  letter-spacing: -0.02em;
+}
+
+.demo-idle__date {
+  margin-top: 5px;
+  font-size: 11px;
+  color: rgba(239, 239, 239, 0.56);
+}
+
+.demo-idle__agenda {
+  margin-top: 3px;
+  font-size: 11px;
+  color: rgba(239, 239, 239, 0.78);
+}
+
+.demo-idle__stats {
+  display: grid;
+  gap: 5px;
+  padding-left: 14px;
+  border-left: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.demo-idle__stats div {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 8px;
+  font-size: 11px;
+  color: rgba(239, 239, 239, 0.6);
+}
+
+.demo-idle__stats b {
+  font-family: var(--mono);
+  font-size: 11.5px;
+  font-weight: 500;
+  color: #fff;
+}
+
+/* ── halaman: media ──────────────────────────────────────────────── */
+
+.demo-media {
+  display: flex;
+  gap: 14px;
+  height: 100%;
+  align-items: flex-start;
+}
+
+.demo-media__cover {
+  flex: 0 0 auto;
+  width: 84px;
+  height: 84px;
+  border-radius: 10px;
+  background: linear-gradient(150deg, #3b2640 0%, #a4562e 55%, #e0a35c 100%);
+  box-shadow: 0 0 0 1px rgba(233, 169, 79, 0.5);
+}
+
+.demo-media__body {
+  flex: 1;
+  min-width: 0;
+}
+
+.demo-media__title {
+  font-size: 14px;
+  font-weight: 500;
+  color: #fff;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.demo-media__artist {
+  font-size: 11.5px;
+  color: rgba(239, 239, 239, 0.58);
+}
+
+.demo-media__bar {
+  position: relative;
+  margin-top: 11px;
+  height: 4px;
+  border-radius: 2px;
+  background: rgba(255, 255, 255, 0.16);
+  cursor: pointer;
+}
+
+.demo-media__bar span {
+  display: block;
+  height: 100%;
+  border-radius: 2px;
+  background: #fff;
+}
+
+.demo-media__times {
+  display: flex;
+  justify-content: space-between;
+  margin-top: 6px;
+  font-family: var(--mono);
+  font-size: 10.5px;
+  color: rgba(239, 239, 239, 0.5);
+}
+
+.demo-media__ctls {
+  display: flex;
+  justify-content: flex-end;
+  gap: 4px;
+  margin-top: 4px;
+}
+
+.demo-media__ctls button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 26px;
+  height: 26px;
+  padding: 0;
+  border: 0;
+  border-radius: 5px;
+  background: transparent;
+  color: rgba(239, 239, 239, 0.78);
+  cursor: pointer;
+  transition: color 150ms ease-out, background-color 150ms ease-out;
+}
+
+.demo-media__ctls button:hover {
+  color: #fff;
+  background: rgba(186, 180, 184, 0.18);
+}
+
+/* lirik: kartu terbelah dua */
+.demo-lyrics {
+  flex: 1;
+  min-width: 0;
+  display: grid;
+  grid-template-columns: minmax(0, 0.85fr) minmax(0, 1.15fr);
+  gap: 16px;
+  height: 100%;
+}
+
+.demo-lyrics__head {
+  font-size: 11px;
+  color: rgba(239, 239, 239, 0.5);
+  grid-column: 2;
+}
+
+.demo-lyrics__list {
+  display: flex;
+  flex-direction: column;
+  gap: 7px;
+  max-height: 96px;
+  overflow: hidden;
+}
+
+.demo-lyrics__list p {
+  font-size: 11.5px;
+  color: rgba(239, 239, 239, 0.44);
+  transition: color 200ms ease-out;
+}
+
+.demo-lyrics__list p.is-active {
+  color: #fff;
+  font-weight: 500;
+}
+
+.demo-lyrics__back {
+  grid-column: 1;
+  align-self: end;
+  justify-self: start;
+  padding: 3px 8px;
+  border: 0;
+  border-radius: 5px;
+  background: rgba(186, 180, 184, 0.16);
+  color: var(--demo-fg);
+  font-family: inherit;
+  font-size: 10.5px;
+  cursor: pointer;
+}
+
+.demo-lyrics__back:hover {
+  background: rgba(186, 180, 184, 0.26);
+}
+
+/* ── halaman: cuaca ──────────────────────────────────────────────── */
+
+.demo-weather {
+  display: grid;
+  grid-template-columns: 1fr 1.15fr;
+  gap: 8px 16px;
+  height: 100%;
+}
+
+.demo-weather__temp {
+  font-family: var(--mono);
+  font-size: 30px;
+  font-weight: 300;
+  line-height: 1;
+  color: #fff;
+}
+
+.demo-weather__meta {
+  margin-top: 3px;
+  font-size: 11px;
+  color: rgba(239, 239, 239, 0.55);
+}
+
+.demo-weather__hours {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 4px;
+  align-content: start;
+}
+
+.demo-weather__hours div {
+  display: grid;
+  place-items: center;
+  gap: 2px;
+  padding: 5px 2px;
+  border-radius: 6px;
+  background: rgba(186, 180, 184, 0.08);
+  font-size: 10px;
+  color: rgba(239, 239, 239, 0.55);
+}
+
+.demo-weather__hours b {
+  font-family: var(--mono);
+  font-size: 11px;
+  color: #fff;
+}
+
+.demo-weather__days {
+  grid-column: 1 / -1;
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 4px;
+}
+
+.demo-weather__days div {
+  display: flex;
+  justify-content: space-between;
+  gap: 6px;
+  font-size: 10.5px;
+  color: rgba(239, 239, 239, 0.55);
+}
+
+.demo-weather__days b {
+  font-family: var(--mono);
+  color: #fff;
+}
+
+/* ── halaman: pomodoro ──────────────────────────────────────────── */
+
+.demo-pomodoro {
+  display: flex;
+  align-items: center;
+  gap: 18px;
+  height: 100%;
+}
+
+.demo-pomodoro svg {
+  flex: 0 0 auto;
+}
+
+.demo-pomodoro__time {
+  font-family: var(--mono);
+  font-size: 32px;
+  font-weight: 300;
+  line-height: 1;
+  color: #fff;
+}
+
+.demo-pomodoro__mode {
+  margin-top: 4px;
+  font-size: 11px;
+  color: rgba(239, 239, 239, 0.55);
+}
+
+.demo-pills {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 5px;
+  margin-top: 10px;
+}
+
+.demo-pill {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 4px;
+  min-height: 24px;
+  padding: 0 9px;
+  border-radius: 6px;
+  background: rgba(186, 180, 184, 0.16);
+  color: var(--demo-fg);
+  font-size: 10.5px;
+  font-style: normal;
+  white-space: nowrap;
+}
+
+.demo-pill.is-ghost {
+  background: transparent;
+  color: rgba(239, 239, 239, 0.42);
+  padding-inline: 2px;
+}
+
+/* ── halaman: timer ─────────────────────────────────────────────── */
+
+.demo-timer {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 2px;
+  height: 100%;
+}
+
+.demo-timer__time {
+  font-family: var(--mono);
+  font-size: 32px;
+  font-weight: 300;
+  line-height: 1;
+  color: #fff;
+}
+
+.demo-timer__mode {
+  font-size: 11px;
+  color: rgba(239, 239, 239, 0.52);
+}
+
+.demo-timer__presets {
+  display: flex;
+  gap: 4px;
+  margin-top: 6px;
+}
+
+.demo-timer__presets span {
+  padding: 2px 7px;
+  border-radius: 5px;
+  background: rgba(186, 180, 184, 0.1);
+  font-family: var(--mono);
+  font-size: 10px;
+  color: rgba(239, 239, 239, 0.6);
+}
+
+/* ── halaman: statistik ─────────────────────────────────────────── */
+
+.demo-stats {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 6px;
+  height: 100%;
+  align-content: start;
+}
+
+.demo-stats__cell {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  padding: 6px 8px;
+  border-radius: 7px;
+  background: rgba(186, 180, 184, 0.07);
+}
+
+.demo-stats__cell span {
+  font-family: var(--mono);
+  font-size: 9px;
+  letter-spacing: 0.04em;
+  color: rgba(239, 239, 239, 0.45);
+}
+
+.demo-stats__cell b {
+  font-family: var(--mono);
+  font-size: 17px;
+  font-weight: 400;
+  color: #fff;
+}
+
+.demo-stats__cell em {
+  font-size: 10px;
+  font-style: normal;
+  color: rgba(239, 239, 239, 0.5);
+}
+
+.demo-stats__cell svg {
+  color: rgba(239, 239, 239, 0.4);
+}
+
+.demo-stats__foot {
+  grid-column: 1 / -1;
+  font-family: var(--mono);
+  font-size: 9.5px;
+  color: rgba(239, 239, 239, 0.38);
+}
+
+/* ── halaman: air ─────────────────────────────────────────────── */
+
+.demo-water {
+  display: grid;
+  grid-template-columns: 1fr auto;
+  gap: 4px 10px;
+  height: 100%;
+}
+
+.demo-water__head {
+  grid-column: 1 / -1;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.demo-water__head b {
+  font-size: 13px;
+  font-weight: 500;
+  color: #fff;
+}
+
+.demo-water__head span {
+  font-size: 10.5px;
+  color: rgba(239, 239, 239, 0.45);
+}
+
+.demo-switch {
+  position: relative;
+  width: 26px;
+  height: 14px;
+  border-radius: 7px;
+  background: var(--demo-ok);
+}
+
+.demo-switch::after {
+  content: '';
+  position: absolute;
+  top: 2px;
+  right: 2px;
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  background: #0b0b0e;
+}
+
+.demo-water__total {
+  grid-column: 1 / -1;
+  display: flex;
+  align-items: baseline;
+  gap: 6px;
+  font-family: var(--mono);
+  font-size: 20px;
+  color: #fff;
+}
+
+.demo-water__total em {
+  font-size: 12px;
+  font-style: normal;
+  color: rgba(239, 239, 239, 0.45);
+}
+
+.demo-water__total span {
+  margin-left: auto;
+  font-family: var(--mono);
+  font-size: 10.5px;
+  color: rgba(239, 239, 239, 0.5);
+}
+
+.demo-progress {
+  grid-column: 1 / -1;
+  height: 4px;
+  border-radius: 2px;
+  background: rgba(255, 255, 255, 0.14);
+  overflow: hidden;
+}
+
+.demo-progress span,
+.demo-progress i {
+  display: block;
+  height: 100%;
+  border-radius: 2px;
+  background: var(--demo-accent);
+}
+
+.demo-progress--sm {
+  height: 3px;
+  flex: 1;
+  min-width: 40px;
+}
+
+.demo-water .demo-pills {
+  grid-column: 1 / -1;
+  margin-top: 2px;
+}
+
+.demo-water__chart {
+  grid-column: 1 / -1;
+  color: var(--demo-fg);
+  opacity: 0.9;
+}
+
+/* ── halaman: tugas ─────────────────────────────────────────────── */
+
+.demo-todo {
+  height: 100%;
+}
+
+.demo-todo__head {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 7px;
+}
+
+.demo-todo__head b {
+  font-size: 13px;
+  font-weight: 500;
+  color: #fff;
+}
+
+.demo-todo__head span {
+  font-size: 10.5px;
+  color: rgba(239, 239, 239, 0.45);
+}
+
+.demo-todo__add {
+  margin-left: auto;
+  padding: 2px 8px;
+  border-radius: 5px;
+  background: rgba(186, 180, 184, 0.16);
+  font-size: 10.5px;
+  font-style: normal;
+  color: #fff;
+}
+
+.demo-todo__list {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  max-height: 80px;
+  overflow: hidden;
+}
+
+.demo-todo__row {
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  padding: 3px 6px;
+  border-radius: 6px;
+  font-size: 11.5px;
+  color: rgba(239, 239, 239, 0.86);
+  transition: background-color 150ms ease-out;
+}
+
+.demo-todo__row:hover {
+  background: rgba(186, 180, 184, 0.08);
+}
+
+.demo-todo__check {
+  width: 11px;
+  height: 11px;
+  border: 1.5px solid rgba(239, 239, 239, 0.4);
+  border-radius: 50%;
+  flex: 0 0 auto;
+}
+
+.demo-todo__row.is-done .demo-todo__check {
+  border-color: var(--demo-ok);
+  background: var(--demo-ok);
+}
+
+.demo-todo__row.is-done .demo-todo__text {
+  color: rgba(239, 239, 239, 0.34);
+  text-decoration: line-through;
+}
+
+.demo-todo__text {
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.demo-todo__due {
+  font-family: var(--mono);
+  font-size: 10.5px;
+  color: rgba(239, 239, 239, 0.45);
+}
+
+/* ── halaman: standup ────────────────────────────────────────────── */
+
+.demo-standup__head {
+  display: flex;
+  align-items: baseline;
+  gap: 8px;
+  margin-bottom: 10px;
+}
+
+.demo-standup__head b {
+  font-size: 13px;
+  font-weight: 500;
+  color: #fff;
+}
+
+.demo-standup__head span {
+  font-size: 10.5px;
+  color: rgba(239, 239, 239, 0.45);
+}
+
+.demo-standup__head .demo-pill {
+  margin-left: auto;
+}
+
+.demo-standup__rows {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.demo-standup__rows div {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  font-size: 11.5px;
+  color: rgba(239, 239, 239, 0.82);
+}
+
+.demo-standup__rows span {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+}
+
+.demo-standup__rows b {
+  font-family: var(--mono);
+  color: #fff;
+}
+
+.demo-tick {
+  display: inline-block;
+  width: 10px;
+  height: 10px;
+  border-radius: 2px;
+  background: var(--demo-ok);
+}
+
+/* ── halaman: shelf ──────────────────────────────────────────────── */
+
+.demo-shelf__head {
+  display: flex;
+  align-items: baseline;
+  gap: 8px;
+  margin-bottom: 9px;
+}
+
+.demo-shelf__head b {
+  font-size: 13px;
+  font-weight: 500;
+  color: #fff;
+}
+
+.demo-shelf__head span {
+  font-size: 10.5px;
+  color: rgba(239, 239, 239, 0.45);
+}
+
+.demo-shelf__cards {
+  display: flex;
+  gap: 8px;
+}
+
+.demo-shelf__card {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 6px 9px;
+  border-radius: 7px;
+  background: rgba(186, 180, 184, 0.08);
+  font-size: 10.5px;
+  color: rgba(239, 239, 239, 0.82);
+}
+
+.demo-shelf__thumb {
+  width: 26px;
+  height: 26px;
+  border-radius: 4px;
+  flex: 0 0 auto;
+}
+
+/* ── halaman: bluetooth & wifi ──────────────────────────────────── */
+
+.demo-bt__head,
+.demo-wifi__head {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 8px;
+}
+
+.demo-bt__head b,
+.demo-wifi__head b {
+  font-size: 13px;
+  font-weight: 500;
+  color: #fff;
+}
+
+.demo-bt__head span,
+.demo-wifi__head span {
+  font-size: 10.5px;
+  color: var(--demo-ok);
+}
+
+.demo-wifi__head svg:last-child {
+  margin-left: 0;
+}
+
+.demo-wifi__head svg {
+  margin-left: auto;
+  color: rgba(239, 239, 239, 0.55);
+}
+
+.demo-wifi__head svg + svg {
+  margin-left: 6px;
+}
+
+.demo-bt__row,
+.demo-wifi__row {
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  padding: 5px 7px;
+  border-radius: 6px;
+  font-size: 11.5px;
+  color: rgba(239, 239, 239, 0.86);
+}
+
+.demo-bt__row {
+  background: rgba(186, 180, 184, 0.1);
+  box-shadow: inset 2px 0 0 var(--demo-accent);
+}
+
+.demo-wifi__row.is-current {
+  background: rgba(186, 180, 184, 0.1);
+  box-shadow: inset 2px 0 0 var(--demo-accent);
+}
+
+.demo-bt__row span,
+.demo-wifi__row span {
+  flex: 1;
+  min-width: 0;
+}
+
+.demo-bt__row b,
+.demo-wifi__row b {
+  font-family: var(--mono);
+  font-size: 10.5px;
+  color: rgba(239, 239, 239, 0.55);
+}
+
+.demo-bt__vol {
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  margin-top: 8px;
+  padding-top: 7px;
+  border-top: 1px solid rgba(255, 255, 255, 0.1);
+  font-size: 10.5px;
+  color: rgba(239, 239, 239, 0.6);
+}
+
+.demo-bt__vol b {
+  font-family: var(--mono);
+  color: #fff;
+}
+
+/* ── halaman: jadwal sholat ────────────────────────────────────── */
+
+.demo-prayer {
+  display: grid;
+  grid-template-columns: 150px minmax(0, 1fr);
+  gap: 14px;
+  height: 100%;
+  align-items: start;
+}
+
+.demo-prayer__next {
+  font-size: 11px;
+  color: rgba(239, 239, 239, 0.5);
+}
+
+.demo-prayer__cd {
+  font-family: var(--mono);
+  font-size: 24px;
+  font-weight: 300;
+  line-height: 1.15;
+  color: #fff;
+}
+
+.demo-prayer__city {
+  font-size: 10px;
+  color: rgba(239, 239, 239, 0.4);
+}
+
+.demo-prayer__chart {
+  color: var(--demo-fg);
+}
+
+.demo-prayer__times {
+  display: grid;
+  grid-template-columns: repeat(5, 1fr);
+  gap: 2px;
+  margin-top: 2px;
+  text-align: center;
+}
+
+.demo-prayer__times span {
+  display: block;
+  font-size: 9.5px;
+  color: rgba(239, 239, 239, 0.45);
+}
+
+.demo-prayer__times b {
+  font-family: var(--mono);
+  font-size: 10.5px;
+  color: rgba(239, 239, 239, 0.82);
+}
+
+.demo-prayer__times div:first-child b {
+  color: #fff;
+}
+
+/* ── halaman: chat ─────────────────────────────────────────────── */
+
+.demo-chat__head {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 10px;
+  margin-bottom: 10px;
+}
+
+.demo-chat__head b {
+  display: block;
+  font-size: 13px;
+  font-weight: 500;
+  color: #fff;
+}
+
+.demo-chat__head span {
+  font-size: 10px;
+  color: rgba(239, 239, 239, 0.4);
+}
+
+.demo-chat__list {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.demo-chat__msg {
+  display: flex;
+  gap: 8px;
+  align-items: flex-start;
+}
+
+.demo-chat__avatar {
+  display: grid;
+  place-items: center;
+  width: 20px;
+  height: 20px;
+  flex: 0 0 auto;
+  border-radius: 50%;
+  background: rgba(186, 180, 184, 0.22);
+  font-size: 9.5px;
+  color: #fff;
+}
+
+.demo-chat__msg.is-gemini .demo-chat__avatar {
+  background: rgba(233, 169, 79, 0.28);
+}
+
+.demo-chat__msg p {
+  max-width: 40ch;
+  padding: 5px 9px;
+  border-radius: 8px;
+  background: rgba(186, 180, 184, 0.12);
+  font-size: 11px;
+  line-height: 1.5;
+  color: rgba(239, 239, 239, 0.9);
+}
+
+.demo-chat__msg.is-user p {
+  background: rgba(186, 180, 184, 0.26);
+}
+
+.demo-chat__msg time {
+  display: block;
+  margin-top: 2px;
+  font-family: var(--mono);
+  font-size: 9px;
+  color: rgba(239, 239, 239, 0.34);
+}
+
+/* ── halaman: kalender ────────────────────────────────────────── */
+
+.demo-cal__head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 8px;
+}
+
+.demo-cal__head b {
+  font-size: 13px;
+  font-weight: 500;
+  color: #fff;
+}
+
+.demo-cal__grid {
+  display: grid;
+  grid-template-columns: repeat(7, 1fr);
+  gap: 1px;
+}
+
+.demo-cal__dow {
+  padding-bottom: 3px;
+  font-size: 9px;
+  text-align: center;
+  color: rgba(239, 239, 239, 0.35);
+}
+
+.demo-cal__day {
+  display: grid;
+  place-items: center;
+  height: 26px;
+  border-radius: 5px;
+  font-family: var(--mono);
+  font-size: 10px;
+  color: rgba(239, 239, 239, 0.62);
+}
+
+.demo-cal__day.is-marked {
+  position: relative;
+}
+
+.demo-cal__day.is-marked::after {
+  content: '';
+  position: absolute;
+  bottom: 4px;
+  width: 3px;
+  height: 3px;
+  border-radius: 50%;
+  background: var(--demo-accent);
+}
+
+.demo-cal__day.is-today {
+  background: rgba(186, 180, 184, 0.2);
+  color: #fff;
+  box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.22);
+}
+
+/* ── halaman: pengaturan ──────────────────────────────────────── */
+
+.demo-settings__head {
+  margin-bottom: 6px;
+}
+
+.demo-settings__head b {
+  font-size: 13px;
+  font-weight: 500;
+  color: #fff;
+}
+
+.demo-settings__row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  height: 24px;
+  padding: 0 4px;
+  font-size: 11.5px;
+  color: rgba(239, 239, 239, 0.82);
+}
+
+.demo-settings__row b {
+  font-family: var(--mono);
+  font-size: 10.5px;
+  font-weight: 400;
+  color: var(--demo-ok);
+}
+
+/* ── kontrol di bawah panggung ────────────────────────────────── */
+
+.demo__controls {
+  margin-top: var(--s4);
+}
+
+.demo__row {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--s4);
+}
+
+.demo__btn {
+  min-height: 40px;
+  font-size: 0.875rem;
+}
+
+.demo__readout {
+  display: flex;
+  align-items: center;
+  gap: var(--s2);
+  margin-top: var(--s4);
+  font-family: var(--mono);
+  font-size: 0.75rem;
+  color: var(--fg-muted);
+}
+
+.demo__readout code {
+  padding: 1px 5px;
+  border-radius: 3px;
+  background: var(--bg-inset);
+  color: var(--fg);
+  font-size: 0.75rem;
+}
+
+.demo__dot {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: var(--fg-faint);
+  transition: background-color 200ms ease-out;
+}
+
+.demo__dot.is-live {
+  background: var(--accent);
+}
+
+.demo__hint {
+  margin-top: var(--s3);
+  max-width: 60ch;
+  font-size: 0.8125rem;
+  color: var(--fg-muted);
+}
+
+.demo__note {
+  margin-top: var(--s2);
+  font-size: 0.75rem;
+  color: var(--fg-faint);
+}
+
+@media (max-width: 640px) {
+  .demo__stage {
+    min-height: 220px;
+  }
+  .demo-prayer {
+    grid-template-columns: 1fr;
+  }
+  .demo-cal__day {
+    height: 22px;
+  }
+}
+
+.demo-cal__day.is-empty {
+  color: transparent;
+}
+
+.demo-cal__day.is-empty::after {
+  display: none;
+}
+
+/* Notch adalah target besar, jadi outline 2px di kelilingnya terbaca seperti
+   border dekoratif, bukan fokus. Fokusnya ditunjukkan lewat cincin di dalam
+   badan (inset box-shadow) supaya tetap jelas bagi pengguna keyboard tanpa
+   mengubah siluet notch. */
+.demo__notch:focus-visible {
+  outline: none;
+  box-shadow:
+    inset 0 0 0 2px var(--accent),
+    0 14px 40px -12px rgba(0, 0, 0, 0.9);
+}
+
+/* Tombol nav dan kontrol kecil tetap memakai outline standar. */
+.demo-nav__btn:focus-visible,
+.demo-nav__arrow:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 1px;
+}
+
+/* Jalan pintas per halaman. Mengklik ikon nav 16 kali melelahkan, dan tidak
+   semua orang tahu panah kiri/kanan lebih dulu. */
+.demo__pages {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin-top: var(--s6);
+}
+
+.demo__pick {
+  padding: 5px 10px;
+  border: 1px solid var(--line);
+  border-radius: 6px;
+  background: transparent;
+  color: var(--fg-muted);
+  font-family: var(--font);
+  font-size: 0.75rem;
+  cursor: pointer;
+  transition:
+    background-color 150ms ease-out,
+    border-color 150ms ease-out,
+    color 150ms ease-out;
+}
+
+.demo__pick:hover {
+  color: var(--fg);
+  border-color: var(--line-strong);
+  background: var(--bg-inset);
+}
+
+.demo__pick.is-active {
+  color: var(--fg);
+  border-color: var(--accent-line);
+  background: var(--accent-dim);
+}

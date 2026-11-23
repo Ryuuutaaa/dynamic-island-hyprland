@@ -69,3 +69,47 @@ setelah pengambilan selesai.
 - Skala jarak mengikuti kelipatan 4px.
 - Notch tertutup dirender pada ukuran aslinya (170px), tidak direntangkan,
   karena memperbesar aset sekecil itu membuat semuanya buram.
+
+## Live demo
+
+`pages/demo.vue` + `components/DemoIsland.vue` adalah replika notch yang bisa
+dipakai di browser. Bukan gambar, bukan video: notch benar-benar membesar,
+halaman benar-benar bisa dinavigasi.
+
+Yang diambil dari implementasi asli, bukan dikira-kira:
+
+| Sumber | Yang dipakai |
+|---|---|
+| `config.js` → `geometry` | ukuran tiap keadaan dan tiap halaman, radius, telinga |
+| `config.js` → `motion` | durasi 320 ms, kurva `cubic-bezier(.34,1.32,.5,1)` |
+| `modules/nav.js` → `ICONS` | urutan 16 halaman dan labelnya |
+| `theme.js` → `palette` | `#0B0003`, `#EFEFEF`, `#BAB4B8`, `#3ad17a`, `#ff8f8f` |
+| `state.js` → `PAGE_ORDER` | perilaku pin, panah, dan panah kiri di tampilan lirik |
+
+Interaksi: hover membuka, klik atau Enter menahan terbuka, panah kiri/kanan
+berpindah halaman, Escape menutup. Di tampilan lirik, panah kiri kembali ke
+kartu musik, bukan ke halaman sebelumnya.
+
+Catatan implementasi:
+
+- **Telinga digambar sebagai SVG path**, bukan trik CSS mask. Bentuknya
+  diturunkan langsung dari Cairo di `index.js`
+  (`arcNegative(0, e, e, 0, -PI/2)` untuk kiri, `arc(e, e, e, PI, 1.5PI)` untuk
+  kanan). Mask CSS rapuh: sintaksnya berbeda antar browser dan hasilnya sulit
+  diperiksa.
+- **Ikon memakai render function**, bukan `v-html`. Browser mem-parse children
+  SVG di namespace yang salah saat memakai `v-html`, sehingga ikonnya kosong.
+- **Gradient langit digambar oleh badan notch sendiri**, bukan elemen overlay.
+  Overlay terpisah di dalam `overflow:hidden` + `border-radius` meninggalkan
+  garis berwarna 1px di tepi saat di-composite.
+- **Ruang nav dipotong dari isi** (padding bawah 40px), sama seperti
+  `stack.margin_bottom = 34` di implementasinya. Tanpa itu baris terakhir
+  tertimpa nav.
+- **Fokus keyboard**: notch memakai cincin inset, bukan outline 2px, karena
+  outline di keliling tombol sebesar notch terbaca seperti border dekoratif.
+
+Diverifikasi dengan Chrome DevTools Protocol, bukan asumsi: 16 halaman unik
+dengan lebar sesuai config (kalender 522, sholat 584, chat 518, pengaturan 520),
+panah kiri dari lirik mengembalikan 468px, Escape menutup ke 150px, `Tab` masuk
+ke notch lalu nav, dan `prefers-reduced-motion` mempersingkat transisi ke
+1e-05s.

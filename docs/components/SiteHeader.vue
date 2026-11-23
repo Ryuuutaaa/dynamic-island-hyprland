@@ -4,6 +4,7 @@ const route = useRoute();
 const links = [
   { to: '/', label: 'Pengenalan' },
   { to: '/fitur', label: 'Fitur' },
+  { to: '/demo', label: 'Demo' },
   { to: '/instalasi', label: 'Instalasi' },
 ];
 

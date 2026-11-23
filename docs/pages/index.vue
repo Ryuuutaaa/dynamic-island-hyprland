@@ -29,8 +29,8 @@ useHead({
         <NuxtLink to="/instalasi" class="btn btn--primary">
           Pasang sekarang <span class="btn__arrow" aria-hidden="true">→</span>
         </NuxtLink>
-        <NuxtLink to="/fitur" class="btn btn--link">
-          Lihat semua fitur
+        <NuxtLink to="/demo" class="btn btn--link">
+          Coba live demo
         </NuxtLink>
       </div>
 
