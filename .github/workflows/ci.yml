@@ -67,7 +67,21 @@ jobs:
 
       - name: Uji logika murni (core.js)
         working-directory: desktop
-        run: node tools/verify-core.mjs
+        # `|| true` + pemeriksaan manual: kegagalan uji harus mencetak seluruh
+        # output ke ringkasan langkah. Log job tidak dapat diunduh tanpa akses
+        # admin (API 403), jadi output ini satu-satunya jejak yang terbaca.
+        run: |
+          set +e
+          node tools/verify-core.mjs 2>&1 | tee /tmp/verify.log
+          status=${PIPESTATUS[0]}
+          if [ "$status" -ne 0 ]; then
+            echo "::error::Uji logika gagal (exit $status). Output lengkap di atas."
+            echo "--- node & modul ---"
+            node --version
+            ls -la src/shared/ 2>/dev/null || echo "src/shared/ TIDAK ADA"
+            ls -la ../shared/ 2>/dev/null || echo "../shared/ TIDAK ADA"
+            exit 1
+          fi
 
       - name: Tidak ada kredensial di repo
         run: |
