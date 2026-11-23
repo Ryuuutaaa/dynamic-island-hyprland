@@ -11,7 +11,7 @@ export {
     dayName,
     monthName,
     asDate,
-} from '../shared/datetime.js';
+} from '../shared/datetime.mjs';
 
 // Satu ticker untuk SEMUA label jam.
 //

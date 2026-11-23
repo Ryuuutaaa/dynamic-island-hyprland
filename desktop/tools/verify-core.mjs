@@ -151,7 +151,7 @@ try {
 }
 
 try {
-    const agsFmt = await import('../../shared/datetime.js');
+    const agsFmt = await import('../../shared/datetime.mjs');
     check('shared/datetime dipakai AGS', agsFmt.formatDate(DAY), 'Minggu, 22 November');
 } catch (error) {
     expect('shared/datetime dapat dimuat', false, String(error?.message ?? error));

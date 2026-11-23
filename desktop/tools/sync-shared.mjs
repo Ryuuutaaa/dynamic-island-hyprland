@@ -25,9 +25,20 @@ if (!fs.existsSync(src)) {
 
 fs.mkdirSync(dest, { recursive: true });
 
+// Buang berkas hasil sync sebelumnya. Tanpa ini, rename modul (mis. .js ->
+// .mjs) meninggalkan salinan lama yang masih bisa di-import.
+for (const stale of fs.readdirSync(dest)) {
+    if (stale === 'README.md') continue;
+    fs.rmSync(path.join(dest, stale), { force: true, recursive: true });
+}
+
+// Modul bersama memakai ekstensi .mjs supaya Node memperlakukannya sebagai
+// ESM tanpa bergantung pada `package.json` di folder tujuan. Ini penting:
+// `node --check` di CI gagal pada file berisi `export` yang dianggap
+// CommonJS (terbukti saat modul masih bernama .js).
 const copied = [];
 for (const name of fs.readdirSync(src)) {
-    if (!name.endsWith('.js')) continue;
+    if (!name.endsWith('.mjs')) continue;
     fs.copyFileSync(path.join(src, name), path.join(dest, name));
     copied.push(name);
 }

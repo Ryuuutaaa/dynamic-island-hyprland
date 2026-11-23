@@ -36,12 +36,16 @@ jobs:
         with:
           node-version: 22
 
+      # Catatan: modul AGS/Elektron adalah ESM. Node 24 tidak lagi menebak
+      # modalitas file .js, sehingga root package.json memuat "type":"module"
+      # dan shared/ memakai .mjs. Tanpa keduanya, `node --check` gagal pada
+      # baris `export` — itu penyebab kegagalan run #12.
       - name: Sintaks JavaScript (AGS)
         run: |
           fail=0
           while IFS= read -r file; do
             node --check "$file" || fail=1
-          done < <(git ls-files '*.js')
+          done < <(git ls-files '*.js' '*.mjs')
           exit "$fail"
 
       - name: Sintaks JavaScript (Electron)

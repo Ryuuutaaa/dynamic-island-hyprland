@@ -21,7 +21,7 @@ export {
     dateKey,
     computeTimes,
     nextPrayer,
-} from '../../shared/prayer-calc.js';
+} from '../../shared/prayer-calc.mjs';
 
 export {
     formatClock,
@@ -29,7 +29,7 @@ export {
     formatDateShort,
     dayName,
     monthName,
-} from '../../shared/datetime.js';
+} from '../../shared/datetime.mjs';
 
 // ── fase langit notch (untuk background) ────────────────────────────────
 

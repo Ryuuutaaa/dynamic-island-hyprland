@@ -1,0 +1,6 @@
+{
+  "name": "dynamic-island-ags",
+  "private": true,
+  "type": "module",
+  "description": "Modul AGS. type=module diperlukan agar `node --check` memperlakukan berkas .js ini sebagai ESM; tanpa itu Node 24 menolaknya dan auto-detect Node 22 hanya menyamarkan masalah."
+}
