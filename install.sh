@@ -605,7 +605,15 @@ fi
 # 4. restart bar + shell, memakai argumen yang sama seperti proses yang jalan.
 #    Kalau tidak, waybar/AGS yang diluncurkan dengan flag (mis. `waybar -c ... -s ...`
 #    atau `ags -c ...`) akan kembali ke konfigurasi default setelah install.
-if pgrep -x waybar > /dev/null 2>&1; then
+#
+#    PENTING saat menguji dengan HOME palsu: waybar yang berjalan milik SESI
+#    NYATA, bukan milik HOME uji. Tanpa pengaman ini, uji install di HOME
+#    sementara tetap mematikan waybar pengguna (terukur: waybar mati 3 hari
+#    setelah uji, sehingga bar atas hilang dan window menutupi tepi layar).
+#    DYNAMIC_ISLAND_NO_RESTART=1 melewati seluruh restart proses.
+if [[ "${DYNAMIC_ISLAND_NO_RESTART:-0}" == "1" ]]; then
+    echo "•  restart waybar/AGS dilewati (DYNAMIC_ISLAND_NO_RESTART=1)"
+elif pgrep -x waybar > /dev/null 2>&1; then
     WAYBAR_ARGS="$(ps -o args= -p "$(pgrep -x waybar | head -1)" 2>/dev/null \
         | sed 's/^[^[:space:]]*waybar//' || true)"
     act pkill -x waybar

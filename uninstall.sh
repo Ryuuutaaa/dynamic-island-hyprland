@@ -329,7 +329,11 @@ fi
 
 # ── 9. restart bar & shell ──────────────────────────────────────────────
 # Argumen asli dipertahankan; tanpa itu waybar/AGS kembali ke config default.
-if pgrep -x waybar > /dev/null 2>&1; then
+# Pengaman uji: saat HOME palsu, waybar yang berjalan milik sesi NYATA.
+# Tanpa ini, uji uninstall mematikan bar pengguna.
+if [[ "${DYNAMIC_ISLAND_NO_RESTART:-0}" == "1" ]]; then
+    echo "•  restart waybar/AGS dilewati (DYNAMIC_ISLAND_NO_RESTART=1)"
+elif pgrep -x waybar > /dev/null 2>&1; then
     WAYBAR_ARGS="$(ps -o args= -p "$(pgrep -x waybar | head -1)" 2>/dev/null \
         | sed 's/^[^[:space:]]*waybar//' || true)"
     note "pkill -x waybar"

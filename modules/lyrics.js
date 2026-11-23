@@ -103,14 +103,21 @@ async function load(player) {
         publish(key, value);
         console.log(`[dyn-island] lyrics ${key}: ${value.status} (${value.lines.length} baris)`);
     } catch (error) {
-        // 404 = lagu tidak ada di LRCLIB -> jawaban pasti, aman di-cache.
-        // Error jaringan (DNS/timeout) TIDAK di-cache: dulu ini bikin lagu
-        // "mati" sampai AGS restart, padahal cuma gagal sesaat.
-        const notFound = String(error).includes('404');
+        // 404 = lagu tidak ada -> jawaban pasti, aman di-cache.
+        // 503 = server sedang sibuk: bukan salah lagu, tapi menembak ulang
+        //       setiap ganti track membanjiri log (terukur: 5 kegagalan 503
+        //       dalam 40 menit) dan tetap gagal. Di-cache singkat sebagai
+        //       'error' agar satu lagu tidak diulang terus; tombol "coba lagi"
+        //       di halaman lirik tetap tersedia untuk memaksa ulang.
+        // Error jaringan lain (DNS/timeout) TIDAK di-cache: biasanya sesaat.
+        const text = String(error);
+        const notFound = text.includes('404');
+        const busy = text.includes('503');
         const value = { key, status: notFound ? 'none' : 'error', lines: [], title, source: 'LRCLIB' };
-        if (notFound) publish(key, value);
+        if (notFound || busy) publish(key, value);
         else lyrics.value = value;
-        if (!notFound) console.log(`[dyn-island] lyrics gagal ${key}: ${error}`);
+        // Satu baris per lagu, bukan per percobaan: 'busy' sudah di-cache.
+        if (!notFound) console.log(`[dyn-island] lyrics gagal ${key}: ${text}`);
     } finally {
         loading = '';
     }

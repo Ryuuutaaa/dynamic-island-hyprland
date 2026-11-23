@@ -2,6 +2,7 @@ import GLib from 'gi://GLib';
 import Variable from 'resource:///com/github/Aylur/ags/variable.js';
 import Audio from 'resource:///com/github/Aylur/ags/service/audio.js';
 import Bluetooth from 'resource:///com/github/Aylur/ags/service/bluetooth.js';
+import { requireFor, refreshBase } from '../state.js';
 
 // Preview untuk menguji tampilan tanpa device fisik (tidak dipakai di jalur
 // normal): kalau kosong, sumbernya tetap Bluetooth.connected_devices.
@@ -99,3 +100,15 @@ export function watchAudioRouting() {
     Bluetooth.connect('changed', check);
     check();
 }
+
+// Halaman detail Bluetooth hanya bermakna bila ada device terhubung. Tanpa
+// ini, halaman bisa tertinggal kosong selamanya: `bluetooth` termasuk sticky,
+// jadi `pinned` tidak pernah kedaluwarsa.
+requireFor('bluetooth', () => devices().length > 0);
+
+// Saat device terakhir terputus atau Bluetooth dimatikan, lepas halaman.
+const releaseStale = () => {
+    if (devices().length === 0) refreshBase();
+};
+Bluetooth.connect('changed', releaseStale);
+btPreview.connect('changed', releaseStale);

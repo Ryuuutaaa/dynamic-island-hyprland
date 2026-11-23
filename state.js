@@ -69,8 +69,40 @@ const rest = () => {
     page.value = next;
 };
 
+// Halaman yang isinya bergantung pada data hidup (device Bluetooth, jaringan,
+// daftar lagu). Kalau datanya hilang saat halaman itu terbuka, halaman harus
+// dilepas — kalau tidak, kartu kosong menetap selamanya karena `sticky`
+// membuat `pinned` tidak pernah kedaluwarsa.
+const REQUIREMENTS = new Map();
+
+// Daftarkan syarat hidup sebuah halaman. `check()` dipanggil setiap kali
+// state berubah; mengembalikan false = halaman tidak lagi bermakna.
+export function requireFor(name, check) {
+    REQUIREMENTS.set(name, check);
+}
+
+// Apakah halaman saat ini masih punya alasan untuk ditampilkan?
+export const pageStillValid = () => {
+    const check = REQUIREMENTS.get(pinned);
+    if (!check) return true;
+    try {
+        return check() !== false;
+    } catch (_) {
+        return true;
+    }
+};
+
 export function refreshBase() {
-    if (transientActive || pinned) return;
+    if (transientActive) return;
+    if (pinned) {
+        // Halaman sticky yang datanya hilang dilepas ke base.
+        if (pageStillValid()) return;
+        if (pinTimer) {
+            GLib.source_remove(pinTimer);
+            pinTimer = 0;
+        }
+        pinned = null;
+    }
     rest();
 }
 
