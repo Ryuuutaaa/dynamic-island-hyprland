@@ -8,140 +8,28 @@
 
 export const DAY_MS = 86400000;
 
-// ── waktu sholat ────────────────────────────────────────────────────────
-// Algoritma PrayTimes: deklinasi matahari + equation of time, lalu sudut
-// waktu. Semua hasil dalam menit lokal, dibulatkan ke ATAS (ihtiyat) supaya
-// pengingat tidak pernah berbunyi sebelum waktu masuk.
+// ── waktu sholat & format tanggal ───────────────────────────────────────
+// Berasal dari shared/ di root repo: kode yang SAMA dipakai versi AGS.
+// Dulu bagian ini disalin ke sini dan perlahan menyimpang dari sumbernya
+// (terbukti: nilai METHODS dan julian() tidak lagi identik byte-per-byte).
+export {
+    METHODS,
+    PRAYERS,
+    NAMES as PRAYER_NAMES,
+    solar,
+    formatMinutes,
+    dateKey,
+    computeTimes,
+    nextPrayer,
+} from '../../shared/prayer-calc.js';
 
-export const METHODS = {
-    kemenag: { label: 'Kemenag', fajr: 20, isha: 18 },
-    mwl: { label: 'MWL', fajr: 18, isha: 17 },
-    'umm-al-qura': { label: 'Umm al-Qura', fajr: 18.5, isha: null, ishaMinutes: 90 },
-};
-
-export const PRAYERS = ['fajr', 'dhuhr', 'asr', 'maghrib', 'isha'];
-
-export const PRAYER_NAMES = {
-    fajr: 'Subuh', dhuhr: 'Dzuhur', asr: 'Ashar', maghrib: 'Magrib', isha: 'Isya',
-};
-
-const D2R = Math.PI / 180;
-const R2D = 180 / Math.PI;
-const fixAngle = a => ((a % 360) + 360) % 360;
-const fixHour = a => ((a % 24) + 24) % 24;
-
-const julian = (year, month, day) => {
-    if (month <= 2) { year -= 1; month += 12; }
-    const A = Math.floor(year / 100);
-    const B = 2 - A + Math.floor(A / 4);
-    return Math.floor(365.25 * (year + 4716))
-        + Math.floor(30.6001 * (month + 1))
-        + day + B - 1524.5;
-};
-
-const sunPosition = jd => {
-    const D = jd - 2451545.0;
-    const g = fixAngle(357.529 + 0.98560028 * D);
-    const q = fixAngle(280.459 + 0.98564736 * D);
-    const L = fixAngle(q + 1.915 * Math.sin(g * D2R) + 0.020 * Math.sin(2 * g * D2R));
-    const e = 23.439 - 0.00000036 * D;
-    const RA = Math.atan2(Math.cos(e * D2R) * Math.sin(L * D2R), Math.cos(L * D2R)) / D2R / 15;
-    return {
-        declination: Math.asin(Math.sin(e * D2R) * Math.sin(L * D2R)) * R2D,
-        equation: q / 15 - fixHour(RA),
-    };
-};
-
-const hourAngle = (angle, lat, declination) => {
-    const cosH = (-Math.sin(angle * D2R)
-        - Math.sin(declination * D2R) * Math.sin(lat * D2R))
-        / (Math.cos(declination * D2R) * Math.cos(lat * D2R));
-    if (cosH < -1 || cosH > 1) return null;
-    // acos mengembalikan RADIAN; bagi D2R untuk mengubah ke derajat, lalu /15
-    // untuk jam. Membagi R2D (57.29) menghasilkan sudut hampir nol — terukur
-    // semua waktu sholat menumpuk di 12:06.
-    return Math.acos(cosH) / D2R / 15;
-};
-
-export const solar = { julian, sunPosition, hourAngle };
-
-export const formatMinutes = minutes => {
-    if (!Number.isFinite(minutes)) return '—';
-    const value = ((Math.round(minutes) % 1440) + 1440) % 1440;
-    const hh = String(Math.floor(value / 60)).padStart(2, '0');
-    const mm = String(value % 60).padStart(2, '0');
-    return `${hh}:${mm}`;
-};
-
-export const dateKey = date =>
-    `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}-${String(date.getDate()).padStart(2, '0')}`;
-
-export function computeTimes(date, location = {}) {
-    const method = METHODS[location.method] ?? METHODS.kemenag;
-    const lat = Number(location.latitude ?? -8.65);
-    const lng = Number(location.longitude ?? 115.2167);
-    // Offset zona waktu dalam jam. Default: zona mesin. Uji dan pemakaian
-    // lintas zona bisa memaksa nilainya (mis. 8 untuk WITA) agar hasil tidak
-    // bergantung pada TZ lingkungan — CI berjalan di UTC.
-    const tz = Number.isFinite(Number(location.tzOffset))
-        ? Number(location.tzOffset)
-        : -new Date(date.getFullYear(), date.getMonth(), date.getDate(), 12).getTimezoneOffset() / 60;
-
-    const jd = julian(date.getFullYear(), date.getMonth() + 1, date.getDate());
-    const sun = sunPosition(jd);
-    const dhuhr = 12 + tz - lng / 15 - sun.equation;
-
-    const fajrAngle = hourAngle(method.fajr, lat, sun.declination);
-    const sunriseAngle = hourAngle(0.833, lat, sun.declination);
-    const asrAltitude = Math.atan(1 / (1 + Math.tan(Math.abs(lat - sun.declination) * D2R))) * R2D;
-    const asrAngle = hourAngle(-asrAltitude, lat, sun.declination);
-    const ishaAngle = method.isha != null ? hourAngle(method.isha, lat, sun.declination) : null;
-
-    if ([fajrAngle, sunriseAngle, asrAngle].some(v => v == null))
-        return { date: dateKey(date), times: [], method: method.label, error: 'lintang ekstrem' };
-
-    const hours = {
-        fajr: dhuhr - fajrAngle,
-        dhuhr,
-        asr: dhuhr + asrAngle,
-        maghrib: dhuhr + sunriseAngle,
-        isha: method.isha != null
-            ? dhuhr + ishaAngle
-            : dhuhr + sunriseAngle + (method.ishaMinutes ?? 90) / 60,
-    };
-
-    const times = PRAYERS.map(key => {
-        const minutes = Math.ceil(hours[key] * 60);
-        return { key, name: PRAYER_NAMES[key], minutes, label: formatMinutes(minutes) };
-    });
-
-    return {
-        date: dateKey(date),
-        times,
-        sunrise: Math.ceil((dhuhr - sunriseAngle) * 60),
-        method: method.label,
-        error: null,
-    };
-}
-
-const timestampFor = (date, minutes) => {
-    const midnight = new Date(date.getFullYear(), date.getMonth(), date.getDate(), 0, 0, 0, 0);
-    return midnight.getTime() + minutes * 60000;
-};
-
-export function nextPrayer(state, now = new Date()) {
-    if (!state?.times?.length) return null;
-    const nowMinutes = now.getHours() * 60 + now.getMinutes() + now.getSeconds() / 60;
-    const current = state.times.find(t => t.minutes > nowMinutes + 0.01);
-    if (current)
-        return { ...current, tomorrow: false, timestamp: timestampFor(now, current.minutes) };
-
-    const tomorrow = new Date(now.getFullYear(), now.getMonth(), now.getDate() + 1);
-    const nextDay = computeTimes(tomorrow, state.location ?? {});
-    const fajr = nextDay.times[0];
-    if (!fajr) return null;
-    return { ...fajr, tomorrow: true, timestamp: timestampFor(tomorrow, fajr.minutes) };
-}
+export {
+    formatClock,
+    formatDate,
+    formatDateShort,
+    dayName,
+    monthName,
+} from '../../shared/datetime.js';
 
 // ── fase langit notch (untuk background) ────────────────────────────────
 
@@ -194,21 +82,6 @@ export const skyFor = (state, minutesNow) => {
     if (minutesNow < fajr || minutesNow >= isha) return skyNight;
     return sampleSky(minutesNow, skyFrames(state));
 };
-
-// ── format tanggal Indonesia (locale en_US tidak membantu) ──────────────
-
-const DAYS = ['Minggu', 'Senin', 'Selasa', 'Rabu', 'Kamis', 'Jumat', 'Sabtu'];
-const MONTHS = ['Januari', 'Februari', 'Maret', 'April', 'Mei', 'Juni', 'Juli',
-    'Agustus', 'September', 'Oktober', 'November', 'Desember'];
-
-export const formatClock = (date = new Date()) =>
-    `${String(date.getHours()).padStart(2, '0')}:${String(date.getMinutes()).padStart(2, '0')}`;
-
-export const formatDate = (date = new Date()) =>
-    `${DAYS[date.getDay()]}, ${date.getDate()} ${MONTHS[date.getMonth()]}`;
-
-export const formatDateShort = (date = new Date()) =>
-    `${date.getDate()} ${MONTHS[date.getMonth()].slice(0, 3)}`;
 
 // ── iCal: parsing + ekspansi RRULE ──────────────────────────────────────
 // Dipisah dari calendar.js supaya bisa dipakai versi web tanpa GLib.

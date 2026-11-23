@@ -19,7 +19,16 @@
     "dist": "electron-builder",
     "dist:linux": "electron-builder --linux",
     "dist:win": "electron-builder --win",
-    "dist:mac": "electron-builder --mac"
+    "dist:mac": "electron-builder --mac",
+    "sync": "node tools/sync-shared.mjs",
+    "prestart": "node tools/sync-shared.mjs",
+    "precheck": "node tools/sync-shared.mjs",
+    "preverify": "node tools/sync-shared.mjs",
+    "prepack": "node tools/sync-shared.mjs",
+    "predist": "node tools/sync-shared.mjs",
+    "predist:linux": "node tools/sync-shared.mjs",
+    "predist:win": "node tools/sync-shared.mjs",
+    "predist:mac": "node tools/sync-shared.mjs"
   },
   "allowScripts": {
     "electron": true

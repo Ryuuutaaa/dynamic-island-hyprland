@@ -29,3 +29,5 @@ calendar.url
 desktop/node_modules/
 desktop/.pnpm-store/
 desktop/release/
+# Salinan otomatis shared/ untuk Electron (dihasilkan tools/sync-shared.mjs)
+desktop/src/shared/

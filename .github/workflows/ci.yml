@@ -59,6 +59,12 @@ jobs:
           bash -n uninstall.sh
           bash -n tools/test-nav.sh
 
+      - name: Sinkronkan shared/ (logika dipakai bersama)
+        working-directory: desktop
+        # desktop/src/shared/ adalah salinan hasil generate dari shared/ di root.
+        # Tanpa langkah ini, uji core tidak menemukan modul.
+        run: node tools/sync-shared.mjs
+
       - name: Uji logika murni (core.js)
         working-directory: desktop
         run: node tools/verify-core.mjs

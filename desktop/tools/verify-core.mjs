@@ -134,6 +134,29 @@ check('model tanpa generateContent dilewati',
     recommendModel([{ name: 'models/gemini-embedding-2', supportedGenerationMethods: ['embedContent'] }]),
     null);
 
+// ── jalur AGS memakai kode yang SAMA ────────────────────────────────────
+// Ini yang mencegah duplikasi kembali muncul: kalau modul AGS (modules/
+// prayer-calc.js) berhenti meneruskan ke shared/ dan menyalin ulang logika,
+// hasilnya akan menyimpang dan uji ini gagal.
+try {
+    const ags = await import('../../modules/prayer-calc.js');
+    const agsTimes = ags.computeTimes(DAY, LOCATION);
+    check('AGS prayer-calc lewat shared/subuh', agsTimes.times[0].label, '04:25');
+    check('AGS prayer-calc lewat shared/isya', agsTimes.times[4].label, '19:37');
+    expect('AGS dan Electron memakai kode yang sama',
+        JSON.stringify(agsTimes.times.map(t => t.label))
+        === JSON.stringify(times.times.map(t => t.label)));
+} catch (error) {
+    expect('AGS prayer-calc dapat dimuat', false, String(error?.message ?? error));
+}
+
+try {
+    const agsFmt = await import('../../shared/datetime.js');
+    check('shared/datetime dipakai AGS', agsFmt.formatDate(DAY), 'Minggu, 22 November');
+} catch (error) {
+    expect('shared/datetime dapat dimuat', false, String(error?.message ?? error));
+}
+
 // ── ringkasan ───────────────────────────────────────────────────────────
 console.log();
 if (failures > 0) {
