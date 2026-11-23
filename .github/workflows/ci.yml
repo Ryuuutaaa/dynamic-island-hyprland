@@ -1,26 +1,23 @@
 name: CI
 
-# Dua tingkat:
-#   checks -> cepat, tanpa build: validasi sintaks JS, bash, dan logika core
-#   build  -> matrix Linux/Windows/macOS: membuktikan paket benar-benar terbangun
+# Tujuan: membuktikan kode ini benar-benar bisa dibangun, bukan sekadar
+# "sepertinya bisa".
 #
-# Tujuan build di CI: membuktikan klaim "bisa dipaket untuk 3 OS" dengan bukti,
-# bukan asumsi. Artefak bisa diunduh dari halaman Actions.
+#   Validasi -> cepat (ubuntu): sintaks, bash, logika inti, tidak ada kredensial
+#   Build    -> matrix Linux/Windows/macOS: paket benar-benar terbangun
+#
+# Catatan penting: job build TIDAK mengunggah artefak. Unggahan sempat
+# ditambahkan lalu menghasilkan enam run gagal berturut-turut yang tidak bisa
+# didiagnosis (log job butuh akses admin, API kena rate limit). Nilai CI ini
+# ada pada pembuktian build; distribusi artefak ditangani terpisah.
 
 on:
   push:
     branches: [main]
-    paths:
-      - 'desktop/**'
-      - '**.js'
-      - 'install.sh'
-      - 'uninstall.sh'
-      - '.github/workflows/**'
   pull_request:
     branches: [main]
   workflow_dispatch:
 
-# Build lama dibatalkan bila ada push baru di ref yang sama.
 concurrency:
   group: ci-${{ github.ref }}
   cancel-in-progress: true
@@ -41,8 +38,6 @@ jobs:
 
       - name: Sintaks JavaScript (AGS)
         run: |
-          # Semua modul AGS harus lolos parse. Ini menangkap typo sebelum
-          # masuk ke config AGS pengguna.
           fail=0
           while IFS= read -r file; do
             node --check "$file" || fail=1
@@ -70,7 +65,6 @@ jobs:
 
       - name: Tidak ada kredensial di repo
         run: |
-          # Penjaga sederhana: pola API key Gemini dan URL iCal privat Google.
           if git grep -nE 'AQ\.[A-Za-z0-9_-]{20,}|private-[a-f0-9]{20,}' -- .; then
             echo "::error::Kredensial ditemukan di repo. Hapus sebelum push."
             exit 1
@@ -87,17 +81,13 @@ jobs:
         include:
           - os: ubuntu-latest
             label: Linux
-            command: pnpm exec electron-builder --linux AppImage deb --publish never
-            # AppImage butuh libfuse2 di Ubuntu 24.04; fpm (deb) butuh ruby.
-            setup: sudo apt-get update && sudo apt-get install -y libfuse2
+            command: pnpm exec electron-builder --linux --publish never
           - os: windows-latest
             label: Windows
             command: pnpm exec electron-builder --win --publish never
-            setup: echo "tanpa prasyarat tambahan"
           - os: macos-latest
             label: macOS
             command: pnpm exec electron-builder --mac --publish never
-            setup: echo "tanpa prasyarat tambahan"
     steps:
       - uses: actions/checkout@v4
 
@@ -109,64 +99,35 @@ jobs:
         with:
           version: 10
 
+      # AppImage di Ubuntu 24.04 butuh libfuse2. Langkah ini hanya berjalan
+      # di Linux; di Windows/macOS otomatis dilewati (bukan perintah no-op
+      # yang bisa gagal karena quoting shell).
+      - name: Prasyarat Linux
+        if: runner.os == 'Linux'
+        run: sudo apt-get update && sudo apt-get install -y libfuse2
+
       - name: Pasang dependensi
         working-directory: desktop
         run: pnpm install --frozen-lockfile
 
-      - name: Prasyarat platform
-        shell: bash
-        run: ${{ matrix.setup }}
-
-      - name: Info lingkungan
+      - name: Build
         working-directory: desktop
-        shell: bash
-        # Tanpa `set -e`: langkah ini hanya melaporkan, bukan memutuskan.
-        # Sebelumnya `require('electron/package.json')` membuat langkah gagal
-        # di Windows, sehingga build tidak pernah dicoba.
-        run: |
-          node --version || true
-          pnpm --version || true
-          node -e "console.log('electron', JSON.parse(require('fs').readFileSync('node_modules/electron/package.json','utf8')).version)" || echo "electron: tidak terbaca"
-          if [ -d node_modules/electron/dist ]; then echo "biner electron: ada"; else echo "biner electron: TIDAK ADA"; fi
-          python3 --version 2>/dev/null || true
-
-      - name: Build paket
-        working-directory: desktop
-        shell: bash
         run: ${{ matrix.command }}
         env:
-          # Build tanpa sertifikat: artefak tidak ditandatangani. Untuk rilis
-          # publik, tambahkan sertifikat lewat secrets (lihat README).
+          # Tanpa sertifikat: artefak tidak ditandatangani. Untuk rilis publik,
+          # tambahkan sertifikat lewat secrets.
           CSC_IDENTITY_AUTO_DISCOVERY: false
-          # Token tidak dioper: dengan --publish never electron-builder tidak
-          # butuh auth, dan token yang ada bisa memicu jalur publish/verify.
-          # DEBUG membuat electron-builder mencetak alasan kegagalan yang
-          # sebenarnya (tidak ada efek saat build sukses).
-          DEBUG: electron-builder
 
-      - name: Daftar hasil build
+      # Bukti yang bisa dibaca langsung di ringkasan langkah, tanpa perlu
+      # mengunduh log: paket apa yang dihasilkan.
+      - name: Hasil build
+        working-directory: desktop
         shell: bash
         run: |
-          echo "isi desktop/release/:"
-          ls -lh desktop/release/ 2>/dev/null || echo "  (tidak ada)"
-          echo "berkas yang akan diunggah per pola:"
-          for pattern in desktop/release/*.AppImage desktop/release/*.deb \
-                         desktop/release/*.exe desktop/release/*.dmg; do
-            matched=$(ls $pattern 2>/dev/null | wc -l)
-            echo "  $pattern -> $matched"
-          done
-
-      - name: Unggah artefak
-        uses: actions/upload-artifact@v4
-        with:
-          name: dynamic-island-${{ matrix.label }}
-          # Satu pola per baris. upload-artifact memisahkan pola dengan baris
-          # baru; pola yang dipisah spasi dianggap satu pola dan tidak cocok.
-          # Path relatif terhadap root workspace, bukan working-directory.
-          path: |
-            desktop/release/*.AppImage
-            desktop/release/*.deb
-            desktop/release/*.exe
-            desktop/release/*.dmg
-          if-no-files-found: error
-          retention-days: 14
+          echo "release/:"
+          ls -lh release/ 2>/dev/null || echo "  (tidak ada release/)"
+          count=$(find release -maxdepth 1 -type f \
+            \( -name '*.AppImage' -o -name '*.deb' -o -name '*.exe' -o -name '*.dmg' \) \
+            2>/dev/null | wc -l)
+          echo "paket ditemukan: $count"
+          test "$count" -gt 0
