@@ -31,3 +31,13 @@ desktop/.pnpm-store/
 desktop/release/
 # Salinan otomatis shared/ untuk Electron (dihasilkan tools/sync-shared.mjs)
 desktop/src/shared/
+
+# Situs dokumentasi Nuxt (docs/). Aset gambar di docs/public/shots/ ikut
+# di-commit karena itu hasil tangkapan layar asli; hanya artefak build yang
+# diabaikan.
+docs/node_modules/
+docs/.nuxt/
+docs/.output/
+docs/.data/
+docs/dist/
+docs/.pnpm-store/
