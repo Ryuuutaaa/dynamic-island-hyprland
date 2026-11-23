@@ -148,11 +148,16 @@ jobs:
           DEBUG: electron-builder
 
       - name: Daftar hasil build
-        working-directory: desktop
         shell: bash
         run: |
-          echo "isi release/:"
-          ls -lh release/ 2>/dev/null || echo "  (release/ tidak ada)"
+          echo "matrix.artifacts = [${{ matrix.artifacts }}]"
+          echo "isi desktop/release/:"
+          ls -lh desktop/release/ 2>/dev/null || echo "  (tidak ada)"
+          echo "glob dari root workspace:"
+          for pattern in ${{ matrix.artifacts }}; do
+            matched=$(ls $pattern 2>/dev/null | wc -l)
+            echo "  $pattern -> $matched berkas"
+          done
 
       - name: Unggah artefak
         uses: actions/upload-artifact@v4
