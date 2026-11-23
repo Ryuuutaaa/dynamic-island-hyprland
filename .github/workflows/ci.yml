@@ -1,0 +1,135 @@
+name: CI
+
+# Dua tingkat:
+#   checks -> cepat, tanpa build: validasi sintaks JS, bash, dan logika core
+#   build  -> matrix Linux/Windows/macOS: membuktikan paket benar-benar terbangun
+#
+# Tujuan build di CI: membuktikan klaim "bisa dipaket untuk 3 OS" dengan bukti,
+# bukan asumsi. Artefak bisa diunduh dari halaman Actions.
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'desktop/**'
+      - '**.js'
+      - 'install.sh'
+      - 'uninstall.sh'
+      - '.github/workflows/**'
+  pull_request:
+    branches: [main]
+  workflow_dispatch:
+
+# Build lama dibatalkan bila ada push baru di ref yang sama.
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+jobs:
+  checks:
+    name: Validasi
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+
+      - name: Sintaks JavaScript (AGS)
+        run: |
+          # Semua modul AGS harus lolos parse. Ini menangkap typo sebelum
+          # masuk ke config AGS pengguna.
+          fail=0
+          while IFS= read -r file; do
+            node --check "$file" || fail=1
+          done < <(git ls-files '*.js')
+          exit "$fail"
+
+      - name: Sintaks JavaScript (Electron)
+        working-directory: desktop
+        run: |
+          fail=0
+          while IFS= read -r file; do
+            node --check "$file" || fail=1
+          done < <(git ls-files '*.js' '*.mjs')
+          exit "$fail"
+
+      - name: Sintaks bash
+        run: |
+          bash -n install.sh
+          bash -n uninstall.sh
+          bash -n tools/test-nav.sh
+
+      - name: Uji logika murni (core.js)
+        working-directory: desktop
+        run: node tools/verify-core.mjs
+
+      - name: Tidak ada kredensial di repo
+        run: |
+          # Penjaga sederhana: pola API key Gemini dan URL iCal privat Google.
+          if git grep -nE 'AQ\.[A-Za-z0-9_-]{20,}|private-[a-f0-9]{20,}' -- .; then
+            echo "::error::Kredensial ditemukan di repo. Hapus sebelum push."
+            exit 1
+          fi
+          echo "OK: tidak ada kredensial"
+
+  build:
+    name: Build ${{ matrix.label }}
+    needs: checks
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - os: ubuntu-latest
+            label: Linux
+            command: pnpm exec electron-builder --linux AppImage deb --publish never
+            artifacts: |
+              release/*.AppImage
+              release/*.deb
+          - os: windows-latest
+            label: Windows
+            command: pnpm exec electron-builder --win --publish never
+            artifacts: |
+              release/*.exe
+          - os: macos-latest
+            label: macOS
+            command: pnpm exec electron-builder --mac --publish never
+            artifacts: |
+              release/*.dmg
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 10
+
+      - name: Pasang dependensi
+        working-directory: desktop
+        run: pnpm install --frozen-lockfile
+
+      - name: Build paket
+        working-directory: desktop
+        shell: bash
+        run: ${{ matrix.command }}
+        env:
+          # Build tanpa sertifikat: artefak tidak ditandatangani. Untuk rilis
+          # publik, tambahkan sertifikat lewat secrets (lihat README).
+          CSC_IDENTITY_AUTO_DISCOVERY: false
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Unggah artefak
+        uses: actions/upload-artifact@v4
+        with:
+          name: dynamic-island-${{ matrix.label }}
+          path: ${{ matrix.artifacts }}
+          if-no-files-found: error
+          retention-days: 14
