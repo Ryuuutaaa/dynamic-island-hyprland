@@ -1187,10 +1187,52 @@ dengan peringatan, bukan diam-diam menjadikan semua aksen hitam.
 ## Instalasi
 
 ```bash
-./install.sh     # cek prasyarat + symlink + patch config.js + patch CSS waybar + restart
-./install.sh -n  # dry-run: cetak langkahnya, tidak mengubah apa pun
-./uninstall.sh   # membatalkan semuanya
+./install.sh             # cek prasyarat + symlink + patch config.js + patch CSS + restart
+./install.sh -n          # dry-run: cetak langkahnya, tidak mengubah apa pun
+./uninstall.sh           # mencabut semuanya (termasuk API key)
+./uninstall.sh -n        # dry-run pencabutan
+./uninstall.sh --keep-env  # cabut kode, tapi pertahankan API key Gemini
 ```
+
+### Yang dicabut `uninstall.sh`
+
+Mengikuti urutan pemasangan, dengan opsi dry-run dan `--keep-env`:
+
+| # | Yang dicabut | Catatan |
+|---|---|---|
+| 1 | import di `~/.config/ags/config.js` | |
+| 2 | submap `island` **dan `chat`** di `UserKeybinds.lua`/`.conf` | termasuk blok tanpa marker |
+| 3 | notch lockscreen di `hyprlock.conf` | bila pernah dipasang |
+| 4 | muting popup `swaync/config.json` | `notification-visibility` dihapus |
+| 5 | gaya popup + control-center `swaync/style.css` | baris kosong pemisah ikut dibuang |
+| 6 | blok penyeimbang tinggi `waybar/style.css` | format ber-marker dan lama |
+| 7 | `~/.config/dynamic-iland/.env` + `gemini.json` | **opsional** dengan `--keep-env` |
+| 8 | symlink `~/.config/ags/dynamic-iland` | |
+| 9 | restart waybar & AGS | argumen asli dipertahankan |
+
+`calendar.url` **tidak** dihapus otomatis (feed pribadi, bukan bagian instalasi);
+uninstall mencetak perintah untuk menghapusnya secara manual.
+
+**Data pengguna tidak disentuh:** todo, air, rak, jadwal sholat, cuaca, kalender,
+standup, settings, timer tetap di `~/.local/share/dynamic-iland` dan
+`~/.config/dynamic-iland`. Untuk bersih total, hapus manual (dicetak di akhir).
+
+### Bukti: install → uninstall mengembalikan file persis
+
+Diuji di HOME palsu: pasang island, lalu cabut, lalu bandingkan dengan baseline
+bersih.
+
+| Berkas | Hasil |
+|---|---|
+| `ags/config.js` | SAMA |
+| `UserKeybinds.lua` | SAMA |
+| `waybar/style.css` | SAMA |
+| `swaync/config.json` | SAMA |
+| `swaync/style.css` | SAMA |
+
+5 dari 5 identik. Submap `island` **dan** `chat` hilang, menyisakan isi asli
+file. `--dry-run` tidak mengubah apa pun (md5 sama), dan `--keep-env`
+mempertahankan `.env` sementara `gemini.json` tetap dihapus.
 
 ### Prasyarat
 
