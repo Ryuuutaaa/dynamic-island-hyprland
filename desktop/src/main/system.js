@@ -189,19 +189,43 @@ const sysinfo = async () => {
     };
 };
 
-const platformSupport = () => ({
-    platform: platform(),
-    // Fitur yang memang hanya bisa di Linux Wayland/Hyprland.
-    features: {
-        layerShellNotch: false,      // tidak ada di Electron
-        hyprlandSubmap: false,
-        windowFollowsFocus: platform() !== 'linux' || !!process.env.WAYLAND_DISPLAY,
-        battery: platform() !== 'linux' || fs.existsSync('/sys/class/power_supply'),
-        volume: platform() !== 'win32',
-        brightness: platform() === 'linux',
-        notifications: true,
-    },
-});
+// Wayland menyembunyikan posisi absolut window dari klien, sehingga fitur
+// yang bergantung pada koordinat layar (memusatkan notch) tidak dapat
+// diandalkan.
+const isWayland = () => platform() === 'linux'
+    && (!!process.env.WAYLAND_DISPLAY || process.env.XDG_SESSION_TYPE === 'wayland');
+
+// Laporan kemampuan apa adanya. Setiap nilai di sini punya alasan teknis yang
+// bisa diperiksa, bukan tebakan: lebih baik UI menyembunyikan fitur daripada
+// menampilkan tombol yang tidak melakukan apa pun.
+const platformSupport = () => {
+    const os = platform();
+    return {
+        platform: os,
+        features: {
+            // Semua OS: jendela frameless always-on-top bisa dibuat.
+            overlayWindow: true,
+            // Notch menempel ke tepi bezel tanpa mengganggu aplikasi lain:
+            // hanya mungkin dengan layer-shell (Wayland). Di OS lain jendela
+            // biasa yang selalu di atas.
+            layerShellNotch: false,
+            // Memusatkan jendela sendiri: di Wayland klien tidak menentukan
+            // posisinya, jadi hasilnya bergantung compositor.
+            windowPositioning: !isWayland(),
+            battery: os !== 'linux' || fs.existsSync('/sys/class/power_supply'),
+            volume: os !== 'win32',
+            brightness: os === 'linux',
+            // Menyadap notifikasi aplikasi lain: hanya Linux (D-Bus).
+            captureNotifications: os === 'linux',
+            // Mengirim notifikasi keluar: tersedia di semua OS.
+            sendNotifications: true,
+            autostart: os === 'linux' || os === 'win32' || os === 'darwin',
+        },
+        notes: isWayland()
+            ? ['Wayland: posisi jendela ditentukan compositor, bukan aplikasi.']
+            : [],
+    };
+};
 
 module.exports = {
     run, platform, battery, volume, setVolume, brightness, notify,

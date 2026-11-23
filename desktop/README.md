@@ -153,6 +153,33 @@ Isi `.deb` diverifikasi: ikon terpasang di
 `/usr/share/applications/dynamic-island.desktop` valid dengan
 `StartupWMClass=Dynamic Island`.
 
+### Periksa kesiapan sebelum mencoba
+
+```bash
+pnpm check          # laporan manusia
+pnpm check --json   # keluaran mesin (untuk issue/CI)
+```
+
+`tools/doctor.mjs` memeriksa **tanpa perlu Electron berjalan**: versi Node,
+biner Electron, perkakas integrasi per OS (D-Bus, `notify-send`, `wpctl`,
+`brightnessctl`, `pmset`, `osascript`), izin `chrome-sandbox`, kelengkapan
+berkas sumber, dan logika waktu sholat.
+
+Tingkat kepentingan dibedakan: **wajib** (gagal = aplikasi tidak bisa jalan),
+**opsional** (fitur tertentu berkurang), **info** (keterangan platform).
+Karena `pnpm` punya perintah bawaan bernama `doctor`, skripnya dinamai
+`check`.
+
+Contoh keluaran di Linux/Wayland:
+
+```
+ok  Electron terpasang               45.4.1
+·   Wayland terdeteksi               ya (posisi jendela ditentukan compositor)
+ok  dbus-monitor (notifikasi masuk)  ada
+!   chrome-sandbox bisa dipakai      mode 755, uid 1000 — jalankan dengan --no-sandbox
+ok  Logika waktu sholat              Subuh 04:25
+```
+
 ### Catatan build
 
 - `author.email` **wajib** untuk target `.deb` (maintainer paket). Kalau

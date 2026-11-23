@@ -13,6 +13,8 @@
   "scripts": {
     "start": "electron .",
     "start:linux": "electron . --no-sandbox",
+    "check": "node tools/doctor.mjs",
+    "verify": "node tools/verify-core.mjs",
     "pack": "electron-builder --dir",
     "dist": "electron-builder",
     "dist:linux": "electron-builder --linux",
@@ -29,7 +31,7 @@
   "build": {
     "appId": "com.ryuuutaaa.dynamicisland",
     "productName": "Dynamic Island",
-    "copyright": "Copyright \u00a9 2026 Ryuuutaaa",
+    "copyright": "Copyright © 2026 Ryuuutaaa",
     "directories": {
       "output": "release",
       "buildResources": "build"
