@@ -14,9 +14,20 @@ import {
 
 let failures = 0;
 
+// Kegagalan dicetak dalam format annotation GitHub (`::error::`) supaya
+// terlihat di ringkasan run bahkan ketika log job tidak dapat diunduh
+// (API 403 untuk non-admin). Tanpa ini, kegagalan hanya berupa "exit 1".
+const annotate = message => {
+    if (process.env.GITHUB_ACTIONS === 'true')
+        console.log(`::error::${String(message).replace(/\n/g, ' ')}`);
+};
+
 const check = (label, actual, expected) => {
     const ok = JSON.stringify(actual) === JSON.stringify(expected);
-    if (!ok) failures += 1;
+    if (!ok) {
+        failures += 1;
+        annotate(`${label}: harap ${JSON.stringify(expected)}, dapat ${JSON.stringify(actual)}`);
+    }
     console.log(`${ok ? 'ok  ' : 'FAIL'} ${label}`);
     if (!ok) {
         console.log(`       harap: ${JSON.stringify(expected)}`);
@@ -25,7 +36,10 @@ const check = (label, actual, expected) => {
 };
 
 const expect = (label, condition, detail = '') => {
-    if (!condition) failures += 1;
+    if (!condition) {
+        failures += 1;
+        annotate(`${label}${detail ? ` — ${detail}` : ''}`);
+    }
     console.log(`${condition ? 'ok  ' : 'FAIL'} ${label}${detail ? ` — ${detail}` : ''}`);
 };
 
