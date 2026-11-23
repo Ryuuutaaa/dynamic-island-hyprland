@@ -33,7 +33,15 @@ const expect = (label, condition, detail = '') => {
 // Nilai acuan dari mesin pengembang (Denpasar, 22 Nov 2026). Identik dengan
 // modules/prayer-calc.js versi AGS.
 const DAY = new Date(2026, 10, 22);
-const LOCATION = { latitude: -8.65, longitude: 115.2167, method: 'kemenag' };
+// tzOffset dipatok ke +8 (WITA) supaya hasil tidak bergantung pada zona mesin.
+// Tanpa ini uji lolos di WITA tetapi gagal di CI yang berjalan di UTC
+// (terukur: Subuh 04:25 menjadi 20:25).
+const LOCATION = {
+    latitude: -8.65,
+    longitude: 115.2167,
+    method: 'kemenag',
+    tzOffset: 8,
+};
 const times = computeTimes(DAY, LOCATION);
 
 check('jumlah waktu sholat', times.times.length, 5);

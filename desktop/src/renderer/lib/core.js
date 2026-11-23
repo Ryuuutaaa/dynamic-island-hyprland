@@ -80,7 +80,12 @@ export function computeTimes(date, location = {}) {
     const method = METHODS[location.method] ?? METHODS.kemenag;
     const lat = Number(location.latitude ?? -8.65);
     const lng = Number(location.longitude ?? 115.2167);
-    const tz = -new Date(date.getFullYear(), date.getMonth(), date.getDate(), 12).getTimezoneOffset() / 60;
+    // Offset zona waktu dalam jam. Default: zona mesin. Uji dan pemakaian
+    // lintas zona bisa memaksa nilainya (mis. 8 untuk WITA) agar hasil tidak
+    // bergantung pada TZ lingkungan — CI berjalan di UTC.
+    const tz = Number.isFinite(Number(location.tzOffset))
+        ? Number(location.tzOffset)
+        : -new Date(date.getFullYear(), date.getMonth(), date.getDate(), 12).getTimezoneOffset() / 60;
 
     const jd = julian(date.getFullYear(), date.getMonth() + 1, date.getDate());
     const sun = sunPosition(jd);
