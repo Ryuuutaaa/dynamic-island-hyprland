@@ -113,3 +113,51 @@ dengan lebar sesuai config (kalender 522, sholat 584, chat 518, pengaturan 520),
 panah kiri dari lirik mengembalikan 468px, Escape menutup ke 150px, `Tab` masuk
 ke notch lalu nav, dan `prefers-reduced-motion` mempersingkat transisi ke
 1e-05s.
+
+## Deploy ke Netlify
+
+`netlify.toml` di root repositori sudah memuat semua pengaturan, jadi
+langkahnya hanya menyambungkan repositori. Tidak perlu mengisi build command
+atau publish directory lewat dashboard.
+
+| Pengaturan | Nilai | Kenapa |
+|---|---|---|
+| Base directory | `docs` | yang dipublikasikan hanya situs dokumentasi, bukan seluruh repo |
+| Build command | `pnpm generate` | `nitro.preset` diset `static`, jadi hasilnya HTML biasa |
+| Publish directory | `.output/public` | lokasi hasil `nuxt generate` |
+| `NODE_VERSION` | `22` | sama dengan CI dan lokal |
+| `NUXT_TELEMETRY_DISABLED` | `1` | build tidak bergantung pada layanan lain |
+
+Langkah:
+
+1. Netlify → **Add new site** → **Import an existing project** → GitHub.
+2. Pilih `Ryuuutaaa/dynamic-island-hyprland`. Tidak perlu mengubah apa pun;
+   `netlify.toml` sudah mengatur base, command, dan publish.
+3. Deploy. Build pertama meng-install dependency lalu menghasilkan
+   `.output/public` sekitar 1,2 MB.
+
+### Yang sudah diuji, bukan diasumsikan
+
+- **Fresh clone build.** Repositori di-clone bersih ke folder lain, lalu
+  dijalankan `pnpm install --frozen-lockfile` dan `pnpm generate` dari nol.
+  Berhasil tanpa langkah manual. Ini meniru kondisi Netlify yang tidak punya
+  `node_modules`.
+- **Rute.** `/`, `/fitur/`, `/demo/`, `/instalasi/` membalas 200 dengan dan
+  tanpa trailing slash. Path yang tidak ada membalas 404 lewat `404.html`.
+- **Aset.** `/_nuxt/*`, `/shots/*`, dan `/favicon.svg` membalas 200.
+- **Path absolut.** Hasil build tidak memuat `/home/...`, jadi aman dipindah ke
+  mesin lain.
+- **Lockfile.** `lockfileVersion: '9.0'`, kompatibel dengan pnpm 9 dan 10,
+  sehingga tidak bergantung pada versi pnpm default Netlify.
+- **`netlify.toml`** di-parse dengan `tomllib` dan dibaca ulang; tidak ada
+  aturan redirect karena Netlify otomatis memakai `404.html`.
+
+### Kalau deploy gagal
+
+- **`nuxt: not found`** berarti dependency belum ter-install. Pastikan base
+  directory benar-benar `docs` sehingga `pnpm-lock.yaml` ditemukan.
+- **Build kehabisan memori** jarang terjadi untuk situs ini (build lokal 5
+  detik), tapi kalau terjadi, set `NODE_OPTIONS=--max-old-space-size=2048`
+  di environment.
+- **Halaman 404 di setiap rute** biasanya karena publish directory salah
+  (terisi root repo, bukan `.output/public`).

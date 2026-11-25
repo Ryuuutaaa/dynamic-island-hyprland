@@ -1,0 +1,41 @@
+# Konfigurasi Netlify untuk situs dokumentasi (docs/).
+#
+# Repositori ini bukan situs di root: yang dipublikasikan hanya folder docs/.
+# `base` membuat Netlify menjalankan semua perintah di dalam docs/ dan
+# menerbitkan hasil generate, bukan seluruh repositori.
+#
+# Hasil `pnpm generate` ada di docs/.output/public (nitro preset: static),
+# jadi tidak ada server Node yang perlu dijalankan di produksi.
+
+[build]
+  base    = "docs"
+  command = "pnpm generate"
+  publish = ".output/public"
+
+# Node 22 dipakai CI dan lokal; situs ini tidak butuh versi lain.
+[build.environment]
+  NODE_VERSION = "22"
+  # Nuxt/Nitro menjalankan telemetry secara default. Dimatikan supaya build
+  # tidak bergantung pada jaringan ke layanan lain.
+  NUXT_TELEMETRY_DISABLED = "1"
+
+# Tidak ada aturan redirect. Netlify otomatis memakai 404.html untuk path yang
+# tidak ada (dikonfirmasi di dokumentasi "Custom 404 page handling"), sehingga
+# aturan splat /* -> /404.html hanya menambah risiko membayangi berkas asli.
+
+[[headers]]
+  for = "/_nuxt/*"
+  [headers.values]
+    # Nama berkas sudah ber-hash, jadi aman di-cache lama.
+    Cache-Control = "public, max-age=31536000, immutable"
+
+[[headers]]
+  for = "/shots/*"
+  [headers.values]
+    Cache-Control = "public, max-age=604800"
+
+[[headers]]
+  for = "/*"
+  [headers.values]
+    X-Content-Type-Options = "nosniff"
+    Referrer-Policy = "strict-origin-when-cross-origin"
